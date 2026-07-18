@@ -26,8 +26,13 @@ serve(async (req) => {
   }
 
   try {
-    // Public endpoint: intended for uptime monitors (UptimeRobot, BetterStack, etc).
-    // Returns only non-sensitive aggregate status — no secret values, no row data.
+    const expectedToken = Deno.env.get('HEALTH_CHECK_TOKEN') ?? '';
+    const suppliedToken = req.headers.get('authorization') ?? '';
+    if (!expectedToken || suppliedToken !== `Bearer ${expectedToken}`) {
+      return new Response(JSON.stringify({ error: 'unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -38,7 +43,6 @@ serve(async (req) => {
       service: string;
       status: string;
       responseTime?: number;
-      error?: string;
     }> = [];
 
     // Database health check
@@ -49,35 +53,17 @@ serve(async (req) => {
         service: 'database',
         status: error ? 'unhealthy' : 'healthy',
         responseTime: performance.now() - t0,
-        error: error?.message,
       });
     } catch (error) {
       healthChecks.push({
         service: 'database',
         status: 'unhealthy',
-        error: (error as Error).message,
-      });
-    }
-
-    // External provider readiness — just verify secret presence (avoids quota burn).
-    const apiChecks = [
-      { name: 'CommodityPriceAPI', key: 'COMMODITYPRICE_API_KEY' },
-      { name: 'OilPriceAPI', key: 'OIL_PRICE_API_KEY' },
-      { name: 'Alpha Vantage', key: 'ALPHA_VANTAGE_API_KEY' },
-      { name: 'FRED API', key: 'FRED_API_KEY' },
-    ];
-
-    for (const apiCheck of apiChecks) {
-      const apiKey = Deno.env.get(apiCheck.key);
-      healthChecks.push({
-        service: apiCheck.name,
-        status: apiKey ? 'configured' : 'not_configured',
       });
     }
 
     // Overall health status
     const overallStatus = healthChecks.every(
-      (check) => check.status === 'healthy' || check.status === 'configured'
+      (check) => check.status === 'healthy'
     )
       ? 'healthy'
       : 'degraded';

@@ -21,7 +21,6 @@ const APIComparison = () => {
     dairy: 0,
     softs: 0,
     industrials: 0,
-    emissions: 0,
     other: 0
   };
 

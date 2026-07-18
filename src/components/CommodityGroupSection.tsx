@@ -34,8 +34,6 @@ const getGroupIcon = (category: string) => {
       return <Beef className="w-5 h-5" />;
     case 'softs':
       return <Coffee className="w-5 h-5" />;
-    case 'emissions':
-      return <Zap className="w-5 h-5" />;
     case 'other':
       return <Package className="w-5 h-5" />;
     default:
@@ -55,8 +53,6 @@ const getGroupColor = (category: string) => {
       return 'bg-red-500/10 text-red-600 dark:text-red-400';
     case 'softs':
       return 'bg-purple-500/10 text-purple-600 dark:text-purple-400';
-    case 'emissions':
-      return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
     case 'other':
       return 'bg-gray-500/10 text-gray-600 dark:text-gray-400';
     default:

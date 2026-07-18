@@ -14,14 +14,6 @@ export const COMMODITY_SYMBOLS: Record<string, CommoditySymbol> = {
   'Gasoline RBOB': { symbol: 'RB=F', category: 'energy', contractSize: '42,000 gal', venue: 'NYMEX' },
   'Heating Oil': { symbol: 'HO=F', category: 'energy', contractSize: '42,000 gal', venue: 'NYMEX' },
 
-  // ============ EMISSIONS — CME voluntary carbon offsets (Premium) ============
-  // ICE compliance markets (EUA/UKA/CCA/RGGI) unavailable — Massive is CME-only.
-  // These CBL voluntary offset contracts are thinly traded; surface with a
-  // "low liquidity" disclaimer in the UI.
-  'CBL GEO': { symbol: 'GEO=F', category: 'emissions', contractSize: '1,000 mtCO2e', venue: 'NYMEX' },
-  'CBL N-GEO': { symbol: 'NGO=F', category: 'emissions', contractSize: '1,000 mtCO2e', venue: 'NYMEX' },
-  'CBL C-GEO': { symbol: 'CGO=F', category: 'emissions', contractSize: '1,000 mtCO2e', venue: 'NYMEX' },
-
   // ============ METALS — Free (FMP) ============
   'Gold Futures': { symbol: 'GC=F', category: 'metals', contractSize: '100 oz', venue: 'COMEX' },
   'Silver Futures': { symbol: 'SI=F', category: 'metals', contractSize: '5,000 oz', venue: 'COMEX' },
@@ -118,10 +110,6 @@ export const MASSIVE_PRODUCT_CODES: Record<string, string> = {
   'Cash-Settled Cheese': 'CSC',
   // Lumber (CME)
   'Lumber Futures': 'LBR',
-  // Emissions (NYMEX / CBL voluntary offsets)
-  'CBL GEO': 'GEO',
-  'CBL N-GEO': 'NGO',
-  'CBL C-GEO': 'CGO',
 };
 
 /**
@@ -158,8 +146,6 @@ export const PREMIUM_COMMODITIES = new Set<string>([
   'Feeder Cattle',
   // Dairy — all premium
   'Class III Milk', 'Dry Whey', 'Cash-Settled Butter', 'Nonfat Dry Milk', 'Cash-Settled Cheese',
-  // Emissions — all premium (voluntary offsets, low liquidity)
-  'CBL GEO', 'CBL N-GEO', 'CBL C-GEO',
 ]);
 
 export function isPremiumCommodity(name: string): boolean {
@@ -189,9 +175,6 @@ export const CATEGORY_MAPPINGS: Record<string, string[]> = {
   ],
   industrials: [
     'Lumber Futures',
-  ],
-  emissions: [
-    'CBL GEO', 'CBL N-GEO', 'CBL C-GEO',
   ],
 };
 

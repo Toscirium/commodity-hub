@@ -12,6 +12,7 @@ import SEOHead from '@/components/SEOHead';
 import Dashboard from '@/pages/Dashboard';
 import Auth from '@/pages/Auth';
 import BillingStatusBanner from '@/components/BillingStatusBanner';
+import Today from '@/pages/Today';
 
 // Lazy-load every non-critical route so initial Dashboard paint stays fast
 // and route transitions only fetch what they need.
@@ -53,6 +54,9 @@ const PortfolioAnalytics = lazy(() => import('@/pages/PortfolioAnalytics'));
 const Backtest = lazy(() => import('@/pages/Backtest'));
 const Fundamentals = lazy(() => import('@/pages/Fundamentals'));
 const OptionsChain = lazy(() => import('@/pages/OptionsChain'));
+const ProAnalyticsWorkspace = lazy(() => import('@/pages/ProAnalyticsWorkspace'));
+const DataExports = lazy(() => import('@/pages/DataExports'));
+const StressTest = lazy(() => import('@/pages/StressTest'));
 
 const RouteFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -81,6 +85,7 @@ const App = () => {
               <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/today" element={<Today />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
@@ -109,6 +114,7 @@ const App = () => {
                 <Route path="/watchlists" element={<Watchlists />} />
                 <Route path="/delete-account" element={<DeleteAccount />} />
                 <Route path="/account-settings" element={<AccountSettings />} />
+                <Route path="/exports" element={<DataExports />} />
                 <Route path="/account" element={<AccountSettings />} />
                 <Route path="/settings" element={<AccountSettings />} />
                 <Route path="/billing" element={<AccountSettings />} />
@@ -136,10 +142,12 @@ const App = () => {
                 <Route path="/daily-brief" element={<DailyBrief />} />
                 <Route path="/regime-scanner" element={<RegimeScanner />} />
                 <Route path="/portfolio-analytics" element={<PortfolioAnalytics />} />
+                <Route path="/stress-test" element={<StressTest />} />
                 <Route path="/backtest" element={<Backtest />} />
                 <Route path="/fundamentals" element={<Fundamentals />} />
                 <Route path="/options" element={<OptionsChain />} />
                 <Route path="/options-chain" element={<OptionsChain />} />
+                <Route path="/pro-analytics" element={<ProAnalyticsWorkspace />} />
                 <Route path="/admin/catalog-audit" element={<CatalogAudit />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

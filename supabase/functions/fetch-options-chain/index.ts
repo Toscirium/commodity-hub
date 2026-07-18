@@ -12,6 +12,7 @@
 
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { z } from 'npm:zod@3.23.8';
+import { IpRateLimiter, tooManyRequestsResponse } from '../_shared/rateLimit.ts';
 
 // CME "webId" (productId) for options products on the underlying futures.
 // Sourced from cmegroup.com quote widgets. If CME rotates these, the
@@ -54,6 +55,7 @@ type ChainPayload = {
 
 const cache = new Map<string, { at: number; data: unknown }>();
 const TTL_MS = 6 * 60 * 60 * 1000; // 6h — settlements are daily
+const limiter = new IpRateLimiter({ limit: 30, windowMs: 60_000 });
 
 async function cmeFetch(url: string, timeoutMs = 8000): Promise<any | null> {
   try {
@@ -135,6 +137,13 @@ async function fetchChain(productId: number, expCode: string): Promise<{
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  const rateLimit = limiter.check(IpRateLimiter.getClientIp(req));
+  if (!rateLimit.allowed) return tooManyRequestsResponse(rateLimit, corsHeaders);
   try {
     const parsed = BodySchema.safeParse(await req.json().catch(() => ({})));
     if (!parsed.success) {

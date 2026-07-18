@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, FileText, Shield, Trash2, User } from 'lucide-react';
+import { ArrowLeft, Bell, Download, FileText, Shield, Trash2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -64,6 +64,11 @@ const AccountSettings: React.FC = () => {
               <Badge variant={isPremium ? 'default' : 'secondary'} className="capitalize">{tier}</Badge>
             </div>
           </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>Data</CardTitle><CardDescription>Download your workspace and manage Pro API access.</CardDescription></CardHeader>
+          <CardContent><Button variant="outline" className="justify-start" asChild><Link to="/exports"><Download className="mr-2 h-4 w-4" />Exports & Data API</Link></Button></CardContent>
         </Card>
 
         <Card>

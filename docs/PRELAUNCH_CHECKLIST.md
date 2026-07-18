@@ -84,7 +84,7 @@ Last refreshed: 2026-06-24. Tick each item before promoting a build to Google Pl
 - [ ] `/privacy-policy` reflects current data collection (Supabase, FMP, OilPriceAPI, RevenueCat, FCM)
 - [ ] `/terms-of-service` reviewed for current monetization model
 - [ ] Financial disclaimer visible ("not financial advice")
-- [ ] GDPR: account deletion flow (`/delete-account`) purges all 13 user tables
+- [ ] Verify the deployed account-deletion flow (`/delete-account`) purges all applicable user data
 - [ ] GDPR: data export available on request (documented in privacy policy)
 - [ ] Cookie / storage notice covers `localStorage` encrypted credentials
 - [ ] Third-party licenses page or attribution screen present

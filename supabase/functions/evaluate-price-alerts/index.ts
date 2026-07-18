@@ -84,6 +84,9 @@ serve(async (req) => {
       .maybeSingle();
     const spreadRows = ((spreadSnap?.payload as { rows?: Array<{ id: string; label: string; current?: number; zScore?: number; tag?: string }> })?.rows) ?? [];
     const spreadById = new Map(spreadRows.map((r) => [r.id, r] as const));
+    const { data: carrySnap } = await supabase.from('analytics_snapshots').select('payload').eq('kind', 'roll_scanner').eq('key', 'all').maybeSingle();
+    const carryRows = ((carrySnap?.payload as { results?: Array<{ id: string; label: string; annualizedRoll?: number; structure?: string }> })?.results) ?? [];
+    const carryById = new Map(carryRows.map((r) => [r.id, r] as const));
 
     const now = Date.now();
     let fired = 0;
@@ -128,6 +131,31 @@ serve(async (req) => {
         triggeredPrice = row.current ?? null;
         subject = row.label;
         bodyText = `${row.label} z-score at ${z.toFixed(2)} (${row.tag ?? "extreme"}). Current ${row.current?.toFixed(2)}`;
+      } else if (alertType === "spread_signal") {
+        const cfg = (alert.config ?? {}) as { spread_id?: string; z_threshold?: number; direction?: string };
+        const row = cfg.spread_id ? spreadById.get(cfg.spread_id) : null;
+        if (!row || typeof row.zScore !== 'number' || typeof cfg.z_threshold !== 'number') continue;
+        crossed = cfg.direction === 'rich' ? row.zScore >= cfg.z_threshold : cfg.direction === 'cheap' ? row.zScore <= -cfg.z_threshold : Math.abs(row.zScore) >= cfg.z_threshold;
+        if (!crossed) continue;
+        triggeredPrice = row.current ?? null; subject = row.label;
+        bodyText = `${row.label} is historically stretched: z-score ${row.zScore.toFixed(2)} (${row.tag ?? 'signal'}).`;
+      } else if (alertType === "carry_signal") {
+        const cfg = (alert.config ?? {}) as { product_id?: string; annualized_threshold?: number; direction?: string };
+        const row = cfg.product_id ? carryById.get(cfg.product_id) : null;
+        if (!row || typeof row.annualizedRoll !== 'number' || typeof cfg.annualized_threshold !== 'number') continue;
+        crossed = cfg.direction === 'contango' ? row.annualizedRoll >= cfg.annualized_threshold : cfg.direction === 'backwardation' ? row.annualizedRoll <= -cfg.annualized_threshold : Math.abs(row.annualizedRoll) >= cfg.annualized_threshold;
+        if (!crossed) continue;
+        triggeredPrice = row.annualizedRoll; subject = row.label;
+        bodyText = `${row.label} carry is ${row.annualizedRoll.toFixed(1)}% annualized (${row.structure ?? 'curve signal'}).`;
+      } else if (alertType === "seasonality_signal") {
+        const cfg = (alert.config ?? {}) as { commodity?: string; min_avg_return?: number; min_hit_rate?: number };
+        if (!cfg.commodity) continue;
+        const { data: snap } = await supabase.from('pro_analytics_cache').select('payload').eq('key', `seasonality:${cfg.commodity}`).maybeSingle();
+        const months = (snap?.payload as { months?: Array<{ month: number; avgReturn: number; hitRate: number }> } | null)?.months ?? [];
+        const stat = months.find((m) => m.month === new Date().getUTCMonth() + 1);
+        if (!stat || (typeof cfg.min_avg_return === 'number' && stat.avgReturn < cfg.min_avg_return) || (typeof cfg.min_hit_rate === 'number' && stat.hitRate < cfg.min_hit_rate)) continue;
+        crossed = true; triggeredPrice = stat.avgReturn; subject = cfg.commodity;
+        bodyText = `${cfg.commodity} seasonal signal: ${stat.avgReturn.toFixed(2)}% average return with ${(stat.hitRate * 100).toFixed(0)}% hit rate this month.`;
       } else {
         // volatility_band / news_keyword handled elsewhere or not yet implemented
         continue;

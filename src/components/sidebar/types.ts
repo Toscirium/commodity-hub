@@ -6,7 +6,6 @@ export interface CommodityCounts {
   dairy: number;
   softs: number;
   industrials: number;
-  emissions: number;
 }
 
 export interface CommodityGroup {

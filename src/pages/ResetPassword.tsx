@@ -14,7 +14,10 @@ const ResetPassword = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isResetMode, setIsResetMode] = useState(false);
+  const [isResetMode, setIsResetMode] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return Boolean(params.get('code') || (params.get('type') === 'recovery' && params.get('access_token')));
+  });
   const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
     password: '',
@@ -26,21 +29,42 @@ const ResetPassword = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if we have password reset tokens in the URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const accessToken = urlParams.get('access_token');
-    const refreshToken = urlParams.get('refresh_token');
-    const type = urlParams.get('type');
+    let cancelled = false;
+    const establishRecoverySession = async () => {
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get('code');
+      const type = url.searchParams.get('type');
+      const accessToken = url.searchParams.get('access_token');
+      const refreshToken = url.searchParams.get('refresh_token');
 
-    if (type === 'recovery' && accessToken && refreshToken) {
-      setIsResetMode(true);
-      // Set the session with the tokens from the URL
-      supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
-    }
-  }, []);
+      try {
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+        } else if (type === 'recovery' && accessToken && refreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          if (error) throw error;
+        } else {
+          return;
+        }
+
+        // Recovery credentials must never remain in browser history or be
+        // included in future navigations/referrers.
+        window.history.replaceState({}, document.title, '/reset-password');
+        if (!cancelled) setIsResetMode(true);
+      } catch {
+        if (!cancelled) {
+          setIsResetMode(false);
+          toast({ title: 'Invalid recovery link', description: 'Request a new password-reset email and try again.', variant: 'destructive' });
+        }
+      }
+    };
+    void establishRecoverySession();
+    return () => { cancelled = true; };
+  }, [toast]);
 
   // Redirect if already authenticated and not in reset mode
   if (user && !authLoading && !isResetMode) {
@@ -76,10 +100,10 @@ const ResetPassword = () => {
       return;
     }
 
-    if (formData.password.length < 6) {
+    if (formData.password.length < 8) {
       toast({
         title: "Validation Error",
-        description: "Password must be at least 6 characters long",
+        description: "Password must be at least 8 characters long",
         variant: "destructive",
       });
       return;
@@ -204,7 +228,7 @@ const ResetPassword = () => {
                     value={formData.password}
                     onChange={handleInputChange}
                     required
-                    minLength={6}
+                    minLength={8}
                     className="pr-10 transition-all duration-200 focus:scale-[1.02]"
                   />
                   <Button

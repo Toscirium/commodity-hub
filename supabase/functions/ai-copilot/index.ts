@@ -15,7 +15,7 @@ const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
 const BodySchema = z.object({
-  messages: z.array(z.any()),
+  messages: z.array(z.object({ role: z.string(), parts: z.array(z.unknown()) }).passthrough()).min(1).max(20),
   threadId: z.string().uuid(),
 });
 
@@ -72,6 +72,11 @@ Deno.serve(async (req) => {
     const userId = userData.user.id;
 
     const body = await req.json();
+    if (JSON.stringify(body).length > 60_000) {
+      return new Response(JSON.stringify({ error: 'Request too large' }), {
+        status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
     const parsed = BodySchema.safeParse(body);
     if (!parsed.success) {
       return new Response(JSON.stringify({ error: "Invalid request" }), {
@@ -119,6 +124,16 @@ Deno.serve(async (req) => {
     // Detect Pro tier to expose extra grounding tools.
     const { data: tierData } = await admin.rpc('get_user_tier', { _user_id: userId });
     const isPro = tierData === 'pro';
+    const { data: quotaAllowed, error: quotaError } = await admin.rpc('consume_ai_request_quota', {
+      _user_id: userId,
+      _limit: isPro ? 200 : 30,
+    });
+    if (quotaError) throw quotaError;
+    if (!quotaAllowed) {
+      return new Response(JSON.stringify({ error: 'Daily AI request limit reached' }), {
+        status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '3600' },
+      });
+    }
 
     const baseTools = {
       get_portfolio: tool({

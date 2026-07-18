@@ -10,12 +10,14 @@ const PREMIUM_ENTITLEMENT = 'premium';
 const PRO_ENTITLEMENT = 'pro';
 
 interface RCEvent {
+  id?: string;
   type: string;
   app_user_id: string;
   original_app_user_id?: string;
   entitlement_ids?: string[] | null;
   expiration_at_ms?: number | null;
   environment?: string;
+  event_timestamp_ms?: number;
 }
 
 interface RCPayload {
@@ -57,7 +59,7 @@ Deno.serve(async (req) => {
   }
 
   const event = payload?.event;
-  if (!event?.type || !event.app_user_id) {
+  if (!event?.id || !event?.type || !event.app_user_id || !event.event_timestamp_ms) {
     return new Response('Invalid event', { status: 400, headers: corsHeaders });
   }
 
@@ -87,6 +89,25 @@ Deno.serve(async (req) => {
   );
 
   const userId = event.app_user_id;
+  const eventAt = new Date(event.event_timestamp_ms).toISOString();
+  if (Number.isNaN(Date.parse(eventAt))) {
+    return new Response('Invalid event', { status: 400, headers: corsHeaders });
+  }
+  const { error: eventError } = await supabase.from('billing_webhook_events').insert({
+    provider_event_id: event.id,
+    user_id: userId,
+    occurred_at: eventAt,
+  });
+  if (eventError?.code === '23505') {
+    return new Response(JSON.stringify({ ok: true, duplicate: true }), {
+      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  if (eventError) {
+    return new Response(JSON.stringify({ error: 'event_record_failed' }), {
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
   const subscriptionEnd = event.expiration_at_ms
     ? new Date(event.expiration_at_ms).toISOString()
     : null;
@@ -138,6 +159,22 @@ Deno.serve(async (req) => {
     });
   }
 
+  const { data: currentProfile, error: currentProfileError } = await supabase
+    .from('profiles')
+    .select('billing_event_at')
+    .eq('id', userId)
+    .maybeSingle();
+  if (currentProfileError) {
+    return new Response(JSON.stringify({ error: 'profile_lookup_failed' }), {
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  if (currentProfile?.billing_event_at && new Date(currentProfile.billing_event_at) > new Date(eventAt)) {
+    return new Response(JSON.stringify({ ok: true, stale: true }), {
+      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+  update.billing_event_at = eventAt;
   const { data: updated, error } = await supabase
     .from('profiles')
     .update(update)

@@ -48,15 +48,16 @@ serve(async (req) => {
     }
 
     // Defence-in-depth: filter premium for free callers even if upstream slips.
+    const verifiedData = commoditiesData.filter((c) => !c.isSynthetic && Number.isFinite(c.price) && c.price > 0);
     const filteredData = isPremium
-      ? commoditiesData
-      : commoditiesData.filter((c) => !PREMIUM_COMMODITIES.has(c.name));
+      ? verifiedData
+      : verifiedData.filter((c) => !PREMIUM_COMMODITIES.has(c.name));
 
     const enriched = filteredData.map((c) => ({
       ...c,
       volume: c.volume ?? 0,
       supportedByFMP: false,
-      source: c.price > 0 ? 'live' : 'static',
+      source: 'commodity-service',
     }));
 
     const currentTimestamp = dataDelay === '15min'

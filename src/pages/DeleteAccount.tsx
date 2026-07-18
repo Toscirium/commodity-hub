@@ -49,31 +49,21 @@ const DeleteAccount = () => {
   const handleDeleteRequest = async () => {
     setDeleting(true);
     try {
-      // Delete user data from all user-owned tables
-      const userId = user?.id;
-      if (!userId) throw new Error('No user found');
+      const { data, error } = await supabase.functions.invoke('delete-account');
+      if (error) {
+        const status = (error as { context?: Response }).context?.status;
+        if (status === 409 || data?.error === 'cancel_subscription_first') {
+          throw new Error('Cancel your subscription through the app store before deleting your account.');
+        }
+        throw new Error('We could not delete your account. Please try again or contact support.');
+      }
+      if (!data?.ok) throw new Error('We could not delete your account. Please try again or contact support.');
 
-      // Delete user data from all tables in parallel
-      await Promise.allSettled([
-        supabase.from('portfolio_positions').delete().eq('user_id', userId),
-        supabase.from('price_comparisons').delete().eq('user_id', userId),
-        supabase.from('recent_activities').delete().eq('user_id', userId),
-        supabase.from('sentiment_votes').delete().eq('user_id', userId),
-        supabase.from('user_favorites').delete().eq('user_id', userId),
-      ]);
-
-      // Delete profile
-      await supabase.from('profiles').delete().eq('id', userId);
-      
-      // Delete subscriber record
-      await supabase.from('subscribers').delete().eq('user_id', userId);
-
-      // Sign out the user (account deletion from auth.users requires admin/service role)
       await auth?.signOut();
 
       toast({
-        title: 'Account data deleted',
-        description: 'Your data has been removed. Your authentication account will be fully purged within 30 days. Contact support@commodityhub.com if you need immediate removal.',
+        title: 'Account deleted',
+        description: 'Your account and associated application data have been deleted.',
       });
 
       navigate('/');
@@ -122,7 +112,7 @@ const DeleteAccount = () => {
                   <li>Trading history and orders will be removed</li>
                   <li>Watchlists, favorites, and saved comparisons will be lost</li>
                   <li>Forum posts and community contributions will be removed</li>
-                  <li>Your subscription will be cancelled</li>
+              <li>Cancel an active subscription through the app store before deletion</li>
                 </ul>
               </div>
             </div>

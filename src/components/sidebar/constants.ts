@@ -1,4 +1,4 @@
-import { Zap, Coins, Wheat, Beef, Milk, Briefcase, BarChart3, Star, Filter, Calendar, Lightbulb, GraduationCap, Users, Activity, Factory, Calculator, Bell, TrendingUp, GitCompare, ArrowUpDown, Gauge, Layers, Bot, Leaf, CalendarRange, GitCompareArrows, Sparkles, Radar, PieChart, FlaskConical, Droplets } from "lucide-react";
+import { Zap, Coins, Wheat, Beef, Milk, Briefcase, BarChart3, Star, Filter, Calendar, Lightbulb, GraduationCap, Users, Activity, Factory, Calculator, Bell, TrendingUp, GitCompare, ArrowUpDown, Gauge, Layers, Bot, CalendarRange, GitCompareArrows, Sparkles, Radar, PieChart, FlaskConical, Droplets } from "lucide-react";
 import { CommodityGroup, MarketTool } from "./types";
 
 export const COMMODITY_GROUPS: CommodityGroup[] = [
@@ -8,7 +8,6 @@ export const COMMODITY_GROUPS: CommodityGroup[] = [
   { id: "livestock", label: "Livestock", icon: Beef, color: "text-muted-foreground" },
   { id: "dairy", label: "Dairy", icon: Milk, color: "text-muted-foreground" },
   { id: "industrials", label: "Industrials", icon: Factory, color: "text-muted-foreground" },
-  { id: "emissions", label: "Emissions", icon: Leaf, color: "text-muted-foreground" },
 ];
 
 export const MARKET_TOOLS: MarketTool[] = [
@@ -24,6 +23,7 @@ export const MARKET_TOOLS: MarketTool[] = [
 ];
 
 export const PRO_TOOLS: MarketTool[] = [
+  { id: "pro-analytics", label: "Analytics Workspace", icon: BarChart3, color: "text-foreground", path: "/pro-analytics" },
   { id: "daily-brief", label: "Daily Brief", icon: Sparkles, color: "text-foreground", path: "/daily-brief" },
   { id: "seasonality", label: "Seasonality", icon: CalendarRange, color: "text-foreground", path: "/seasonality" },
   { id: "spread-monitor", label: "Spread Monitor", icon: GitCompareArrows, color: "text-foreground", path: "/spread-monitor" },

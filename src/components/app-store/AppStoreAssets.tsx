@@ -28,33 +28,33 @@ export const PLAY_STORE_SCREENSHOTS = {
   phone: [
     {
       url: '/screenshots/phone-dashboard.png',
-      description: 'Real-time commodity dashboard with price alerts and market data'
+      description: 'Live WTI, Brent, and natural-gas prices with market-data labels'
     },
     {
       url: '/screenshots/phone-charts.png', 
-      description: 'Interactive price charts with technical analysis tools'
+      description: 'Live metal commodity prices with market-status and source labels'
     },
     {
       url: '/screenshots/phone-portfolio.png',
-      description: 'Portfolio tracking and performance analytics'
+      description: 'Commodity portfolio overview with position-management controls'
     },
     {
       url: '/screenshots/phone-news.png',
-      description: 'Latest market news and expert insights'
+      description: 'Pro Daily Brief upgrade screen for market dislocations and seasonal signals'
     },
     {
       url: '/screenshots/phone-comparison.png',
-      description: 'Side-by-side commodity price comparison'
+      description: 'Market screener with commodity, price, change, and category filters'
     }
   ],
   tablet: [
     {
       url: '/screenshots/tablet-dashboard.png',
-      description: 'Full-featured dashboard optimized for tablets'
+      description: 'Live commodity dashboard optimized for tablets'
     },
     {
       url: '/screenshots/tablet-analysis.png',
-      description: 'Advanced market analysis and screening tools'
+      description: 'Pro analytics workspace for market regimes, spreads, and curve research'
     }
   ]
 };

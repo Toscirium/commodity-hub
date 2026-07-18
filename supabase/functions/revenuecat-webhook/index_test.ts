@@ -67,10 +67,12 @@ const eventFor = (
   extra: Record<string, unknown> = {},
 ) => ({
   event: {
+    id: crypto.randomUUID(),
     type,
     app_user_id: userId,
     entitlement_ids: ['premium'],
     expiration_at_ms: Date.now() + 30 * 24 * 60 * 60 * 1000,
+    event_timestamp_ms: Date.now(),
     ...extra,
   },
 });
@@ -113,8 +115,10 @@ Deno.test('ignores non-premium entitlement events', async () => {
   const res = await post({
     event: {
       type: 'INITIAL_PURCHASE',
+      id: crypto.randomUUID(),
       app_user_id: 'irrelevant',
       entitlement_ids: ['some_other_tier'],
+      event_timestamp_ms: Date.now(),
     },
   });
   assertEquals(res.status, 200);

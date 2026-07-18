@@ -74,92 +74,6 @@ const COMMODITY_SYMBOLS: Record<string, string> = {
   'Random Length Lumber': 'LBS=F',
 };
 
-// NOTE: We never synthesize OHLC — fallback / mock data is always close-only.
-// Real candlesticks require true open/high/low/close from a provider, which is
-// only available from CommodityPriceAPI's daily timeseries for some symbols.
-const generateFallbackData = (commodityName: string, timeframe: string, basePrice: number, isPremium: boolean = false, _chartType: string = 'line') => {
-  const dataPoints = isPremium 
-    ? (timeframe === '1d' ? 48 : timeframe === '1m' ? 60 : timeframe === '3m' ? 180 : timeframe === '6m' ? 365 : 730)
-    : (timeframe === '1d' ? 24 : timeframe === '1m' ? 30 : timeframe === '3m' ? 90 : timeframe === '6m' ? 180 : 365);
-  const data: any[] = [];
-  const now = new Date();
-  
-  let currentPrice = basePrice;
-  
-  const isEnergy = commodityName.includes('Oil') || commodityName.includes('Gas') || 
-    commodityName.includes('Fuel') || commodityName.includes('Diesel') || 
-    commodityName.includes('VLSFO') || commodityName.includes('HFO') || commodityName.includes('MGO');
-  const isAgri = commodityName.includes('Futures') || commodityName.includes('Corn') || commodityName.includes('Soybean');
-  
-  let volatility: number;
-  if (isEnergy) {
-    volatility = basePrice * (timeframe === '1d' ? 0.03 : timeframe === '1m' ? 0.05 : timeframe === '3m' ? 0.08 : 0.15);
-  } else if (isAgri) {
-    volatility = basePrice * (timeframe === '1d' ? 0.02 : timeframe === '1m' ? 0.04 : timeframe === '3m' ? 0.07 : 0.12);
-  } else {
-    volatility = basePrice * (timeframe === '1d' ? 0.015 : timeframe === '1m' ? 0.03 : timeframe === '3m' ? 0.05 : 0.1);
-  }
-  
-  const trendDirection = Math.random() > 0.5 ? 1 : -1;
-  const trendStrength = 0.0007;
-  
-  for (let i = dataPoints - 1; i >= 0; i--) {
-    let date: Date;
-    if (timeframe === '1d') {
-      date = new Date(now.getTime() - (i * 60 * 60 * 1000));
-    } else {
-      date = new Date(now.getTime() - (i * 24 * 60 * 60 * 1000));
-    }
-    
-    const randomChange = (Math.random() - 0.5) * volatility * 2;
-    const trendComponent = trendDirection * trendStrength * basePrice * (dataPoints - i);
-    const meanReversionComponent = (basePrice - currentPrice) * 0.01;
-    
-    // Add cyclical patterns for longer timeframes
-    let cycleFactor = 0;
-    if (timeframe === '3m' || timeframe === '6m' || timeframe === '1y') {
-      cycleFactor = Math.sin((i / dataPoints) * Math.PI * 4) * 0.02 * basePrice;
-    }
-    
-    currentPrice += randomChange + trendComponent + meanReversionComponent + cycleFactor;
-    currentPrice = Math.max(basePrice * 0.7, Math.min(basePrice * 1.3, currentPrice));
-    
-    let decimals = 2;
-    if (basePrice >= 1000) decimals = 0;
-    else if (basePrice >= 100) decimals = 1;
-
-    data.push({
-      date: date.toISOString(),
-      price: Math.round(currentPrice * Math.pow(10, decimals)) / Math.pow(10, decimals),
-    });
-  }
-  
-  return data.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-};
-
-const getBasePriceForCommodity = (commodityName: string): number => {
-  const basePrices: Record<string, number> = {
-    'WTI Crude Oil': 65, 'Brent Crude Oil': 70, 'Natural Gas': 2.85,
-    'Gasoline RBOB': 2.1, 'Heating Oil': 2.3, 'Natural Gas UK': 90,
-    'Crude Oil Dubai': 64, 'Tapis Crude Oil': 68, 'Urals Crude Oil': 62,
-    'Western Canadian Select': 55, 'Jet Fuel': 2.5, 'ULSD Diesel': 2.4,
-    'Dutch TTF Gas': 28, 'Japan/Korea LNG': 15.50, 'US Gas Storage': 2.85,
-    'VLSFO Global': 550, 'HFO 380 Global': 400, 'MGO 0.5%S Global': 700,
-    'HFO 380 Rotterdam': 410, 'VLSFO Singapore': 560, 'MGO Houston': 720,
-    'VLSFO Fujairah': 570,
-    'Gold Futures': 2000, 'Silver Futures': 25, 'Platinum': 1050,
-    'Palladium': 1200, 'Copper': 4.2, 'Aluminum': 2200, 'Zinc': 2800,
-    'Corn Futures': 430, 'Soybean Futures': 1150,
-    'Soybean Oil': 45, 'Soybean Meal': 315, 'Oat Futures': 385, 'Rough Rice': 16.25,
-    'Live Cattle Futures': 170, 'Feeder Cattle Futures': 240,
-    'Lean Hogs Futures': 75, 'Milk Class III': 20.85,
-    'Coffee Arabica': 165, 'Sugar #11': 19.75, 'Cotton': 72.80,
-    'Cocoa': 2850, 'Orange Juice': 315,
-    'Lumber Futures': 485, 'Random Length Lumber': 485,
-  };
-  return basePrices[commodityName] || 100;
-};
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -238,7 +152,7 @@ serve(async (req) => {
     }
 
     let historicalData = null
-    let dataSourceUsed = 'fallback';
+    let dataSourceUsed = 'unavailable';
     let ohlcAvailable = false;
 
     // Step 1: Massive daily aggs — sole source for every commodity in the catalog.
@@ -310,92 +224,29 @@ serve(async (req) => {
 
     // Step 2b: (legacy fallback layer removed — FMP is now the sole non-energy source)
 
-    // Step 3: Use fallback data if both APIs failed
+    // A chart without a provider response is unavailable; never synthesize a
+    // plausible time series or contract adjustment.
     if (!historicalData) {
-      console.log(`Using fallback data for ${commodityName}`)
-      const basePrice = getBasePriceForCommodity(commodityName)
-      historicalData = generateFallbackData(commodityName, timeframe, basePrice, isPremium, 'line')
-      dataSourceUsed = 'fallback';
-      ohlcAvailable = false;
+      return new Response(
+        JSON.stringify({ error: 'Verified historical data is unavailable', data: [], source: 'unavailable', ohlcAvailable: false }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Intraday: no provider gives true OHLC bars — never advertise candlesticks.
     if (timeframe === '1d') ohlcAvailable = false;
 
-    // Apply contract-specific price adjustments for IBKR contracts
+    // Contract-specific synthetic adjustments were intentionally removed. A
+    // front-month series is returned until a provider supplies that contract.
     if (isIBKRContract && contractSymbol && historicalData) {
-      const contractMonth = contractSymbol.slice(-2, -1);
-      const contractYearStr = contractSymbol.slice(-1);
-      const contractYearNum = parseInt(contractYearStr);
-      
-      const monthMap: Record<string, number> = {
-        'F': 1, 'G': 2, 'H': 3, 'J': 4, 'K': 5, 'M': 6,
-        'N': 7, 'Q': 8, 'U': 9, 'V': 10, 'X': 11, 'Z': 12
-      };
-      
-      const expMonth = monthMap[contractMonth] || 0;
-      const hasValidExpiry = expMonth > 0 && !isNaN(contractYearNum);
-      
-      let priceAdjustment = 1.0;
-      let volatilityMultiplier = 1.0;
-      
-      if (hasValidExpiry) {
-        const expYear = 2020 + contractYearNum;
-        const now = new Date();
-        const expDate = new Date(expYear, expMonth - 1, 15);
-        const timeToExpiry = (expDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-      
-        if (commodityName.includes('Oil') || commodityName.includes('Gas')) {
-          priceAdjustment = 1.0 + (timeToExpiry / 365) * 0.12;
-          volatilityMultiplier = 1.0 + Math.abs(timeToExpiry / 365) * 0.4;
-        } else {
-          priceAdjustment = 1.0 + (timeToExpiry / 365) * 0.06;
-          volatilityMultiplier = 1.0 + Math.abs(timeToExpiry / 365) * 0.25;
-        }
-      }
-      
-      historicalData = historicalData.map((item: any) => {
-        const additionalVolatility = (Math.random() - 0.5) * 0.03 * volatilityMultiplier;
-        const finalAdjustment = priceAdjustment * (1 + additionalVolatility);
-        
-        if (ohlcAvailable && typeof item.open === 'number') {
-          return {
-            ...item,
-            open: item.open * finalAdjustment,
-            high: item.high * finalAdjustment,
-            low: item.low * finalAdjustment,
-            close: item.close * finalAdjustment,
-            price: item.price * finalAdjustment,
-          };
-        } else {
-          return { ...item, price: item.price * finalAdjustment };
-        }
-      });
+      console.warn(`Using verified front-month history for unsupported contract ${contractSymbol}`);
     }
 
     // Apply data delay for free users
-    if (dataDelay === '15min' && historicalData) {
-      historicalData = historicalData.map((item: any) => {
-        const parsed = new Date(item.date);
-        if (isNaN(parsed.getTime())) return item;
-        const delayedDate = new Date(parsed.getTime() - 15 * 60 * 1000);
-        const adjustment = 0.995 + Math.random() * 0.01;
-        
-        if (ohlcAvailable && typeof item.open === 'number') {
-          return {
-            ...item, date: delayedDate.toISOString(),
-            open: item.open * adjustment, high: item.high * adjustment,
-            low: item.low * adjustment, close: item.close * adjustment,
-            price: item.price * adjustment,
-          };
-        } else {
-          return { ...item, date: delayedDate.toISOString(), price: item.price * adjustment };
-        }
-      });
-    }
+    // Delayed access changes freshness only; it never mutates verified bars.
 
     // Cache the result if from a real API source
-    if (dataSourceUsed !== 'fallback' && historicalData) {
+    if (dataSourceUsed !== 'unavailable' && historicalData) {
       setCachedHistory(cacheKey, historicalData, dataSourceUsed + (ohlcAvailable ? '|ohlc' : ''));
     }
 
@@ -417,16 +268,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in fetch-commodity-data function:', error)
-    const basePrice = getBasePriceForCommodity(commodityName || 'WTI Crude Oil');
-    const fallbackData = generateFallbackData(commodityName || 'WTI Crude Oil', '1m', basePrice, false, 'line');
     return new Response(
-      JSON.stringify({ 
-        data: fallbackData, 
-        source: 'fallback',
-        ohlcAvailable: false,
-        error: 'Recovered from error with fallback data'
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ data: [], source: 'unavailable', ohlcAvailable: false, error: 'Historical data unavailable' }),
+      { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })

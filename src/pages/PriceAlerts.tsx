@@ -35,13 +35,16 @@ import PremiumPaywall from "@/components/PremiumPaywall";
 import { limitsFor, tierAtLeast, type Tier } from "@/utils/tiers";
 import { downloadCsv } from "@/utils/csvExport";
 
-type AlertType = "price" | "pct_move" | "volatility_band" | "spread" | "news_keyword";
+type AlertType = "price" | "pct_move" | "volatility_band" | "spread" | "news_keyword" | "spread_signal" | "carry_signal" | "seasonality_signal";
 
 const ALERT_TYPE_META: Record<AlertType, { label: string; desc: string; minTier: Tier }> = {
   price: { label: "Price threshold", desc: "Fires when price crosses an absolute level.", minTier: "free" },
   pct_move: { label: "% move", desc: "Fires when % change over a window exceeds a threshold.", minTier: "premium" },
   volatility_band: { label: "Volatility band", desc: "Fires when price exits an N-sigma rolling band.", minTier: "pro" },
   spread: { label: "Spread level", desc: "Fires when a spread (e.g. Brent–WTI) crosses a target.", minTier: "pro" },
+  spread_signal: { label: "Historical spread extreme", desc: "Fires when a calendar, crack, or ratio spread reaches a z-score extreme.", minTier: "pro" },
+  carry_signal: { label: "Carry extreme", desc: "Fires when annualized contango or backwardation reaches a threshold.", minTier: "pro" },
+  seasonality_signal: { label: "Seasonal pattern", desc: "Fires when this month's historical return and hit rate meet your criteria.", minTier: "pro" },
   news_keyword: { label: "News keyword", desc: "Fires when a keyword hits the news feed.", minTier: "pro" },
 };
 
@@ -77,6 +80,12 @@ const PriceAlertsPage: React.FC = () => {
     spread_target: "",
     // news_keyword
     keywords: "",
+    signal_id: "crack-321",
+    signal_direction: "either",
+    signal_threshold: "1.5",
+    seasonality_return: "1",
+    seasonality_hit_rate: "60",
+    seasonality_id: "wti",
   });
 
   const canUseType = (t: AlertType) => tierAtLeast(tier, ALERT_TYPE_META[t].minTier);
@@ -114,6 +123,7 @@ const PriceAlertsPage: React.FC = () => {
       spread_name: "brent_wti",
       spread_target: "",
       keywords: "",
+      signal_id: "crack-321", signal_direction: "either", signal_threshold: "1.5", seasonality_return: "1", seasonality_hit_rate: "60", seasonality_id: "wti",
     });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -122,7 +132,7 @@ const PriceAlertsPage: React.FC = () => {
       setPaywallOpen(true);
       return;
     }
-    if (alertType !== "news_keyword" && !form.commodity_name) {
+    if (!["news_keyword", "spread_signal", "carry_signal", "seasonality_signal"].includes(alertType) && !form.commodity_name) {
       toast({ title: "Pick a commodity", variant: "destructive" });
       return;
     }
@@ -178,6 +188,18 @@ const PriceAlertsPage: React.FC = () => {
         alert_type: "spread",
         config: { spread_name: form.spread_name, condition: form.condition, target: tgt },
       };
+    } else if (alertType === "spread_signal") {
+      const threshold = parseFloat(form.signal_threshold);
+      if (!Number.isFinite(threshold) || threshold <= 0) { toast({ title: "Enter a positive z-score", variant: "destructive" }); return; }
+      payload = { ...base, commodity_name: "Spread signal", alert_type: "spread_signal", config: { spread_id: form.signal_id, z_threshold: threshold, direction: form.signal_direction } };
+    } else if (alertType === "carry_signal") {
+      const threshold = parseFloat(form.signal_threshold);
+      if (!Number.isFinite(threshold) || threshold <= 0) { toast({ title: "Enter a positive annualized threshold", variant: "destructive" }); return; }
+      payload = { ...base, commodity_name: "Carry signal", alert_type: "carry_signal", config: { product_id: form.signal_id, annualized_threshold: threshold, direction: form.signal_direction } };
+    } else if (alertType === "seasonality_signal") {
+      const minReturn = parseFloat(form.seasonality_return), minHitRate = parseFloat(form.seasonality_hit_rate) / 100;
+      if (!Number.isFinite(minReturn) || !Number.isFinite(minHitRate) || minHitRate < 0 || minHitRate > 1) { toast({ title: "Enter valid seasonal thresholds", variant: "destructive" }); return; }
+      payload = { ...base, commodity_name: form.seasonality_id, alert_type: "seasonality_signal", config: { commodity: form.seasonality_id, min_avg_return: minReturn, min_hit_rate: minHitRate } };
     } else {
       const kws = form.keywords.split(",").map((k) => k.trim()).filter(Boolean);
       if (kws.length === 0) {
@@ -216,6 +238,9 @@ const PriceAlertsPage: React.FC = () => {
       return `±${a.config?.std_devs}σ band (${a.config?.window_days}d)`;
     if (a.alert_type === "spread")
       return `${a.config?.spread_name} ${a.config?.condition} ${a.config?.target}`;
+    if (a.alert_type === "spread_signal") return `${a.config?.spread_id} |z| ≥ ${a.config?.z_threshold}`;
+    if (a.alert_type === "carry_signal") return `${a.config?.product_id} ${a.config?.direction} ${a.config?.annualized_threshold}%`;
+    if (a.alert_type === "seasonality_signal") return `${a.config?.commodity}: ≥${a.config?.min_avg_return}% / ≥${Math.round((a.config?.min_hit_rate ?? 0) * 100)}% hit`;
     if (a.alert_type === "news_keyword")
       return `news: ${(a.config?.keywords ?? []).join(", ")}`;
     return "";
@@ -256,7 +281,7 @@ const PriceAlertsPage: React.FC = () => {
               Smart Alerts
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Price thresholds, % moves, volatility bands, spreads, and news keywords.
+              Price thresholds, historical spread extremes, carry, seasonality, volatility, and news signals.
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               {activeCount}/{limit} active alerts {isPremium ? "(Premium)" : "(Free tier)"}
@@ -406,7 +431,7 @@ const PriceAlertsPage: React.FC = () => {
               )}
             </div>
 
-            {alertType !== "news_keyword" && (
+            {!["news_keyword", "spread_signal", "carry_signal", "seasonality_signal"].includes(alertType) && (
               <div className="space-y-2">
                 <Label>Commodity</Label>
                 <Select
@@ -545,6 +570,18 @@ const PriceAlertsPage: React.FC = () => {
                   </div>
                 </div>
               </div>
+            )}
+
+            {(alertType === "spread_signal" || alertType === "carry_signal") && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2"><Label>{alertType === "spread_signal" ? "Spread" : "Commodity"}</Label><Select value={form.signal_id} onValueChange={(v) => setForm((f) => ({ ...f, signal_id: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{alertType === "spread_signal" ? <><SelectItem value="crack-321">3-2-1 Crack</SelectItem><SelectItem value="soy-crush">Soy Crush</SelectItem><SelectItem value="wti-brent">WTI − Brent</SelectItem><SelectItem value="gold-silver">Gold / Silver</SelectItem></> : <><SelectItem value="wti">WTI Crude</SelectItem><SelectItem value="brent">Brent</SelectItem><SelectItem value="gold">Gold</SelectItem><SelectItem value="corn">Corn</SelectItem></>}</SelectContent></Select></div>
+                <div className="space-y-2"><Label>{alertType === "spread_signal" ? "Z-score threshold" : "Annualized carry %"}</Label><Input type="number" step="0.1" value={form.signal_threshold} onChange={(e) => setForm((f) => ({ ...f, signal_threshold: e.target.value }))} /></div>
+                <div className="space-y-2"><Label>Direction</Label><Select value={form.signal_direction} onValueChange={(v) => setForm((f) => ({ ...f, signal_direction: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{alertType === "spread_signal" ? <><SelectItem value="either">Either extreme</SelectItem><SelectItem value="rich">Rich</SelectItem><SelectItem value="cheap">Cheap</SelectItem></> : <><SelectItem value="either">Either structure</SelectItem><SelectItem value="contango">Contango</SelectItem><SelectItem value="backwardation">Backwardation</SelectItem></>}</SelectContent></Select></div>
+              </div>
+            )}
+
+            {alertType === "seasonality_signal" && (
+              <div className="grid grid-cols-2 gap-3"><div className="space-y-2"><Label>Commodity</Label><Select value={form.seasonality_id} onValueChange={(v) => setForm((f) => ({ ...f, seasonality_id: v }))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="wti">WTI Crude</SelectItem><SelectItem value="brent">Brent</SelectItem><SelectItem value="natgas">Natural Gas</SelectItem><SelectItem value="gold">Gold</SelectItem><SelectItem value="corn">Corn</SelectItem><SelectItem value="wheat">Wheat</SelectItem><SelectItem value="soybeans">Soybeans</SelectItem></SelectContent></Select></div><div className="space-y-2"><Label>Minimum avg monthly return %</Label><Input type="number" step="0.1" value={form.seasonality_return} onChange={(e) => setForm((f) => ({ ...f, seasonality_return: e.target.value }))} /></div><div className="space-y-2"><Label>Minimum hit rate %</Label><Input type="number" min="0" max="100" value={form.seasonality_hit_rate} onChange={(e) => setForm((f) => ({ ...f, seasonality_hit_rate: e.target.value }))} /></div></div>
             )}
 
             {alertType === "news_keyword" && (

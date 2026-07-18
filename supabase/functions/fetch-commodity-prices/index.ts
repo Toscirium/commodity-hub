@@ -32,30 +32,6 @@ function setCachedPrice(key: string, data: any, source: string): void {
 // Single source of truth: FMP `=F` symbols derived from the catalog.
 const PRICE_SYMBOLS: Record<string, string> = FMP_SYMBOLS;
 
-const getBasePriceForCommodity = (commodityName: string): number => {
-  const basePrices: Record<string, number> = {
-    'WTI Crude Oil': 65, 'Brent Crude Oil': 70, 'Natural Gas': 2.85,
-    'Gasoline RBOB': 2.1, 'Heating Oil': 2.3, 'Natural Gas UK': 90,
-    'Gold Futures': 2000, 'Silver Futures': 25, 'Platinum': 1050,
-    'Palladium': 1200, 'Copper': 4.2, 'Aluminum': 2200,
-    // After unit conversion, fallbacks must be in the DISPLAY_UNIT for each symbol.
-    // Grains $/bu, Softs/Livestock $/lb, Cocoa $/mt.
-    'Corn Futures': 4.30, 'Soybean Futures': 11.50,
-    'Wheat Futures': 6.30, 'Wheat Futures Spot': 6.30,
-    'Oat Futures': 3.50, 'Oats Spot': 3.50,
-    'Soybeans Spot': 11.50,
-    'Coffee Arabica': 1.65, 'Sugar #11': 0.20,
-    'Cotton': 0.73, 'Cocoa': 7800,
-    'Live Cattle Futures': 170, 'Lean Hogs Futures': 75,
-    'Feeder Cattle Futures': 245, 'Milk Class III': 18.50,
-    'Orange Juice': 4.50, 'Lumber Futures': 550,
-    'Soybean Oil': 0.45, 'Soybean Meal': 330, 'Rough Rice': 17,
-    'Live Cattle': 1.85, 'Lean Hogs': 0.90, 'Feeder Cattle': 2.45,
-    'Rubber': 2.20,
-  };
-  return basePrices[commodityName] || 100;
-};
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -111,7 +87,7 @@ serve(async (req) => {
     }
 
     let priceData = null
-    let dataSource = 'fallback'
+    let dataSource = 'unavailable'
 
     // ── Step 1: Massive Futures for every commodity in the catalog ──
     if (!priceData) {
@@ -157,35 +133,18 @@ serve(async (req) => {
       }
     }
 
-    // ── Step 3: Synthetic fallback ──
+    // ── Step 3: Explicit unavailable state ──
     if (!priceData) {
-      console.log(`Fallback for ${commodityName}`)
-      const basePrice = getBasePriceForCommodity(commodityName)
-      priceData = {
-        symbol: PRICE_SYMBOLS[commodityName] || commodityName,
-        price: basePrice,
-        change: (Math.random() - 0.5) * basePrice * 0.02,
-        changePercent: (Math.random() - 0.5) * 4,
-        lastUpdate: new Date().toISOString()
-      }
+      return new Response(
+        JSON.stringify({ price: null, source: 'unavailable', commodity: commodityName, error: 'Verified price unavailable' }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Apply data delay for free users
-    if (dataDelay === '15min' && priceData) {
-      const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000)
-      const hash = commodityName.split('').reduce((a: number, b: string) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a }, 0)
-      const seededRandom = (Math.abs(hash) % 100) / 100
-      priceData = {
-        ...priceData,
-        price: priceData.price * (0.995 + seededRandom * 0.01),
-        change: priceData.change * (0.9 + seededRandom * 0.2),
-        changePercent: priceData.changePercent * (0.9 + seededRandom * 0.2),
-        lastUpdate: fifteenMinutesAgo.toISOString()
-      }
-    }
+    // Delayed access changes freshness metadata only; values remain verified.
 
     // Cache real data
-    if (dataSource !== 'fallback') {
+    if (dataSource !== 'unavailable') {
       setCachedPrice(cacheKey, priceData, dataSource);
     }
 

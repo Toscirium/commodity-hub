@@ -6,17 +6,17 @@
 
 @layer base {
   :root {
-    /* Light theme — neutral with a single restrained indigo accent */
+    /* Light theme — neutral with a restrained purple accent */
     --background: 0 0% 100%;
     --foreground: 222 14% 12%;
 
-    --primary: 232 58% 60%;            /* Linear indigo #5e6ad2 */
+    --primary: 262 83% 58%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 14% 96%;
     --secondary-foreground: 222 14% 12%;
 
-    --accent: 232 58% 60%;
+    --accent: 262 83% 58%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
@@ -35,23 +35,23 @@
 
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 232 58% 60%;
+    --ring: 262 83% 58%;
 
     --radius: 0.5rem;
   }
 
   .dark {
-    /* Dark theme — Linear-inspired near-black with subtle indigo accent */
-    --background: 225 7% 5%;           /* #08090a */
-    --foreground: 220 13% 91%;         /* #e6e7eb */
+    /* Dark theme — near-black with a purple accent */
+    --background: 225 7% 5%;
+    --foreground: 220 13% 91%;
 
-    --primary: 232 58% 60%;            /* #5e6ad2 */
+    --primary: 262 83% 58%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 225 7% 11%;           /* #1a1b1f */
+    --secondary: 225 7% 11%;
     --secondary-foreground: 220 13% 91%;
 
-    --accent: 230 36% 45%;             /* #3d4ba8, hover/pressed */
+    --accent: 262 58% 42%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 76% 60%;          /* #eb5757 */
@@ -59,18 +59,18 @@
     --success: 152 43% 51%;            /* #4cb782 */
     --warning: 46 86% 62%;             /* #f2c94c */
 
-    --muted: 225 6% 12%;               /* #1c1d22 */
-    --muted-foreground: 220 5% 56%;    /* #8a8f98 */
+    --muted: 225 6% 12%;
+    --muted-foreground: 220 5% 56%;
 
-    --card: 225 8% 7%;                 /* #0e0f12 */
+    --card: 225 8% 7%;
     --card-foreground: 220 13% 91%;
 
     --popover: 225 8% 8%;
     --popover-foreground: 220 13% 91%;
 
-    --border: 225 5% 16%;              /* #23252b */
+    --border: 225 5% 16%;
     --input: 225 5% 16%;
-    --ring: 232 58% 60%;
+    --ring: 262 83% 58%;
   }
 }
 
@@ -175,6 +175,7 @@
   
   .number-display {
     @apply font-mono tabular-nums;
+    font-variant-numeric: tabular-nums slashed-zero;
   }
   
   /* Enhanced touch targets for mobile */
@@ -219,6 +220,19 @@
 }
 
 @layer components {
+  .terminal-workspace {
+    background-image: linear-gradient(hsl(var(--border) / 0.22) 1px, transparent 1px);
+    background-size: 100% 36px;
+  }
+
+  .terminal-label {
+    @apply font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground;
+  }
+
+  .terminal-card {
+    @apply rounded-none border-border bg-card shadow-none;
+  }
+
   .card-hover-effect {
     @apply transition-colors duration-150 hover:bg-muted/30;
   }

@@ -101,12 +101,8 @@ export class CommodityService {
       const liveResults = [...oilResults, ...fmpResults, ...massiveResults];
       const snapshotResults = await this.fetchSnapshotBackfill(includePremium, liveResults);
       const merged = [...liveResults, ...snapshotResults];
-      const seen = new Set(merged.map((c) => c.name));
-      for (const [name, info] of Object.entries(COMMODITY_SYMBOLS)) {
-        if (seen.has(name)) continue;
-        if (!includePremium && PREMIUM_COMMODITIES.has(name)) continue;
-        merged.push(this.buildMissingCommodityFallback(name, info.category, info.symbol, info.contractSize, info.venue));
-      }
+      // A missing upstream quote is unavailable, not an opportunity to invent
+      // a plausible number. The client has explicit empty/error states.
 
       // Compute real day-over-day change against yesterday's snapshot, then
       // upsert today's snapshot. Zero extra provider API calls — only DB I/O.
@@ -118,9 +114,7 @@ export class CommodityService {
         this.logger.warn('Day-over-day change computation failed (non-fatal)', err);
       }
 
-      // Only cache if Massive returned data — avoids locking in synthetic
-      // fallback prices during a Massive outage. FMP results supplement.
-      if (massiveResults.length > 0) {
+      if (merged.length > 0) {
         setCache(cacheKey, merged);
       } else {
         this.logger.warn(`Skipping cache (${cacheKey}): oil=${oilResults.length}, massive=${massiveResults.length}, fmp=${fmpResults.length}`);
@@ -129,7 +123,7 @@ export class CommodityService {
       return merged;
     } catch (error) {
       this.logger.error('Failed to fetch commodities', error);
-      return this.getFallbackCommodities();
+      return [];
     } finally {
       endTimer();
     }
@@ -400,11 +394,11 @@ export class CommodityService {
         }
       }
 
-      this.logger.warn(`Using fallback chart data for ${commodityName}`);
-      return this.generateFallbackChart(commodityName, timeframe, chartType);
+      this.logger.warn(`No verified chart data for ${commodityName}`);
+      return [];
     } catch (error) {
       this.logger.error(`Failed to fetch chart data for ${commodityName}`, error);
-      return this.generateFallbackChart(commodityName, timeframe, chartType);
+      return [];
     } finally {
       endTimer();
     }
@@ -495,138 +489,11 @@ export class CommodityService {
     }
   }
 
-  private generateFallbackChart(commodityName: string, timeframe: string, chartType: string): ChartDataPoint[] {
-    const basePrice = this.getBasePriceForCommodity(commodityName);
-    const dataPoints = this.getDataPointsForTimeframe(timeframe);
-    const data: ChartDataPoint[] = [];
-    const now = new Date();
-    let currentPrice = basePrice;
-    const volatility = basePrice * 0.02;
-
-    for (let i = dataPoints - 1; i >= 0; i--) {
-      const date = new Date(now.getTime() - i * this.getTimeStepMs(timeframe));
-      currentPrice += (Math.random() - 0.5) * volatility * 2;
-      const point: ChartDataPoint = {
-        date: date.toISOString(),
-        price: Math.round(currentPrice * 100) / 100,
-      };
-      if (chartType === 'candlestick') {
-        const dv = volatility * 0.3;
-        point.open = currentPrice;
-        point.high = currentPrice + Math.random() * dv;
-        point.low = currentPrice - Math.random() * dv;
-        point.close = point.low + Math.random() * (point.high - point.low);
-      }
-      data.push(point);
-    }
-    return data.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }
-
-  private getFallbackCommodities(): CommodityData[] {
-    const coreCommodities = [
-      'WTI Crude Oil', 'Natural Gas', 'Gold Futures', 'Silver Futures',
-      'Corn Futures', 'Wheat Futures', 'Coffee Arabica', 'Sugar #11', 'Cotton',
-    ];
-    return coreCommodities
-      .filter((name) => COMMODITY_SYMBOLS[name])
-      .map((name) => this.buildMissingCommodityFallback(
-        name,
-        COMMODITY_SYMBOLS[name].category,
-        COMMODITY_SYMBOLS[name].symbol,
-        COMMODITY_SYMBOLS[name].contractSize,
-        COMMODITY_SYMBOLS[name].venue,
-      ));
-  }
-
-  /**
-   * Build a stable, non-zero price stub when an upstream API is unavailable.
-   * Energy commodities get a deterministic base-price approximation so free-tier
-   * users don't see "$0" cards during OilPriceAPI rate-limit windows. Other
-   * categories fall back to 0 (CPA is reliable enough that 0 means "no data").
-   */
-  private buildMissingCommodityFallback(
-    name: string,
-    category: string,
-    symbol: string,
-    contractSize: string,
-    venue: string,
-  ): CommodityData {
-    const basePrice = this.getBasePriceForCommodity(name);
-    const useFallbackPrice = category === 'energy';
-    const seeded = this.getSeededFactor(name);
-    const price = useFallbackPrice
-      ? Math.round(basePrice * (0.985 + seeded * 0.03) * 100) / 100
-      : 0;
-    const changePercent = useFallbackPrice
-      ? Math.round(((seeded - 0.5) * 4) * 100) / 100
-      : 0;
-    const change = useFallbackPrice
-      ? Math.round((price * (changePercent / 100)) * 100) / 100
-      : 0;
-
-    return {
-      name,
-      symbol,
-      price,
-      change,
-      changePercent,
-      volume: useFallbackPrice ? Math.floor(50000 + seeded * 50000) : undefined,
-      category,
-      contractSize,
-      venue,
-      // Mark so callers (esp. applyDayOverDayChange) never write this
-      // invented price into commodity_price_snapshots.
-      isSynthetic: true,
-    };
-  }
-
-  private getSeededFactor(input: string): number {
-    const hash = input.split('').reduce((acc, char) => {
-      acc = ((acc << 5) - acc) + char.charCodeAt(0);
-      return acc & acc;
-    }, 0);
-    return (Math.abs(hash) % 100) / 100;
-  }
-
-  private getBasePriceForCommodity(commodityName: string): number {
-    const basePrices: Record<string, number> = {
-      'WTI Crude Oil': 65, 'Brent Crude Oil': 70, 'Crude Oil Dubai': 68,
-      'DME Oman Crude': 68, 'Murban Crude': 72, 'OPEC Basket': 70,
-      'Indian Basket': 70, 'Tapis Crude Oil': 75, 'Urals Crude Oil': 60,
-      'Western Canadian Select': 55,
-      'Natural Gas': 2.85, 'Natural Gas UK': 75, 'Dutch TTF Gas': 32,
-      'Japan/Korea LNG': 12,
-      'Gold Futures': 2000, 'Silver Futures': 25, 'Copper': 4.2,
-      'Corn Futures': 4.30, 'Wheat Futures': 5.50, 'Soybean Futures': 11.50,
-      'Coffee Arabica': 1.65, 'Sugar #11': 19.75, 'Cotton': 72.80,
-    };
-    return basePrices[commodityName] || 100;
-  }
-
-  private getDataPointsForTimeframe(timeframe: string): number {
-    const pointsMap: Record<string, number> = { '1d': 24, '1w': 7, '1m': 30, '3m': 90, '6m': 180, '1y': 365 };
-    return pointsMap[timeframe] || 30;
-  }
-
-  private getTimeStepMs(timeframe: string): number {
-    return timeframe === '1d' ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
-  }
 
   applyDataDelay(data: CommodityData[], delay: string): CommodityData[] {
     if (delay !== '15min') return data;
-    return data.map((commodity) => {
-      const hash = commodity.name.split('').reduce((a, b) => {
-        a = ((a << 5) - a) + b.charCodeAt(0);
-        return a & a;
-      }, 0);
-      const seeded = (Math.abs(hash) % 100) / 100;
-      return {
-        ...commodity,
-        price: commodity.price * (0.995 + seeded * 0.01),
-        change: commodity.change * (0.9 + seeded * 0.2),
-        changePercent: commodity.changePercent * (0.9 + seeded * 0.2),
-      };
-    });
+    // Delayed users receive the last verified snapshot, not altered prices.
+    return data;
   }
 
   getPerformanceMetrics() {

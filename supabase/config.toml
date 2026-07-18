@@ -83,6 +83,18 @@ verify_jwt = false
 [functions.register-device-token]
 verify_jwt = false
 
+[functions.delete-account]
+verify_jwt = true
+
+[functions.export-center]
+verify_jwt = true
+
+[functions.data-api]
+verify_jwt = false
+
+[functions.ai-copilot]
+verify_jwt = true
+
 [functions.warm-vol-cones]
 verify_jwt = false
 

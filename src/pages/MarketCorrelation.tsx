@@ -22,29 +22,10 @@ const MarketCorrelation = () => {
     ? (commodities || [])
     : (commodities || []).filter(c => c.category === selectedCategory);
 
-  // Mock correlation data - in a real app, this would be calculated from historical price data
-  const generateCorrelationMatrix = () => {
-    const matrix: { [key: string]: { [key: string]: number } } = {};
-    
-    filteredCommodities.forEach(commodity1 => {
-      matrix[commodity1.name] = {};
-      filteredCommodities.forEach(commodity2 => {
-        if (commodity1.name === commodity2.name) {
-          matrix[commodity1.name][commodity2.name] = 1.0;
-        } else {
-          // Generate mock correlation values based on category similarity
-          const sameCategory = commodity1.category === commodity2.category;
-          const baseCorrelation = sameCategory ? 0.3 : 0.1;
-          const randomVariation = (Math.random() - 0.5) * 0.6;
-          matrix[commodity1.name][commodity2.name] = Math.max(-1, Math.min(1, baseCorrelation + randomVariation));
-        }
-      });
-    });
-    
-    return matrix;
-  };
-
-  const correlationMatrix = generateCorrelationMatrix();
+  // The prior screen generated plausible-looking correlations in the client.
+  // Leave analysis unavailable until historical returns are calculated server-side.
+  const correlationMatrix: { [key: string]: { [key: string]: number } } = {};
+  const correlationsUnavailable = true;
 
   const getCorrelationColor = (correlation: number) => {
     const abs = Math.abs(correlation);
@@ -179,7 +160,7 @@ const MarketCorrelation = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {filteredCommodities.length > 0 ? (
+          {!correlationsUnavailable && filteredCommodities.length > 0 ? (
             isMobile ? (
               // Mobile view - Show simplified correlation pairs
               <div className="space-y-4">
@@ -264,7 +245,7 @@ const MarketCorrelation = () => {
             )
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              No commodities available for the selected category
+              Correlation analysis is unavailable until verified historical returns are calculated server-side.
             </div>
           )}
         </CardContent>

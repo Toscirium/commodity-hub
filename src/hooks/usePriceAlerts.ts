@@ -9,7 +9,7 @@ export interface PriceAlert {
   commodity_symbol: string | null;
   condition: "above" | "below" | null;
   target_price: number | null;
-  alert_type: "price" | "pct_move" | "volatility_band" | "spread" | "news_keyword";
+  alert_type: "price" | "pct_move" | "volatility_band" | "spread" | "news_keyword" | "spread_signal" | "carry_signal" | "seasonality_signal";
   config: Record<string, any> | null;
   is_active: boolean;
   cooldown_minutes: number;
@@ -79,7 +79,7 @@ export const useCreatePriceAlert = () => {
     mutationFn: async (input: {
       commodity_name: string;
       commodity_symbol?: string | null;
-      alert_type: "price" | "pct_move" | "volatility_band" | "spread" | "news_keyword";
+      alert_type: "price" | "pct_move" | "volatility_band" | "spread" | "news_keyword" | "spread_signal" | "carry_signal" | "seasonality_signal";
       condition?: "above" | "below" | null;
       target_price?: number | null;
       config?: Record<string, any> | null;

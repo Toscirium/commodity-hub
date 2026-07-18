@@ -173,18 +173,11 @@ const CommodityCard = React.memo<CommodityCardProps>(({
     setIsOpen(!isOpen);
   }, [vibrateTouch, isOpen]);
 
-  // Generate expiration date helper
-  const getExpirationDate = React.useCallback((contractSymbol: string): Date => {
-    const now = new Date();
-    const futureMonths = Math.floor(Math.random() * 12) + 1;
-    return new Date(now.getFullYear(), now.getMonth() + futureMonths, 15);
-  }, []);
-
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full min-w-0 max-w-full overflow-hidden">
       <div className="w-full min-w-0 max-w-full overflow-hidden">
-        <Card className="group relative w-full min-w-0 max-w-full overflow-hidden border border-border bg-card rounded-lg transition-colors hover:border-border/80">
-          <CardHeader className="relative p-4 sm:p-5">
+        <Card className="terminal-card group relative w-full min-w-0 max-w-full overflow-hidden border transition-colors hover:border-primary/55">
+          <CardHeader className="relative p-3.5 sm:p-4">
             {/* Header with click handler */}
             <div 
               className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between cursor-pointer touch-manipulation rounded-md focus-ring"
@@ -198,18 +191,18 @@ const CommodityCard = React.memo<CommodityCardProps>(({
                 {/* Title and badges */}
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3 flex-1">
-                    <div className="w-8 h-8 rounded-md bg-muted text-muted-foreground flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 rounded-none border border-border bg-muted/50 text-primary flex items-center justify-center shrink-0">
                       <DollarSign className="w-3.5 h-3.5" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="font-display text-[15px] sm:text-base font-semibold text-foreground tracking-tight truncate">
+                      <h3 className="font-mono text-[14px] sm:text-[15px] font-medium text-foreground tracking-tight truncate">
                         {name}
                       </h3>
                       <div className="flex flex-wrap items-center gap-1.5 mt-1">
-                        <span className="inline-block px-1.5 py-0.5 text-[10px] font-medium font-mono bg-muted rounded text-muted-foreground tracking-wide">
+                        <span className="inline-block px-1.5 py-0.5 text-[10px] font-medium font-mono bg-muted text-muted-foreground tracking-wide">
                           {selectedContract}
                         </span>
-                        <span className="inline-block px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground border border-border rounded tracking-wide">
+                        <span className="inline-block px-1.5 py-0.5 text-[10px] font-medium font-mono text-muted-foreground border border-border tracking-wide">
                           {selectedContractData?.venue || venue}
                         </span>
                         {(selectedContractData?.contractSize || contractSize) && (
@@ -266,7 +259,7 @@ const CommodityCard = React.memo<CommodityCardProps>(({
                 {/* Price Section */}
                 <div className="flex items-baseline gap-3 flex-wrap">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-2xl sm:text-[26px] font-semibold text-foreground number-display tracking-tight">
+                    <span className="text-2xl sm:text-[25px] font-medium text-foreground number-display tracking-tight">
                       {displayPrice !== null ? (
                         typeof displayPrice === 'string' 
                           ? displayPrice 

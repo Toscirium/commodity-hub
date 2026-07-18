@@ -74,20 +74,20 @@ const VirtualizedCommodityList: React.FC<VirtualizedCommodityListProps> = ({
   let globalIndex = 0;
 
   return (
-    <div className="space-y-4 pb-8 w-full min-w-0 max-w-full overflow-x-hidden">
+    <div className="space-y-3 pb-8 w-full min-w-0 max-w-full overflow-x-hidden">
       {groupedVisible.sections.map((section, sIdx) => (
         <div key={section.label || sIdx} className="w-full min-w-0 max-w-full overflow-x-hidden">
           {section.label && (
-            <div className="flex items-center gap-2 mb-3 mt-2">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted/60 border border-border/40">
-                <span className="text-muted-foreground">{section.icon}</span>
-                <span className="text-sm font-semibold text-muted-foreground">{section.label}</span>
-                <span className="text-xs text-muted-foreground/70">({section.items.length})</span>
+            <div className="flex items-center gap-2 mb-2 mt-2">
+              <div className="flex items-center gap-2 px-2.5 py-1 border-l-2 border-primary bg-muted/40">
+                <span className="text-primary">{section.icon}</span>
+                <span className="terminal-label text-muted-foreground">{section.label}</span>
+                <span className="text-[10px] font-mono text-muted-foreground/70">{section.items.length}</span>
               </div>
               <div className="flex-1 h-px bg-border/30" />
             </div>
           )}
-          <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:gap-4 lg:gap-6 w-full min-w-0 max-w-full overflow-x-hidden">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-2.5 sm:gap-3 w-full min-w-0 max-w-full overflow-x-hidden">
             {section.items.map((commodity) => {
               const idx = globalIndex++;
               const availableContracts = undefined;

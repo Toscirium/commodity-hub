@@ -5,7 +5,7 @@ import VirtualizedCommodityList from '@/components/VirtualizedCommodityList';
 import UserProfile from '@/components/UserProfile';
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import CommoditySidebar from '@/components/CommoditySidebar';
-import { BarChart3, Menu, Loader, Zap, Coins, Wheat, Beef, Milk, Coffee, Factory, Leaf } from 'lucide-react';
+import { BarChart3, Menu, Loader, Zap, Coins, Wheat, Beef, Milk, Coffee, Factory } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRealtimeDataContext } from '@/contexts/RealtimeDataContext';
@@ -27,7 +27,7 @@ const Dashboard = () => {
   // Handle ?group= URL param — jump straight to a commodity group from other pages
   useEffect(() => {
     const groupParam = searchParams.get('group');
-    const validGroups = ['energy', 'metals', 'grains', 'livestock', 'dairy', 'softs', 'industrials', 'emissions'];
+    const validGroups = ['energy', 'metals', 'grains', 'livestock', 'dairy', 'softs', 'industrials'];
     if (groupParam && validGroups.includes(groupParam)) {
       setActiveGroup(groupParam);
       searchParams.delete('group');
@@ -142,7 +142,6 @@ const DashboardContent = ({
       dairy: { title: "Dairy Commodities", icon: Milk },
       softs: { title: "Soft Commodities", icon: Coffee },
       industrials: { title: "Industrial Commodities", icon: Factory },
-      emissions: { title: "Emissions & Carbon", icon: Leaf },
     };
     return groups[activeGroup as keyof typeof groups] || groups.energy;
   }, [activeGroup]);
@@ -153,7 +152,7 @@ const DashboardContent = ({
 
   return (
     <div 
-      className="min-h-screen flex w-full max-w-full overflow-x-hidden"
+      className="terminal-workspace min-h-screen flex w-full max-w-full overflow-x-hidden"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
@@ -168,14 +167,13 @@ const DashboardContent = ({
           dairy: getCommodityCount('dairy'),
           softs: getCommodityCount('softs'),
           industrials: getCommodityCount('industrials'),
-          emissions: getCommodityCount('emissions'),
         }}
       />
       
       <div className="flex-1 flex flex-col min-w-0 max-w-full overflow-x-hidden">
         {/* Top bar */}
         <header
-          className="app-top-bar sticky top-0 z-40 w-full border-b border-border bg-background/95 supports-[backdrop-filter]:bg-background/80"
+          className="app-top-bar sticky top-0 z-40 w-full border-b border-border bg-background/95"
         >
           <div className="flex h-14 items-center justify-between px-3 sm:px-5 gap-3">
             <Button
@@ -188,9 +186,12 @@ const DashboardContent = ({
               <Menu className="w-5 h-5" />
             </Button>
             <div className="flex items-center gap-2.5 min-w-0 flex-1">
-              <getGroupInfo.icon className="w-4 h-4 text-muted-foreground shrink-0" />
+              <div className="hidden sm:flex h-7 w-7 items-center justify-center border border-primary/45 bg-primary/10 text-primary">
+                <getGroupInfo.icon className="w-3.5 h-3.5 shrink-0" />
+              </div>
               <div className="min-w-0">
-                <h1 className="font-display text-[15px] sm:text-base font-semibold tracking-tight truncate leading-tight">
+                <p className="terminal-label hidden sm:block mb-0.5">Commodity Monitor</p>
+                <h1 className="font-mono text-[14px] sm:text-[15px] font-medium tracking-tight truncate leading-tight">
                   {getGroupInfo.title}
                 </h1>
                 <p className="text-[11px] text-muted-foreground number-display leading-tight">
@@ -220,7 +221,7 @@ const DashboardContent = ({
             overflow container. Nested scrolls fight native touch momentum
             on Android/iOS WebViews and feel laggy. */}
         <main className="flex-1 min-w-0 max-w-full overflow-x-hidden">
-          <div className="w-full max-w-screen-xl mx-auto px-3 sm:px-4 py-6 overflow-x-hidden">
+          <div className="w-full max-w-[1440px] mx-auto px-3 sm:px-5 py-4 overflow-x-hidden">
             {/* Loading State */}
             {loading && (
               <div className="space-y-2 py-6">

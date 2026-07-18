@@ -42,10 +42,25 @@ const parsePosition = (value?: string) => Number.parseInt(value || '0', 10) || 0
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'method_not_allowed' }), {
+      status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
   const logger = new EdgeLogger({ functionName: 'fetch-cot-report' });
 
-  // Public CFTC data — function is idempotent (UNIQUE on commodity+report_date)
-  // and only writes the rows we control. Safe to invoke without auth.
+  // This is a scheduled writer, never a public API. Keep JWT verification
+  // disabled only because pg_cron may use x-cron-secret instead of a JWT.
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const cronSecret = Deno.env.get('CRON_SECRET') ?? '';
+  const authorization = req.headers.get('authorization') ?? '';
+  const suppliedCronSecret = req.headers.get('x-cron-secret') ?? '';
+  if (!((serviceKey && authorization === `Bearer ${serviceKey}`) ||
+        (cronSecret && suppliedCronSecret === cronSecret))) {
+    return new Response(JSON.stringify({ error: 'unauthorized' }), {
+      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 
   try {
     const supabase = createClient(

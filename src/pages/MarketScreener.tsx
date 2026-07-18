@@ -46,63 +46,9 @@ const MarketScreener = () => {
     sortOrder: 'desc'
   });
 
-  // Backfill display-only metrics that the upstream price feed doesn't supply
-  // (change %, volume, 52W high/low, volatility) using a deterministic per-symbol
-  // seed so values are stable across renders within the same UTC day.
-  const enhancedCommodities = React.useMemo(() => {
-    if (!commodities) return [];
-
-    // Stable hash → [0, 1)
-    const seededRandom = (seed: string) => {
-      let h = 2166136261;
-      for (let i = 0; i < seed.length; i++) {
-        h = (h ^ seed.charCodeAt(i)) * 16777619;
-      }
-      return ((h >>> 0) % 100000) / 100000;
-    };
-
-    const today = new Date().toISOString().slice(0, 10);
-
-    return commodities.map((c) => {
-      const r1 = seededRandom(`${c.symbol}-${today}-chg`);
-      const r2 = seededRandom(`${c.symbol}-${today}-vol`);
-      const r3 = seededRandom(`${c.symbol}-${today}-vty`);
-
-      // Derive change% in range [-3%, +3%] when the feed reports 0
-      const derivedChangePct =
-        c.changePercent !== 0 ? c.changePercent : Math.round((r1 * 6 - 3) * 100) / 100;
-
-      // Volume bucket per category (in thousands of contracts)
-      const volumeBaseByCategory: Record<string, number> = {
-        energy: 250, metals: 180, grains: 120, softs: 80, livestock: 60, industrials: 40,
-      };
-      const base = volumeBaseByCategory[c.category] ?? 50;
-      const derivedVolume = c.volume && c.volume > 0 ? c.volume : Math.round(base * (0.5 + r2));
-      const volumeDisplay =
-        c.volumeDisplay ??
-        (derivedVolume >= 1000 ? `${(derivedVolume / 1000).toFixed(1)}M` : `${derivedVolume}K`);
-
-      // 52-week high/low: spread around current price
-      const highSpread = 0.18 + r1 * 0.22; // +18% to +40%
-      const lowSpread = 0.18 + r2 * 0.22; // -18% to -40%
-      const weekHigh = c.weekHigh ?? Math.round(c.price * (1 + highSpread) * 100) / 100;
-      const weekLow = c.weekLow ?? Math.round(c.price * (1 - lowSpread) * 100) / 100;
-
-      // Annualized volatility 8% – 45%
-      const volatility = c.volatility ?? Math.round((8 + r3 * 37) * 10) / 10;
-
-      return {
-        ...c,
-        changePercent: derivedChangePct,
-        change: c.change || Math.round(c.price * (derivedChangePct / 100) * 100) / 100,
-        volume: derivedVolume,
-        volumeDisplay,
-        weekHigh,
-        weekLow,
-        volatility,
-      };
-    });
-  }, [commodities]);
+  // Show only metrics the source actually supplies. An unavailable metric is
+  // preferable to a plausible-looking estimate in a trading workflow.
+  const enhancedCommodities = React.useMemo(() => commodities ?? [], [commodities]);
 
   const filteredCommodities = React.useMemo(() => {
     let result = enhancedCommodities;
@@ -463,7 +409,7 @@ const MarketScreener = () => {
                              {commodity.price > 0 ? formatPrice(commodity.price, commodity.name) : '/'}
                            </td>
                            <td className="p-3 text-right">
-                             {commodity.changePercent !== 0 ? (
+                             {Number.isFinite(commodity.changePercent) ? (
                                <div className={`flex items-center justify-end gap-1 ${
                                  commodity.changePercent >= 0 ? 'text-green-600' : 'text-red-600'
                                }`}>

@@ -187,7 +187,7 @@ One-time purchase. No ads. No subscriptions. No in-app purchases. Buy it once, o
 🔒 SECURITY & PRIVACY:
 • Encrypted in transit and at rest
 • No advertising IDs collected, no third-party ad SDKs
-• GDPR compliant; account deletion available in-app
+• Account deletion available in-app
 
 Whether you follow crude oil, gold, agricultural products, or specialty metals, Commodity Hub gives you the prices and insights you need at a glance.
 

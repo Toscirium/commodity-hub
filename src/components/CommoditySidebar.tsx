@@ -36,13 +36,13 @@ const CommoditySidebar = React.memo(({ activeGroup, onGroupSelect, commodityCoun
     <Sidebar className="border-r border-border bg-background">
       <SidebarHeader className="border-b border-border bg-background">
         <div className={`flex items-center gap-2.5 ${isMobile ? 'px-4 py-4' : 'px-3 py-3'}`}>
-          <div className="w-7 h-7 rounded-md bg-primary/15 ring-1 ring-primary/30 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-none bg-primary/15 ring-1 ring-primary/40 flex items-center justify-center">
             <TrendingUp className="w-3.5 h-3.5 text-primary" />
           </div>
           {!collapsed && (
             <div className="leading-tight">
-              <h2 className="font-display text-[15px] font-semibold tracking-tight">Commodity Hub</h2>
-              <p className="text-[11px] text-muted-foreground">Markets &amp; Analytics</p>
+              <h2 className="font-mono text-[13px] font-medium tracking-[0.08em] uppercase">Commodity Hub</h2>
+              <p className="text-[10px] font-mono uppercase tracking-[0.1em] text-muted-foreground">Markets &amp; Analytics</p>
             </div>
           )}
         </div>
