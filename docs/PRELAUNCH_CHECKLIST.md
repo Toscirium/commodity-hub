@@ -1,6 +1,6 @@
 # Commodity Hub — Pre-Launch Checklist
 
-Last refreshed: 2026-06-24. Tick each item before promoting a build to Google Play production.
+Last refreshed: 2026-07-18. Tick each item before promoting a build to Google Play production.
 
 ---
 
@@ -63,8 +63,8 @@ Last refreshed: 2026-06-24. Tick each item before promoting a build to Google Pl
 ## 3. Technical Readiness
 
 - [ ] `npm run build` clean (no warnings introduced this release)
-- [ ] `npm run lint` passes
-- [ ] `npm test` / Vitest suite green
+- [x] `npm run lint` passes
+- [x] `npm test` / Vitest suite green
 - [ ] Playwright e2e (`tests/e2e/`) green against preview
 - [ ] Lighthouse score ≥ 90 on Performance, Accessibility, Best Practices, SEO
 - [ ] No `console.error` on cold load (check `useCapacitorAuthDeepLink`, RealtimeDataContext)

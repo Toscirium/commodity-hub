@@ -152,7 +152,7 @@ export const PLAY_STORE_METADATA = {
   website: "https://commodity-hub.lovableproject.com",
   email: "support@commodityhub.com",
   privacyPolicy: "https://commodity-hub.lovable.app/privacy-policy",
-  termsOfService: "https://commodity-hub.lovableproject.com/terms-of-service",
+  termsOfService: "https://commodity-hub.lovable.app/terms-of-service",
   category: "Finance",
   contentRating: "Teen", // 13+ due to financial content
   countries: ["US", "CA", "GB", "AU", "DE", "FR", "JP", "SG"],

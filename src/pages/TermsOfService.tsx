@@ -29,7 +29,7 @@ const TermsOfService = () => {
                 <FileText className="h-6 w-6 text-primary" />
                 <CardTitle>Terms of Service</CardTitle>
               </div>
-              <CardDescription>Last updated: {new Date().toLocaleDateString()}</CardDescription>
+              <CardDescription>Last updated: July 18, 2026</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 prose prose-sm dark:prose-invert max-w-none">
               <section>
@@ -87,7 +87,7 @@ const TermsOfService = () => {
 
               <section>
                 <h2 className="text-lg font-semibold mb-2">7. Contact</h2>
-                <p>For questions, contact support@commodityhub.app.</p>
+                <p>For questions, contact support@commodityhub.com.</p>
               </section>
             </CardContent>
           </Card>

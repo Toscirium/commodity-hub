@@ -83,6 +83,7 @@ export const getOfferings = async (): Promise<PurchasesOffering | null> => {
 
 export const purchasePackage = async (
   pkg: PurchasesOffering['availablePackages'][number],
+  context: Record<string, unknown> = {},
 ): Promise<{ success: boolean; customerInfo?: CustomerInfo; error?: string }> => {
   const pkgProps = {
     package_id: pkg.identifier,
@@ -90,6 +91,7 @@ export const purchasePackage = async (
     price: pkg.product.price,
     currency: pkg.product.currencyCode,
     period: pkg.packageType,
+    ...context,
   };
   trackPurchaseEvent('purchase_started', pkgProps);
   try {

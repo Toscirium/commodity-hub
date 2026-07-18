@@ -1,13 +1,11 @@
 import React from 'react';
-import { Lock, Factory, Zap, Gem, Wheat, Coffee, Beef, Smartphone } from 'lucide-react';
+import { Lock, Factory, Zap, Gem, Wheat, Coffee, Beef } from 'lucide-react';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import PremiumPaywall from '@/components/PremiumPaywall';
 import { usePlatform } from '@/hooks/usePlatform';
-
-const PLAY_STORE_URL =
-  'https://play.google.com/store/apps/details?id=com.commodityhub.app';
+import { monitoringService } from '@/services/monitoringService';
 
 type UpsellVariant = 'energy' | 'industrials' | 'metals' | 'grains' | 'softs' | 'livestock';
 
@@ -58,9 +56,13 @@ const PremiumUpsellCard: React.FC<PremiumUpsellCardProps> = ({ onUpgrade, varian
   const { title, description, Icon } = COPY[variant];
   const { isNative } = usePlatform();
 
+  React.useEffect(() => {
+    monitoringService.trackUserEvent('upsell_impression', { placement: 'catalog', variant, is_native: isNative });
+  }, [isNative, variant]);
+
   const handleClick = () => {
+    monitoringService.trackUserEvent('upsell_cta_tapped', { placement: 'catalog', variant, is_native: isNative });
     if (onUpgrade) onUpgrade();
-    else if (!isNative) window.open(PLAY_STORE_URL, '_blank', 'noopener,noreferrer');
     else setPaywallOpen(true);
   };
 
@@ -84,19 +86,19 @@ const PremiumUpsellCard: React.FC<PremiumUpsellCardProps> = ({ onUpgrade, varian
                     One subscription unlocks every premium benchmark across all groups, with transparent <strong>LIVE</strong> / <strong>EOD</strong> / <strong>REF</strong> sourcing labels on each market.
                   </span>
                   <span className="block mt-1 font-medium text-foreground">
-                    $19.99/mo or $149/yr — save ~38% annually
+                    Premium starts at $6.99/mo for alerts, exports, and up to 3 portfolios. Pro adds advanced analytics.
                   </span>
                 </CardDescription>
               </div>
             </div>
             <Button size="sm" onClick={handleClick} className="flex-shrink-0">
               {isNative ? <Lock className="w-3.5 h-3.5" /> : <Smartphone className="w-3.5 h-3.5" />}
-              {isNative ? 'Upgrade to Premium' : 'Get the Android app'}
+              {isNative ? 'See plans' : 'See plans'}
             </Button>
           </div>
         </CardHeader>
       </Card>
-      <PremiumPaywall open={paywallOpen} onOpenChange={setPaywallOpen} />
+      <PremiumPaywall open={paywallOpen} onOpenChange={setPaywallOpen} source={`catalog_${variant}`} />
     </>
   );
 };

@@ -27,6 +27,8 @@ import type { PurchasesOffering, PurchasesPackage } from '@revenuecat/purchases-
 interface PremiumPaywallProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** The feature or moment that prompted the upgrade conversation. */
+  source?: string;
 }
 
 const PREMIUM_FEATURES = [
@@ -49,7 +51,7 @@ const PRO_FEATURES = [
 const PLAY_STORE_URL =
   'https://play.google.com/store/apps/details?id=com.commodityhub.app';
 
-const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange }) => {
+const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, source = 'unknown' }) => {
   const { toast } = useToast();
   const auth = useAuth();
   const { isNative } = usePlatform();
@@ -64,6 +66,7 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange }) =
     monitoringService.trackUserEvent('paywall_viewed', {
       is_native: isNative,
       tier,
+      source,
     });
   }, [open, isNative, tier]);
 
@@ -76,13 +79,18 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange }) =
       await configureRevenueCat(auth?.user?.id ?? null);
       const current = await getOfferings();
       setOffering(current);
+      monitoringService.trackUserEvent('paywall_offering_loaded', {
+        source,
+        premium_packages: current?.availablePackages.filter((pkg) => pkg.product.identifier.startsWith('premium_lite')).length ?? 0,
+        pro_packages: current?.availablePackages.filter((pkg) => !pkg.product.identifier.startsWith('premium_lite')).length ?? 0,
+      });
       setLoading(false);
     })();
   }, [open, auth?.user?.id]);
 
   const handlePurchase = async (pkg: PurchasesPackage) => {
     setPurchasing(pkg.identifier);
-    const result = await purchasePackage(pkg);
+    const result = await purchasePackage(pkg, { paywall_source: source, tier_target: pkg.product.identifier.startsWith('premium_lite') ? 'premium' : 'pro' });
     setPurchasing(null);
 
     if (result.success) {
@@ -203,7 +211,7 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange }) =
             <DialogTitle>Upgrade Commodity Hub</DialogTitle>
           </div>
           <DialogDescription>
-            Unlock price alerts, multi-portfolio tracking, CSV exports, and the full procurement-grade catalog.
+            Start with Premium at $6.99/month for more alerts, exports, and portfolios. Move to Pro when you need advanced analytics.
           </DialogDescription>
         </DialogHeader>
 
@@ -245,9 +253,12 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange }) =
                 </div>
                 <Button
                   className="w-full"
-                  onClick={() => window.open(PLAY_STORE_URL, '_blank', 'noopener,noreferrer')}
+                  onClick={() => {
+                    monitoringService.trackUserEvent('paywall_download_cta_tapped', { source });
+                    window.open(PLAY_STORE_URL, '_blank', 'noopener,noreferrer');
+                  }}
                 >
-                  Get the Android app
+                  Get Premium on Android
                 </Button>
               </>
             )}
