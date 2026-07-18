@@ -5,6 +5,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders } from '../_shared/utils.ts'
+import { safeLog } from '../_shared/safeConsole.ts'
 
 const PREMIUM_ENTITLEMENT = 'premium';
 const PRO_ENTITLEMENT = 'pro';
@@ -33,8 +34,10 @@ const ACTIVATING = new Set([
   'NON_RENEWING_PURCHASE',
   'TRANSFER',
 ]);
-// Hard deactivations: subscription is fully gone.
-const DEACTIVATING = new Set(['CANCELLATION', 'EXPIRATION']);
+// Only expiration removes access. A cancellation turns off renewal, but the
+// customer keeps the entitlement through the already-paid expiration date.
+const DEACTIVATING = new Set(['EXPIRATION']);
+const CANCELLATION = 'CANCELLATION';
 // Soft states: user retains/loses access but billing needs attention.
 const BILLING_ISSUE = 'BILLING_ISSUE';
 const SUBSCRIPTION_PAUSED = 'SUBSCRIPTION_PAUSED';
@@ -122,6 +125,15 @@ Deno.serve(async (req) => {
       grace_period_expires_at: null,
       updated_at: new Date().toISOString(),
     };
+  } else if (event.type === CANCELLATION) {
+    update = {
+      subscription_active: true,
+      subscription_tier: resolvedTier,
+      subscription_end: subscriptionEnd,
+      billing_state: 'canceled',
+      grace_period_expires_at: null,
+      updated_at: new Date().toISOString(),
+    };
   } else if (DEACTIVATING.has(event.type)) {
     update = {
       subscription_active: false,
@@ -181,13 +193,13 @@ Deno.serve(async (req) => {
     .eq('id', userId)
     .select('id, subscription_tier, subscription_active');
   if (error) {
-    console.error('Profile update failed', error);
+    safeLog.error('Profile update failed', error);
     return new Response(JSON.stringify({ error: 'update_failed', detail: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
-  console.log(`RC ${event.type} for ${userId} → matched ${updated?.length ?? 0} row(s)`);
+  safeLog.log(`RC ${event.type} for ${userId} → matched ${updated?.length ?? 0} row(s)`);
 
   return new Response(JSON.stringify({ ok: true, type: event.type, matched: updated?.length ?? 0, updated }), {
     status: 200,

@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { convertToModelMessages, streamText, tool, stepCountIs, type UIMessage } from "npm:ai";
 import { z } from "npm:zod";
 import { createLovableAiGatewayProvider } from "../_shared/ai-gateway.ts";
+import { safeLog } from "../_shared/safeConsole.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -273,7 +274,7 @@ Deno.serve(async (req) => {
       },
     });
   } catch (err) {
-    console.error("ai-copilot error", err);
+    safeLog.error("ai-copilot error", err);
     const msg = String((err as Error)?.message ?? err);
     const status = msg.includes("429") ? 429 : msg.includes("402") ? 402 : 500;
     return new Response(JSON.stringify({ error: msg }), {
