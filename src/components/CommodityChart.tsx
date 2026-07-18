@@ -108,7 +108,7 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
     };
   }, [isFullScreen]);
 
-  const isPremium = profile?.subscription_active && profile?.subscription_tier === 'premium';
+  const isPremium = !!(profile?.subscription_active && profile?.subscription_tier === 'premium');
   
   // Extract data from query result
   const data = queryData?.data || [];

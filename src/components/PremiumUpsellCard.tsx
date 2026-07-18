@@ -1,5 +1,5 @@
 import React from 'react';
-import { Lock, Factory, Zap, Gem, Wheat, Coffee, Beef } from 'lucide-react';
+import { Lock, Factory, Zap, Gem, Wheat, Coffee, Beef, Smartphone } from 'lucide-react';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';

@@ -12,8 +12,8 @@ interface Profile {
   email: string;
   full_name: string | null;
   avatar_url: string | null;
-  subscription_tier: string;
-  subscription_active: boolean;
+  subscription_tier: string | null;
+  subscription_active: boolean | null;
   subscription_end: string | null;
   billing_state: string | null;
   grace_period_expires_at: string | null;
@@ -66,11 +66,10 @@ async function ensureProfileRow(authUser: User) {
   return data;
 }
 
-export const useAuth = (): AuthContextType | null => {
+export const useAuth = (): AuthContextType => {
   const context = React.useContext(AuthContext);
   if (context === undefined) {
-    // During initial render, return null instead of throwing error
-    return null;
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };

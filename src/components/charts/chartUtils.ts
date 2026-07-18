@@ -45,9 +45,9 @@ export const smoothPriceData = (data: Array<{ date: string; price: number }>, co
   }
   
   // Remove excessive consecutive identical values (more than 5 in a row)
-  const result = [];
+  const result: Array<{ date: string; price: number }> = [];
   let consecutiveCount = 0;
-  let lastPrice = null;
+  let lastPrice: number | null = null;
   
   for (let i = 0; i < smoothed.length; i++) {
     const price = smoothed[i].price;

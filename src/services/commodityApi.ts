@@ -37,9 +37,56 @@ export interface CommodityInfo {
   category: string;
 }
 
+/** Raw item shape returned by the fetch-all-commodities edge function. */
+interface RawCommodityItem {
+  symbol?: string;
+  name?: string;
+  commodityName?: string;
+  price?: number | string;
+  change?: number | string;
+  changePercent?: number | string;
+  changesPercentage?: number | string;
+  category?: string;
+}
+
+interface FetchAllCommoditiesResponse {
+  commodities?: RawCommodityItem[];
+  data?: RawCommodityItem[];
+  source: string;
+  count: number;
+  timestamp: string;
+  dataDelay: 'realtime' | '15min';
+  isDelayed: boolean;
+  isPremium: boolean;
+}
+
+export interface HistoricalDataPoint {
+  date: string;
+  open?: number;
+  high?: number;
+  low?: number;
+  close?: number;
+  price: number;
+}
+
+interface FetchCommodityDataResponse {
+  data?: HistoricalDataPoint[];
+  history?: HistoricalDataPoint[];
+  source: string;
+  ohlcAvailable: boolean;
+  commodity: string;
+  symbol: string;
+  realTime: boolean;
+  dataPoints: number;
+  chartType: string;
+  dataDelay: 'realtime' | '15min';
+  isDelayed: boolean;
+  cached?: boolean;
+}
+
 export class CommodityApiService {
   private static instance: CommodityApiService;
-  private cache = new Map<string, { data: any; timestamp: number }>();
+  private cache = new Map<string, { data: unknown; timestamp: number }>();
   private readonly CACHE_DURATION = 5 * 60 * 1000;
 
   static getInstance(): CommodityApiService {
@@ -57,20 +104,21 @@ export class CommodityApiService {
   async fetchAvailableCommodities(): Promise<CommodityInfo[]> {
     const cacheKey = 'available_commodities';
     const cached = this.cache.get(cacheKey);
-    if (cached && this.isCacheValid(cached.timestamp)) return cached.data;
+    if (cached && this.isCacheValid(cached.timestamp)) return cached.data as CommodityInfo[];
 
     try {
-      const { data, error } = await supabase.functions.invoke('fetch-all-commodities', {
-        body: {},
-      });
+      const { data, error } = await supabase.functions.invoke<FetchAllCommoditiesResponse>(
+        'fetch-all-commodities',
+        { body: {} },
+      );
       if (error) throw error;
-      const items: any[] = data?.commodities || data?.data || [];
+      const items: RawCommodityItem[] = data?.commodities || data?.data || [];
       const commodities: CommodityInfo[] = items.map((item) => ({
         symbol: item.symbol || '',
         name: item.name || item.commodityName || item.symbol || '',
-        price: parseFloat(item.price) || 0,
-        change: parseFloat(item.change) || 0,
-        changePercent: parseFloat(item.changePercent ?? item.changesPercentage) || 0,
+        price: parseFloat(String(item.price)) || 0,
+        change: parseFloat(String(item.change)) || 0,
+        changePercent: parseFloat(String(item.changePercent ?? item.changesPercentage)) || 0,
         category: item.category || 'other',
       })).filter((it) => it.symbol && it.name);
 
@@ -85,7 +133,7 @@ export class CommodityApiService {
   async fetchCommodityPrice(commodityName: string): Promise<CommodityPrice | null> {
     const cacheKey = `price_${commodityName}`;
     const cached = this.cache.get(cacheKey);
-    if (cached && this.isCacheValid(cached.timestamp)) return cached.data;
+    if (cached && this.isCacheValid(cached.timestamp)) return cached.data as CommodityPrice;
 
     try {
       const all = await this.fetchAvailableCommodities();
@@ -112,7 +160,7 @@ export class CommodityApiService {
   async fetchCommodityNews(commodityName: string, limit = 5): Promise<NewsItem[]> {
     const cacheKey = `news_${commodityName}`;
     const cached = this.cache.get(cacheKey);
-    if (cached && this.isCacheValid(cached.timestamp)) return cached.data;
+    if (cached && this.isCacheValid(cached.timestamp)) return cached.data as NewsItem[];
 
     try {
       const news = await fetchNewsFromMarketaux(commodityName);
@@ -130,15 +178,16 @@ export class CommodityApiService {
   }
 
   /** Historical chart data via the fetch-commodity-data edge function (CPA + OilPriceAPI). */
-  async fetchHistoricalData(commodityName: string, timeframe = '1m'): Promise<any[]> {
+  async fetchHistoricalData(commodityName: string, timeframe = '1m'): Promise<HistoricalDataPoint[]> {
     const cacheKey = `historical_${commodityName}_${timeframe}`;
     const cached = this.cache.get(cacheKey);
-    if (cached && this.isCacheValid(cached.timestamp)) return cached.data;
+    if (cached && this.isCacheValid(cached.timestamp)) return cached.data as HistoricalDataPoint[];
 
     try {
-      const { data, error } = await supabase.functions.invoke('fetch-commodity-data', {
-        body: { commodity: commodityName, timeframe },
-      });
+      const { data, error } = await supabase.functions.invoke<FetchCommodityDataResponse>(
+        'fetch-commodity-data',
+        { body: { commodity: commodityName, timeframe } },
+      );
       if (!error) {
         const points = data?.data || data?.history || [];
         if (Array.isArray(points) && points.length > 0) {

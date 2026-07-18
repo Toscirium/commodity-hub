@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-async function authedInvoke<T>(fn: string, body: unknown): Promise<T> {
+async function authedInvoke<T>(fn: string, body: Record<string, unknown>): Promise<T> {
   const { data: sessionData } = await supabase.auth.getSession();
   let session = sessionData.session;
   const expMs = (session?.expires_at ?? 0) * 1000;

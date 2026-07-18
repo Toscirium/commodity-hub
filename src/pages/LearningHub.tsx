@@ -18,7 +18,7 @@ import { useCommodityCounts } from "@/hooks/useCommodityCounts";
 interface TutorialCategory {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   sort_order: number;
 }
 
@@ -37,8 +37,8 @@ interface GlossaryTerm {
   id: string;
   term: string;
   definition: string;
-  category: string;
-  examples: string;
+  category: string | null;
+  examples: string | null;
 }
 
 const LearningHub = () => {

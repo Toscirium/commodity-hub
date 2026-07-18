@@ -89,7 +89,7 @@ const LazyChart: React.FC<LazyChartProps> = ({
             name={name}
             basePrice={basePrice}
             selectedContract={selectedContract}
-            contractData={contractData}
+            contractData={contractData ?? undefined}
           />
         </React.Suspense>
       ) : (

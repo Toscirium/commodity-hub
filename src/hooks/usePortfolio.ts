@@ -7,12 +7,12 @@ import { useDelayedData } from '@/hooks/useDelayedData';
 export interface PortfolioPosition {
   id: string;
   user_id: string;
-  portfolio_id: string;
+  portfolio_id: string | null;
   commodity_name: string;
   quantity: number;
   entry_price: number;
   entry_date: string;
-  notes?: string;
+  notes?: string | null;
   created_at: string;
   updated_at: string;
 }

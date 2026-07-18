@@ -35,18 +35,22 @@ export const useGlobalRealtimeData = (commodities: string[]): GlobalRealtimeData
     try {
       // Get auth token from Supabase session
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
+      // Non-null assertions below: this whole block is currently unreachable
+      // (see the early `return` above) — TS's flow analysis doesn't narrow
+      // through dead code, but the guards are still real for when this is
+      // re-enabled.
+      if (!session || !session!.access_token) {
         setError('No valid session found');
         return;
       }
 
       // Close existing connection
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.close();
+      if (wsRef.current && wsRef.current!.readyState === WebSocket.OPEN) {
+        wsRef.current!.close();
       }
 
       const wsUrl = new URL('wss://kcxhsmlqqyarhlmcapmj.supabase.co/functions/v1/realtime-commodity-stream');
-      wsUrl.searchParams.set('token', session.access_token);
+      wsUrl.searchParams.set('token', session!.access_token);
       wsUrl.searchParams.set('commodities', commodities.join(','));
 
       const ws = new WebSocket(wsUrl.toString());

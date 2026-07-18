@@ -42,6 +42,10 @@ export interface Commodity {
   marketCap: string | null;
 }
 
+interface FetchCommoditySymbolsResponse {
+  commodities?: Commodity[];
+}
+
 export const useAvailableCommodities = (options?: { lightweight?: boolean }) => {
   const { getDataDelay, shouldDelayData, isPremium } = useDelayedData();
   const { getOptimizedQuerySettings } = useCacheOptimization();
@@ -65,9 +69,10 @@ export const useAvailableCommodities = (options?: { lightweight?: boolean }) => 
     queryKey: ['all-commodities', getDataDelay(), isPremium],
     queryFn: async (): Promise<Commodity[]> => {
       try {
-        const { data, error } = await supabase.functions.invoke('fetch-commodity-symbols', {
-          body: { dataDelay: getDataDelay() }
-        });
+        const { data, error } = await supabase.functions.invoke<FetchCommoditySymbolsResponse>(
+          'fetch-commodity-symbols',
+          { body: { dataDelay: getDataDelay() } },
+        );
 
         if (error) {
           console.warn('Failed to fetch commodities:', error);
@@ -106,6 +111,25 @@ export interface CandlestickData {
   price: number; // Keep for compatibility
 }
 
+interface RawCommodityPrice {
+  symbol: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  lastUpdate: string;
+}
+
+interface FetchCommodityPricesResponse {
+  price: RawCommodityPrice | null;
+  source: string;
+  commodity: string;
+  symbol?: string;
+  realTime: boolean;
+  dataDelay: 'realtime' | '15min';
+  isDelayed: boolean;
+  cached?: boolean;
+}
+
 export const useCommodityPrice = (commodityName: string) => {
   const { getDataDelay, shouldDelayData, isPremium } = useDelayedData();
   const { getOptimizedQuerySettings } = useCacheOptimization();
@@ -117,20 +141,29 @@ export const useCommodityPrice = (commodityName: string) => {
     queryKey: ['commodity-price', commodityName, getDataDelay(), isPremium],
     queryFn: async (): Promise<CommodityPriceData | null> => {
       try {
-        const { data, error } = await supabase.functions.invoke('fetch-commodity-prices', {
-          body: { 
-            commodityName, 
-            dataDelay: getDataDelay(),
-            isPremium 
-          }
-        });
+        const { data, error } = await supabase.functions.invoke<FetchCommodityPricesResponse>(
+          'fetch-commodity-prices',
+          {
+            body: {
+              commodityName,
+              dataDelay: getDataDelay(),
+              isPremium
+            }
+          },
+        );
 
         if (error) {
           console.warn(`Failed to fetch price for ${commodityName}:`, error);
           return null;
         }
 
-        return data?.price || null;
+        if (!data?.price) return null;
+        return {
+          price: data.price.price,
+          change: data.price.change,
+          changePercent: data.price.changePercent,
+          timestamp: data.price.lastUpdate,
+        };
       } catch (error) {
         console.warn(`Error fetching price for ${commodityName}:`, error);
         return null;
@@ -139,6 +172,29 @@ export const useCommodityPrice = (commodityName: string) => {
     ...optimizedSettings,
   });
 };
+
+interface RawHistoricalPoint {
+  date: string;
+  price?: number;
+  open?: number;
+  high?: number;
+  low?: number;
+  close?: number;
+}
+
+interface FetchCommodityDataResponse {
+  data?: RawHistoricalPoint[];
+  source: string;
+  ohlcAvailable: boolean;
+  commodity: string;
+  symbol: string;
+  realTime: boolean;
+  dataPoints: number;
+  chartType: string;
+  dataDelay: 'realtime' | '15min';
+  isDelayed: boolean;
+  cached?: boolean;
+}
 
 export const useCommodityHistoricalData = (commodityName: string, timeframe: string, chartType: string = 'line', contractSymbol?: string) => {
   const auth = useAuth();
@@ -162,16 +218,19 @@ export const useCommodityHistoricalData = (commodityName: string, timeframe: str
         
         console.log(`Fetching commodity data for ${commodityName} with contract symbol: ${contractSymbol}`);
         
-        const { data, error } = await supabase.functions.invoke('fetch-commodity-data', {
-          body: { 
-            commodityName, 
-            timeframe, 
-            isPremium,
-            chartType,
-            dataDelay: getDataDelay(),
-            contractSymbol
-          }
-        });
+        const { data, error } = await supabase.functions.invoke<FetchCommodityDataResponse>(
+          'fetch-commodity-data',
+          {
+            body: {
+              commodityName,
+              timeframe,
+              isPremium,
+              chartType,
+              dataDelay: getDataDelay(),
+              contractSymbol
+            }
+          },
+        );
 
         if (error) {
           console.warn(`Failed to fetch historical data for ${commodityName}:`, error);
@@ -183,11 +242,11 @@ export const useCommodityHistoricalData = (commodityName: string, timeframe: str
         const ohlcAvailable = !!data?.ohlcAvailable;
 
         // Ensure OHLC data is properly structured for candlestick charts
-        const processedData = data.data?.map((item: any) => {
+        const processedData: CommodityHistoricalData[] = data?.data?.map((item) => {
           if (chartType === 'candlestick' && ohlcAvailable && typeof item.open === 'number') {
             return {
               date: item.date,
-              price: item.close || item.price,
+              price: item.close ?? item.price ?? 0,
               open: item.open,
               high: item.high,
               low: item.low,
@@ -196,7 +255,7 @@ export const useCommodityHistoricalData = (commodityName: string, timeframe: str
           } else {
             return {
               date: item.date,
-              price: item.price
+              price: item.price ?? 0
             };
           }
         }) || [];

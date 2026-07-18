@@ -23,7 +23,7 @@ const SUGGESTIONS = [
 export default function Copilot() {
   const { threadId } = useParams<{ threadId?: string }>();
   const navigate = useNavigate();
-  const auth = useAuth() as any;
+  const auth = useAuth();
   const userId = auth?.user?.id;
   const { threads, createThread, deleteThread, refresh } = useAiThreads(userId);
   const [sidebarOpen, setSidebarOpen] = useState(false);

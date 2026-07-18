@@ -22,7 +22,7 @@ interface SentimentAggregate {
   bullish_votes: number;
   bearish_votes: number;
   total_votes: number;
-  average_confidence: number;
+  average_confidence: number | null;
   last_updated: string;
 }
 
