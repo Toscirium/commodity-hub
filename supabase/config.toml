@@ -1,0 +1,93 @@
+project_id = "kcxhsmlqqyarhlmcapmj"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+port = 54320
+site_url = "https://commodity-hub.lovable.app"
+additional_redirect_urls = [
+  "commodityhub://auth-callback",
+  "https://commodity-hub.lovable.app/?native=1",
+  "https://id-preview--0cea242b-6aba-4f5a-9e49-91997ef3b761.lovable.app",
+  "https://0cea242b-6aba-4f5a-9e49-91997ef3b761.lovableproject.com",
+  "https://commodity-hub.lovableproject.com",
+  "https://commodity-hub.vercel.app",
+  "http://localhost:5173"
+]
+jwt_expiry = 3600
+refresh_token_rotation_enabled = true
+refresh_token_reuse_interval = 10
+enable_signup = true
+password_min_length = 8
+
+[functions.create-checkout]
+verify_jwt = true
+
+[functions.check-subscription]
+verify_jwt = true
+
+[functions.customer-portal]
+verify_jwt = true
+
+[functions.get-billing-info]
+verify_jwt = true
+
+[functions.cancel-subscription]
+verify_jwt = true
+
+[functions.fetch-commodity-prices]
+verify_jwt = false
+
+[functions.fetch-commodity-data]
+verify_jwt = false
+
+[functions.fetch-all-commodities]
+verify_jwt = false
+
+[functions.fetch-all-commodities-v2]
+verify_jwt = false
+
+[functions.enhanced-commodity-news]
+verify_jwt = false
+
+[functions.ibkr-fix-bridge]
+verify_jwt = false
+
+[functions.ibkr-client-portal]
+verify_jwt = false
+
+[functions.fetch-ibkr-futures]
+verify_jwt = false
+
+[functions.api-docs]
+verify_jwt = false
+
+[functions.direct-exchange-feeds]
+verify_jwt = true
+
+[functions.health-check]
+verify_jwt = false
+
+[functions.revenuecat-webhook]
+verify_jwt = false
+
+[functions.evaluate-price-alerts]
+verify_jwt = false
+
+[functions.register-device-token]
+verify_jwt = false
+
+[functions.warm-vol-cones]
+verify_jwt = false
+
+[functions.warm-energy-prices]
+verify_jwt = false
+
+[functions.fetch-cot-report]
+verify_jwt = false

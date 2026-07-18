@@ -1,0 +1,26 @@
+# gitleaks configuration for the Commodity Hub project.
+# Extends the default ruleset; only adds allowlist entries for known-safe
+# public values that legitimately appear in the codebase.
+
+title = "Commodity Hub gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Public, intentionally-shipped values that are NOT secrets"
+
+# Supabase publishable (anon) JWT — safe to ship in client code; protected by RLS.
+# See src/integrations/supabase/client.ts.
+regexes = [
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGhzbWxxcXlhcmhsbWNhcG1qIiwicm9sZSI6ImFub24i.*''',
+]
+
+paths = [
+  '''(.*?)(jpg|jpeg|png|gif|webp|ico|svg|woff|woff2|ttf|eot)$''',
+  '''package-lock\.json$''',
+  '''bun\.lockb$''',
+  '''dist/.*''',
+  '''node_modules/.*''',
+  '''android/.*\.gradle$''',
+]

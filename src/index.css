@@ -1,0 +1,513 @@
+
+@import url('./styles/mobile.css');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light theme — neutral with a single restrained indigo accent */
+    --background: 0 0% 100%;
+    --foreground: 222 14% 12%;
+
+    --primary: 232 58% 60%;            /* Linear indigo #5e6ad2 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 14% 12%;
+
+    --accent: 232 58% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 156 47% 51%;
+    --warning: 43 90% 56%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 42%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 14% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 14% 12%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 232 58% 60%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Dark theme — Linear-inspired near-black with subtle indigo accent */
+    --background: 225 7% 5%;           /* #08090a */
+    --foreground: 220 13% 91%;         /* #e6e7eb */
+
+    --primary: 232 58% 60%;            /* #5e6ad2 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 225 7% 11%;           /* #1a1b1f */
+    --secondary-foreground: 220 13% 91%;
+
+    --accent: 230 36% 45%;             /* #3d4ba8, hover/pressed */
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 76% 60%;          /* #eb5757 */
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 43% 51%;            /* #4cb782 */
+    --warning: 46 86% 62%;             /* #f2c94c */
+
+    --muted: 225 6% 12%;               /* #1c1d22 */
+    --muted-foreground: 220 5% 56%;    /* #8a8f98 */
+
+    --card: 225 8% 7%;                 /* #0e0f12 */
+    --card-foreground: 220 13% 91%;
+
+    --popover: 225 8% 8%;
+    --popover-foreground: 220 13% 91%;
+
+    --border: 225 5% 16%;              /* #23252b */
+    --input: 225 5% 16%;
+    --ring: 232 58% 60%;
+  }
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip !important;
+    overscroll-behavior-x: none;
+  }
+
+  :root {
+    --app-top-buffer: 0px;
+    --app-top-bar-height: 3.5rem; /* matches h-14 in the header row */
+  }
+
+  html.capacitor-native {
+    --app-top-buffer: calc(env(safe-area-inset-top, 0px) + 12px);
+  }
+
+  /* Push the top bar's own content below Android's overlaid status bar. */
+  .app-top-bar {
+    padding-top: var(--app-top-buffer);
+    /* Clear side-mounted cameras / punch-holes in landscape and on
+       edge-to-edge devices where insets are reported horizontally. */
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+  /* Native: truly pin the top bar with position:fixed (position:sticky
+     can't pin here because ancestors use overflow-x: clip). Offset the
+     page content by the bar's full height so nothing renders underneath. */
+  html.capacitor-native .app-top-bar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 60;
+  }
+  html.capacitor-native body:has(.app-top-bar) {
+    padding-top: calc(var(--app-top-buffer) + var(--app-top-bar-height));
+  }
+  /* Opaque cover behind Android's overlaid status bar — sits above the
+     fixed header so its border-bottom never bleeds into the status area. */
+  html.capacitor-native body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--app-top-buffer);
+    background: hsl(var(--background));
+    z-index: 61;
+    pointer-events: none;
+  }
+
+  /* Safety net: prevent any descendant from causing horizontal page scroll */
+  body * {
+    box-sizing: border-box;
+    max-width: 100%;
+  }
+
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    font-size: 14px;
+  /* Enhanced mobile optimizations */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* Better touch handling */
+  touch-action: pan-y;
+  /* Optimize scrolling performance */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  }
+  
+  /* Refined typography — Space Grotesk display, tight tracking */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-medium tracking-tight text-foreground;
+    text-wrap: balance;
+    letter-spacing: -0.02em;
+  }
+  h1 { @apply text-2xl md:text-[28px]; line-height: 1.15; }
+  h2 { @apply text-xl md:text-2xl; line-height: 1.2; }
+  h3 { @apply text-lg md:text-xl; line-height: 1.25; }
+  h4 { @apply text-base md:text-lg; line-height: 1.3; }
+
+  /* Enhanced utility classes */
+  .text-gradient {
+    @apply text-foreground;
+  }
+  
+  .glass-effect {
+    @apply bg-card border border-border;
+  }
+  
+  .number-display {
+    @apply font-mono tabular-nums;
+  }
+  
+  /* Enhanced touch targets for mobile */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+  
+  /* Improved focus states for accessibility */
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background transition-all duration-200;
+  }
+  
+  /* High contrast focus for better accessibility */
+  .focus-visible {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
+  }
+  
+  /* Enhanced scrollbar styling */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground)) hsl(var(--muted));
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+    border-radius: 3px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground));
+    border-radius: 3px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--foreground));
+  }
+}
+
+@layer components {
+  .card-hover-effect {
+    @apply transition-colors duration-150 hover:bg-muted/30;
+  }
+
+  .button-press-effect {
+    @apply transition-colors duration-150;
+  }
+
+  .text-shine {
+    @apply text-foreground;
+  }
+
+  .mobile-card {
+    @apply rounded-lg p-4 bg-card border border-border
+           transition-colors duration-150 touch-manipulation;
+  }
+
+  .mobile-button {
+    @apply px-4 py-3 rounded-md font-medium text-sm
+           min-h-[44px] min-w-[44px]
+           bg-primary text-primary-foreground
+           hover:bg-primary/90 active:bg-primary/80
+           focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2
+           transition-colors duration-150 touch-manipulation;
+  }
+  
+  .mobile-touch-target {
+    @apply min-h-[48px] min-w-[48px] flex items-center justify-center;
+  }
+  
+  .mobile-dialog {
+    @apply fixed inset-x-4 top-[10%] mx-auto max-w-md rounded-xl
+           bg-card/95 backdrop-blur-md border border-border/50 shadow-strong
+           max-h-[80vh] overflow-y-auto;
+  }
+  
+  .mobile-sheet {
+    @apply fixed inset-x-0 bottom-0 rounded-t-2xl
+           bg-card/95 backdrop-blur-md border-t border-border/50 shadow-strong
+           max-h-[90vh] overflow-hidden;
+  }
+  
+  /* Loading states */
+  .skeleton {
+    @apply bg-muted animate-pulse rounded;
+  }
+  
+  .shimmer {
+    @apply relative overflow-hidden;
+  }
+  
+  .shimmer::after {
+    @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent;
+    content: '';
+    animation: shimmer 2s infinite;
+  }
+  
+  /* Enhanced responsive grid */
+  .responsive-grid {
+    @apply grid gap-3 sm:gap-4 lg:gap-6
+           grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+  
+  .responsive-flex {
+    @apply flex flex-col sm:flex-row gap-3 sm:gap-4 lg:gap-6;
+  }
+  
+  @keyframes shine {
+    0%, 100% { background-position: 200% 0%; }
+    50% { background-position: -200% 0%; }
+  }
+  
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  
+  /* Enhanced print styles */
+  @media print {
+    .no-print {
+      @apply hidden;
+    }
+    
+    .print-friendly {
+      @apply bg-white text-black shadow-none;
+    }
+    
+    /* Ensure good contrast in print */
+    .focus-ring, .focus-visible {
+      @apply ring-black;
+    }
+  }
+  
+  /* Enhanced reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    .card-hover-effect {
+      @apply hover:transform-none hover:scale-100;
+    }
+    
+    .text-shine {
+      animation: none;
+    }
+    
+    /* Disable all animations for reduced motion users */
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+    
+    /* Keep focus indicators visible */
+    .focus-ring, .focus-visible {
+      transition-duration: 0.1s !important;
+    }
+  }
+}
+
+/* Enhanced mobile-specific styles */
+@media (max-width: 640px) {
+  .mobile-optimized {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .mobile-full-width {
+    @apply w-full min-w-0;
+  }
+  
+  .mobile-spacing {
+    @apply px-4 py-3;
+  }
+  
+  /* Mobile-specific button sizing */
+  .mobile-button-large {
+    @apply min-h-[56px] px-6 py-4 text-base font-semibold;
+  }
+  
+  /* Better mobile card spacing */
+  .mobile-card-compact {
+    @apply p-3 space-y-3;
+  }
+  
+  /* Mobile-friendly form elements */
+  .mobile-input {
+    @apply h-12 px-4 text-base;
+  }
+  
+  /* Optimized mobile grid */
+  .mobile-grid {
+    @apply grid grid-cols-1 gap-4;
+  }
+  
+  /* Mobile-friendly modals */
+  .mobile-modal {
+    @apply fixed inset-4 rounded-2xl max-h-[85vh];
+  }
+
+  /* Better touch targets */
+  button, [role="button"], .mobile-touch-target {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Optimize scrolling */
+  .overflow-y-auto, .overflow-auto {
+    overscroll-behavior: contain;
+  }
+
+  /* Improve text rendering */
+  body {
+    text-rendering: optimizeSpeed;
+  }
+
+  /* Disable backdrop blur on mobile — extremely expensive during scroll */
+  .backdrop-blur-xl,
+  .backdrop-blur-md,
+  .backdrop-blur-sm,
+  .backdrop-blur {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background-color: hsl(var(--background)) !important;
+  }
+
+  /* Better card animations */
+  .card-hover-effect {
+    transition: transform 150ms ease-out;
+  }
+}
+
+/* Enhanced tablet-specific styles */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .tablet-optimized {
+    @apply px-6 py-4;
+  }
+}
+
+/* Enhanced high-DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .crisp-edges {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Enhanced swipe gesture styles for fluid mobile interactions */
+.swipe-feedback {
+  transition: transform 75ms cubic-bezier(0.4, 0, 0.2, 1), 
+              opacity 75ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gesture-overlay {
+  transition: opacity 75ms ease-out, background 75ms ease-out;
+}
+
+/* Smooth sidebar animations */
+.sidebar-transition {
+  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Improved touch responsiveness */
+@media (hover: none) and (pointer: coarse) {
+  .touch-optimized {
+    transition: transform 150ms ease-out;
+  }
+  
+  .touch-optimized:active {
+    transform: scale(0.98);
+  }
+}
+
+/* Lightweight CSS animations to replace framer-motion */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(300px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes shrinkWidth {
+  to {
+    width: 0%;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.3s ease-out;
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.3s ease-out;
+}
