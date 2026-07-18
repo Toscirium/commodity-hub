@@ -50,9 +50,6 @@ verify_jwt = false
 [functions.fetch-all-commodities]
 verify_jwt = false
 
-[functions.fetch-all-commodities-v2]
-verify_jwt = false
-
 [functions.enhanced-commodity-news]
 verify_jwt = false
 

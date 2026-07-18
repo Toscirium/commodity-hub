@@ -2,10 +2,31 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { CommodityService } from '../_shared/commodity-service.ts';
 import { corsHeaders, getOptionalAuthenticatedUser, getUserAuthorizationHeader } from '../_shared/utils.ts'
+import { IpRateLimiter } from '../_shared/rateLimit.ts'
+
+// Protect Massive / FMP quotas from anonymous abuse. This is the highest-traffic
+// endpoint (loaded on every dashboard visit), so it needs its own limiter.
+const limiter = new IpRateLimiter({ limit: 60, windowMs: 60_000 });
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
+  }
+
+  const ip = IpRateLimiter.getClientIp(req);
+  const rl = limiter.check(ip);
+  if (!rl.allowed) {
+    return new Response(
+      JSON.stringify({ error: 'Rate limit exceeded' }),
+      {
+        status: 429,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          'Retry-After': String(rl.retryAfterSeconds),
+        },
+      }
+    );
   }
 
   try {
@@ -51,7 +72,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         commodities: commoditiesData,
-        source: 'commoditypriceapi+oilpriceapi',
+        source: 'massive+fmp',
         count: commoditiesData.length,
         timestamp: currentTimestamp,
         dataDelay,
