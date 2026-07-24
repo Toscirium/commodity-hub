@@ -4,14 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Listens for OAuth deep links (commodityhub://auth-callback) forwarded by
- * the Electron main process and completes the Supabase session. Mirrors
+ * the Tauri shell (src-tauri/) and completes the Supabase session. Mirrors
  * useCapacitorAuthDeepLink's PKCE/implicit callback handling — see that hook
- * for the mobile equivalent. No-ops outside the Electron shell.
+ * for the mobile equivalent. No-ops outside the desktop shell.
  */
-export function useElectronAuthDeepLink() {
+export function useDesktopAuthDeepLink() {
   useEffect(() => {
-    const electronApi = window.electron;
-    if (!electronApi?.isElectron) return;
+    const desktopApi = window.desktop;
+    if (!desktopApi?.isDesktop) return;
 
     const handleDeepLink = async (url: string) => {
       if (!url || !url.toLowerCase().startsWith('commodityhub://')) return;
@@ -27,7 +27,7 @@ export function useElectronAuthDeepLink() {
           hashParams.get('error_description') ||
           hashParams.get('error');
         if (oauthError) {
-          console.error('[OAuth] Electron callback returned an error:', oauthError);
+          console.error('[OAuth] Desktop callback returned an error:', oauthError);
           window.dispatchEvent(new CustomEvent('auth:error', { detail: { message: oauthError } }));
           return;
         }
@@ -61,6 +61,6 @@ export function useElectronAuthDeepLink() {
       }
     };
 
-    return electronApi.onAuthDeepLink(handleDeepLink);
+    return desktopApi.onAuthDeepLink(handleDeepLink);
   }, []);
 }

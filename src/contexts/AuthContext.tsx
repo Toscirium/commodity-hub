@@ -469,13 +469,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      // === Electron: open the system browser, come back via deep link ===
+      // === Desktop (Tauri): open the system browser, come back via deep link ===
       // Google's OAuth policy blocks embedded/WebView user agents, so unlike
       // the web branch below we must not navigate the app window itself —
       // signInWithOAuth's URL is opened externally, and the response comes
       // back through the commodityhub:// deep link (see
-      // useElectronAuthDeepLink), the same scheme the mobile app uses.
-      if (window.electron?.isElectron) {
+      // useDesktopAuthDeepLink), the same scheme the mobile app uses.
+      if (window.desktop?.isDesktop) {
         try {
           const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
@@ -491,7 +491,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (error) throw error;
           if (!data?.url) throw new Error('No OAuth URL returned');
 
-          await window.electron.openExternal(data.url);
+          await window.desktop.openExternal(data.url);
           return { error: null };
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);

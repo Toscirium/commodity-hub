@@ -13,6 +13,7 @@ import '@fontsource/jetbrains-mono/400.css';
 import '@fontsource/jetbrains-mono/500.css';
 import { Capacitor } from '@capacitor/core';
 import { redirectNativeOAuthCallbackFromWeb } from './utils/nativeOAuth';
+import './lib/desktopBridge';
 
 // Default to dark theme unless the user explicitly picked another.
 (() => {

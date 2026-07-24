@@ -20,11 +20,11 @@ export const PlayStoreOptimizations: React.FC<{ children: React.ReactNode }> = (
     // Initialize Play Store optimizations
     const initializeOptimizations = async () => {
       try {
-        // Register service worker for offline support. Skipped in Electron:
+        // Register service worker for offline support. Skipped on desktop:
         // the desktop shell's own updater covers the "get fresh code" role,
         // and service worker support under the app:// custom protocol is
-        // unreliable across Electron/Chromium versions.
-        if (!window.electron?.isElectron) {
+        // unreliable across webview engines.
+        if (!window.desktop?.isDesktop) {
           await register();
         }
         
