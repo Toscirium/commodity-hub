@@ -1,0 +1,44 @@
+appId: com.commodityhub.desktop
+productName: Commodity Hub
+directories:
+  output: release
+publish:
+  provider: github
+  owner: Toscirium
+  repo: commodity-hub
+files:
+  - dist/**/*
+  - electron/**/*
+  - package.json
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+mac:
+  icon: build/icon.png
+  category: public.app-category.finance
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
+linux:
+  icon: build/icon.png
+  category: Office
+  target:
+    - target: AppImage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
