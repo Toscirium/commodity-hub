@@ -278,6 +278,7 @@ export const useCommodityHistoricalData = (commodityName: string, timeframe: str
         };
       }
     },
+    enabled: !!commodityName,
     ...optimizedSettings,
   });
 };

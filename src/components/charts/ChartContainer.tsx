@@ -1,11 +1,11 @@
 import React from 'react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { Loader, AlertCircle } from 'lucide-react';
 import { CommodityHistoricalData } from '@/hooks/useCommodityData';
 import { isCentPriced } from '@/lib/commodityUtils';
-import { getYAxisDomain, formatXAxisTick, formatTooltipLabel, smoothPriceData } from './chartUtils';
-import CandlestickChart from '../CandlestickChart';
+import { formatXAxisTick, formatTooltipLabel, smoothPriceData } from './chartUtils';
+import PriceChart, { type PriceChartCompareData } from './PriceChart';
 import { useCurrency } from '@/hooks/useCurrency';
+import type { Trendline, TrendlinePoint } from '@/hooks/useTrendlines';
 
 interface ChartContainerProps {
   data: CommodityHistoricalData[];
@@ -15,6 +15,15 @@ interface ChartContainerProps {
   loading: boolean;
   error: string | null;
   isPositiveTrend: boolean;
+  compareData?: PriceChartCompareData | null;
+  onCompareRemove?: () => void;
+  trendlinesEnabled?: boolean;
+  trendlines: Trendline[];
+  selectedTrendlineId: string | null;
+  onTrendlineCreate: (p1: TrendlinePoint, p2: TrendlinePoint) => void;
+  onTrendlineSelect: (id: string | null) => void;
+  onTrendlineDelete: (id: string) => void;
+  onPendingTrendlineChange?: (pending: boolean) => void;
 }
 
 const ChartContainer: React.FC<ChartContainerProps> = ({
@@ -24,9 +33,23 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
   chartType,
   loading,
   error,
-  isPositiveTrend
+  isPositiveTrend,
+  compareData,
+  onCompareRemove,
+  trendlinesEnabled,
+  trendlines,
+  selectedTrendlineId,
+  onTrendlineCreate,
+  onTrendlineSelect,
+  onTrendlineDelete,
+  onPendingTrendlineChange,
 }) => {
-  const { selectedCurrency, convertPrice, currencyInfo, formatConvertedPrice } = useCurrency();
+  const { selectedCurrency, convertPrice, currencyInfo } = useCurrency();
+  const isCent = isCentPriced(name) && selectedCurrency === 'USD';
+  const formatPrice = React.useCallback(
+    (value: number) => (isCent ? `${value.toFixed(1)}¢` : `${currencyInfo.symbol}${value.toFixed(2)}`),
+    [isCent, currencyInfo.symbol]
+  );
 
   // Convert data prices to selected currency
   const convertedData = React.useMemo(() => {
@@ -43,9 +66,18 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
 
   // Apply data smoothing only for line charts
   const smoothedData = chartType === 'line' ? smoothPriceData(convertedData, name) : convertedData;
-  const yAxisDomain = getYAxisDomain(smoothedData, name, selectedTimeframe);
 
-  const isCent = isCentPriced(name) && selectedCurrency === 'USD';
+  const filteredOhlcData = React.useMemo(
+    () =>
+      convertedData.filter(
+        (item): item is CommodityHistoricalData & { open: number; high: number; low: number; close: number } =>
+          typeof item.open === 'number' &&
+          typeof item.high === 'number' &&
+          typeof item.low === 'number' &&
+          typeof item.close === 'number'
+      ),
+    [convertedData]
+  );
 
   if (loading) {
     return (
@@ -82,95 +114,25 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
   }
 
   return (
-    <>
-      {chartType === 'candlestick' ? (
-        (() => {
-          const filteredData = convertedData.filter((item): item is CommodityHistoricalData & { open: number; high: number; low: number; close: number } => 
-            typeof item.open === 'number' && 
-            typeof item.high === 'number' && 
-            typeof item.low === 'number' && 
-            typeof item.close === 'number'
-          );
-          
-          return (
-            <CandlestickChart
-              data={filteredData}
-              formatXAxisTick={(date) => formatXAxisTick(date, selectedTimeframe)}
-              formatTooltipLabel={(label) => formatTooltipLabel(label, selectedTimeframe)}
-              commodityName={name}
-            />
-          );
-        })()
-      ) : (
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={smoothedData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
-            <XAxis 
-              dataKey="date" 
-              tickFormatter={(date) => formatXAxisTick(date, selectedTimeframe)}
-              minTickGap={selectedTimeframe === '1d' ? 60 : 30}
-              tick={{ 
-                fontSize: 12, 
-                fill: 'hsl(var(--muted-foreground))',
-                fontWeight: 500
-              }}
-              axisLine={{ stroke: 'hsl(var(--border))' }}
-              tickLine={{ stroke: 'hsl(var(--border))' }}
-              interval="preserveStartEnd"
-            />
-            <YAxis 
-              tick={{ 
-                fontSize: 12, 
-                fill: 'hsl(var(--muted-foreground))',
-                fontWeight: 500
-              }}
-              axisLine={{ stroke: 'hsl(var(--border))' }}
-              tickLine={{ stroke: 'hsl(var(--border))' }}
-              tickFormatter={(value) => {
-                if (isCent) return `${value.toFixed(1)}¢`;
-                return `${currencyInfo.symbol}${value.toFixed(2)}`;
-              }}
-              domain={yAxisDomain}
-            />
-            <Tooltip 
-              labelFormatter={(label) => formatTooltipLabel(label, selectedTimeframe)}
-              formatter={(value: number) => {
-                if (isCent) return [`${value.toFixed(2)}¢`, 'Price'];
-                return [`${currencyInfo.symbol}${value.toFixed(2)}`, `Price (${selectedCurrency})`];
-              }}
-              contentStyle={{
-                backgroundColor: 'hsl(var(--background))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '12px',
-                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-                fontSize: '14px',
-                fontWeight: 500,
-                padding: '12px 16px'
-              }}
-              labelStyle={{
-                color: 'hsl(var(--foreground))',
-                fontWeight: 600,
-                marginBottom: '4px'
-              }}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="price" 
-              stroke={isPositiveTrend ? '#10b981' : '#ef4444'}
-              strokeWidth={3}
-              dot={false}
-              activeDot={{ 
-                r: 6, 
-                fill: isPositiveTrend ? '#10b981' : '#ef4444',
-                stroke: 'hsl(var(--background))',
-                strokeWidth: 2,
-                className: 'animate-pulse'
-              }}
-              className="transition-all duration-300"
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      )}
-    </>
+    <PriceChart
+      lineData={smoothedData}
+      candlestickData={filteredOhlcData}
+      chartType={chartType}
+      formatXAxisTick={(date) => formatXAxisTick(date, selectedTimeframe)}
+      formatTooltipLabel={(label) => formatTooltipLabel(label, selectedTimeframe)}
+      formatPrice={formatPrice}
+      commodityName={name}
+      isPositiveTrend={isPositiveTrend}
+      compareData={compareData}
+      onCompareRemove={onCompareRemove}
+      trendlinesEnabled={trendlinesEnabled}
+      trendlines={trendlines}
+      selectedTrendlineId={selectedTrendlineId}
+      onTrendlineCreate={onTrendlineCreate}
+      onTrendlineSelect={onTrendlineSelect}
+      onTrendlineDelete={onTrendlineDelete}
+      onPendingTrendlineChange={onPendingTrendlineChange}
+    />
   );
 };
 

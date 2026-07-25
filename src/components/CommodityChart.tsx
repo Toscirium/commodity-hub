@@ -2,10 +2,12 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useCommodityHistoricalData, useCommodityPrice } from '@/hooks/useCommodityData';
+import { useTrendlines } from '@/hooks/useTrendlines';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { smoothPriceData } from './charts/chartUtils';
 import ChartHeader from './charts/ChartHeader';
+import ChartToolbar from './charts/ChartToolbar';
 import ChartContainer from './charts/ChartContainer';
 import ChartFooter from './charts/ChartFooter';
 import { X, Maximize2, BarChart3 } from 'lucide-react';
@@ -37,11 +39,22 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
   const [chartType, setChartType] = React.useState<'line' | 'candlestick'>('line');
   const [isFullScreen, setIsFullScreen] = React.useState(false);
   const [isLandscape, setIsLandscape] = React.useState(false);
+  const [trendlineMode, setTrendlineMode] = React.useState(false);
+  const [trendlineDrawPending, setTrendlineDrawPending] = React.useState(false);
+  const [compareSymbol, setCompareSymbol] = React.useState<string | null>(null);
   const isMobile = useIsMobile();
-  
+
   const { data: queryData, isLoading: loading, error: queryError } = useCommodityHistoricalData(name, selectedTimeframe, chartType, selectedContract);
   const { data: currentPrice } = useCommodityPrice(name);
+  const { data: compareQueryData } = useCommodityHistoricalData(compareSymbol ?? '', selectedTimeframe, 'line');
   const { profile } = useAuth();
+  const { trendlines, addTrendline, removeTrendline, clearTrendlines, selectedId, setSelectedId } = useTrendlines(name);
+
+  // Trendlines/compare are session-scoped per commodity — don't leak across navigation.
+  React.useEffect(() => {
+    setCompareSymbol(null);
+    setTrendlineMode(false);
+  }, [name]);
 
   // Detect orientation changes
   React.useEffect(() => {
@@ -83,17 +96,18 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
     };
   }, [isMobile]);
 
-  // Handle escape key to exit full screen
+  // Handle escape key to exit full screen — deferred while a trendline draw is in
+  // progress, so Escape cancels the pending line first rather than also exiting.
   React.useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullScreen) {
+      if (e.key === 'Escape' && isFullScreen && !trendlineDrawPending) {
         setIsFullScreen(false);
       }
     };
 
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
-  }, [isFullScreen]);
+  }, [isFullScreen, trendlineDrawPending]);
 
   // Prevent body scroll when full screen
   React.useEffect(() => {
@@ -130,23 +144,12 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
   const isPositiveTrend = trendData.length > 1 && trendData[trendData.length - 1].price > trendData[0].price;
 
   // Calculate price change using smoothed data
-  const priceChange = trendData.length > 1 ? 
+  const priceChange = trendData.length > 1 ?
     ((trendData[trendData.length - 1].price - trendData[0].price) / trendData[0].price) * 100 : 0;
 
-  console.log(`Chart data for ${name}:`, { 
-    dataPoints: data.length, 
-    currentPrice: displayPrice, 
-    trend: isPositiveTrend ? 'positive' : 'negative',
-    priceChange: priceChange.toFixed(2) + '%',
-    chartType,
-    sampleData: data.slice(0, 2),
-    hasOHLC: chartType === 'candlestick' ? data.some(item => 
-      typeof item.open === 'number' && 
-      typeof item.high === 'number' && 
-      typeof item.low === 'number' && 
-      typeof item.close === 'number'
-    ) : false
-  });
+  const compareData = compareSymbol && compareQueryData?.data?.length
+    ? { symbol: compareSymbol, data: compareQueryData.data }
+    : null;
 
   // Full-screen overlay component
   if (isFullScreen) {
@@ -191,6 +194,15 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
             priceChange={priceChange}
             ohlcAvailable={ohlcAvailable}
           />
+          <ChartToolbar
+            trendlineMode={trendlineMode}
+            onTrendlineModeChange={setTrendlineMode}
+            trendlineCount={trendlines.length}
+            onClearTrendlines={clearTrendlines}
+            compareSymbol={compareSymbol}
+            onCompareSymbolChange={setCompareSymbol}
+            currentSymbol={name}
+          />
         </div>
 
         {/* Full-screen chart - takes remaining space */}
@@ -205,6 +217,15 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
                 loading={loading}
                 error={error}
                 isPositiveTrend={isPositiveTrend}
+                compareData={compareData}
+                onCompareRemove={() => setCompareSymbol(null)}
+                trendlinesEnabled={trendlineMode}
+                trendlines={trendlines}
+                selectedTrendlineId={selectedId}
+                onTrendlineCreate={(p1, p2) => addTrendline(p1, p2)}
+                onTrendlineSelect={setSelectedId}
+                onTrendlineDelete={removeTrendline}
+                onPendingTrendlineChange={setTrendlineDrawPending}
               />
             </div>
           </div>
@@ -253,6 +274,16 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
 
       </div>
 
+      <ChartToolbar
+        trendlineMode={trendlineMode}
+        onTrendlineModeChange={setTrendlineMode}
+        trendlineCount={trendlines.length}
+        onClearTrendlines={clearTrendlines}
+        compareSymbol={compareSymbol}
+        onCompareSymbolChange={setCompareSymbol}
+        currentSymbol={name}
+      />
+
       <div className="h-[200px] sm:h-[250px] lg:h-[300px] w-full min-w-0 max-w-full overflow-hidden p-2 sm:p-4 bg-muted/20 rounded-md border border-border">
         <ChartContainer
           data={data}
@@ -262,6 +293,15 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
           loading={loading}
           error={error}
           isPositiveTrend={isPositiveTrend}
+          compareData={compareData}
+          onCompareRemove={() => setCompareSymbol(null)}
+          trendlinesEnabled={trendlineMode}
+          trendlines={trendlines}
+          selectedTrendlineId={selectedId}
+          onTrendlineCreate={(p1, p2) => addTrendline(p1, p2)}
+          onTrendlineSelect={setSelectedId}
+          onTrendlineDelete={removeTrendline}
+          onPendingTrendlineChange={setTrendlineDrawPending}
         />
       </div>
 
