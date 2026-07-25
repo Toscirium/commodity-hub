@@ -1,4 +1,4 @@
-import { Zap, Coins, Wheat, Beef, Milk, Briefcase, BarChart3, Star, Filter, Calendar, Lightbulb, GraduationCap, Users, Activity, Factory, Calculator, Bell, TrendingUp, GitCompare, ArrowUpDown, Gauge, Layers, Bot, CalendarRange, GitCompareArrows, Sparkles, Radar, PieChart, FlaskConical, Droplets } from "lucide-react";
+import { Zap, Coins, Wheat, Beef, Milk, Briefcase, BarChart3, Star, Filter, Calendar, Lightbulb, GraduationCap, Users, Activity, Factory, Calculator, Bell, TrendingUp, GitCompare, ArrowUpDown, Gauge, Layers, Layers3, Bot, CalendarRange, GitCompareArrows, Sparkles, Radar, PieChart, FlaskConical, Droplets } from "lucide-react";
 import { CommodityGroup, MarketTool } from "./types";
 
 export const COMMODITY_GROUPS: CommodityGroup[] = [
@@ -34,6 +34,7 @@ export const PRO_TOOLS: MarketTool[] = [
   { id: "spreads", label: "Spread Calculator", icon: GitCompare, color: "text-foreground", path: "/spreads" },
   { id: "cot", label: "COT Reports", icon: Users, color: "text-foreground", path: "/cot" },
   { id: "roll-scanner", label: "Roll Yield Scanner", icon: ArrowUpDown, color: "text-foreground", path: "/roll-scanner" },
+  { id: "options-chain", label: "Options Chain", icon: Layers3, color: "text-foreground", path: "/options-chain" },
   { id: "vol-cone", label: "Volatility Cone", icon: Gauge, color: "text-foreground", path: "/volatility-cone" },
   { id: "term-structure", label: "Term Structure Shift", icon: Layers, color: "text-foreground", path: "/term-structure" },
 ];

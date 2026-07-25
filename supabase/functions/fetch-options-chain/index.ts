@@ -81,8 +81,13 @@ type ChainPayload = {
   rows: ChainRow[];
 };
 
-const cache = new Map<string, { at: number; data: unknown }>();
+// Shared with pro-analytics/index.ts's regime/spreads/seasonality caching —
+// same {key, payload, updated_at} table. An in-memory Map here was
+// unreliable: edge functions run as multiple isolated instances with no
+// shared memory, so most requests missed the cache anyway and re-hit
+// Databento's slow historical API (this endpoint's main latency source).
 const TTL_MS = 6 * 60 * 60 * 1000; // 6h — settlements are daily
+const CACHE_KEY_PREFIX = 'options-chain:';
 const limiter = new IpRateLimiter({ limit: 30, windowMs: 60_000 });
 
 const StatType = { SETTLEMENT: 3, CLEARED_VOLUME: 6, OPEN_INTEREST: 9, VOLATILITY: 14, DELTA: 15 } as const;
@@ -335,10 +340,15 @@ serve(async (req) => {
       });
     }
 
-    const cacheKey = `${product}:${parsed.data.expiration ?? 'front'}`;
-    const hit = cache.get(cacheKey);
-    if (hit && Date.now() - hit.at < TTL_MS) {
-      return new Response(JSON.stringify({ ...(hit.data as object), cached: true }), {
+    const cacheKey = `${CACHE_KEY_PREFIX}${product}:${parsed.data.expiration ?? 'front'}`;
+    const { data: snap } = await admin
+      .from('pro_analytics_cache')
+      .select('payload, updated_at')
+      .eq('key', cacheKey)
+      .maybeSingle();
+    const fresh = snap?.updated_at && Date.now() - new Date(snap.updated_at).getTime() < TTL_MS;
+    if (fresh && snap?.payload) {
+      return new Response(JSON.stringify({ ...(snap.payload as object), cached: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -435,7 +445,9 @@ serve(async (req) => {
       tradeDate: endStr,
       rows,
     };
-    cache.set(cacheKey, { at: Date.now(), data: payload });
+    await admin
+      .from('pro_analytics_cache')
+      .upsert({ key: cacheKey, payload, updated_at: new Date().toISOString() });
     return new Response(JSON.stringify({ ...payload, cached: false }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

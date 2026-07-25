@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardDescription, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOptionsChain, type OptionsProduct, type OptionsChainRow } from '@/hooks/useOptionsChain';
 import { MarketDataProvenance } from '@/components/MarketDataProvenance';
@@ -46,6 +47,52 @@ const IvCell = ({ iv }: { iv: ResolvedIV }) => {
   );
 };
 
+/** Ticks once a second while `active`, resetting to 0 whenever it flips on — used to show the user real progress on a slow request instead of a static spinner. */
+const useElapsedSeconds = (active: boolean): number => {
+  const [seconds, setSeconds] = React.useState(0);
+  React.useEffect(() => {
+    if (!active) {
+      setSeconds(0);
+      return;
+    }
+    const start = Date.now();
+    setSeconds(0);
+    const id = window.setInterval(() => setSeconds(Math.floor((Date.now() - start) / 1000)), 1000);
+    return () => window.clearInterval(id);
+  }, [active]);
+  return seconds;
+};
+
+// Databento's historical API generates a full options-universe snapshot per
+// request rather than serving a pre-built chain, so a cold (uncached) load
+// routinely takes 30-60s — a skeleton + elapsed timer keeps that from
+// reading as a hang, since a bare spinner past ~10s starts to look broken.
+const ChainSkeleton = ({ seconds }: { seconds: number }) => (
+  <Card>
+    <CardContent className="p-4">
+      <p className="mb-4 text-sm text-muted-foreground">
+        Pulling live settlements, open interest, and volatility from CME via Databento…
+        {seconds > 0 && ` (${seconds}s — first load of a product/expiration can take up to a minute)`}
+      </p>
+      <div className="space-y-2">
+        {Array.from({ length: 12 }).map((_, i) => (
+          <div key={i} className="grid grid-cols-9 items-center gap-2">
+            <Skeleton className="h-4 w-10 justify-self-end" />
+            <Skeleton className="h-4 w-10 justify-self-end" />
+            <Skeleton className="h-4 w-8 justify-self-end" />
+            <Skeleton className="h-4 w-12 justify-self-end" />
+            <Skeleton className="h-4 w-10 justify-self-center" />
+            <Skeleton className="h-4 w-12" />
+            <Skeleton className="h-4 w-8" />
+            <Skeleton className="h-4 w-10" />
+            <Skeleton className="h-4 w-10" />
+          </div>
+        ))}
+      </div>
+    </CardContent>
+  </Card>
+);
+
 const OptionsChain: React.FC = () => {
   const navigate = useNavigate();
   const auth = useAuth();
@@ -57,6 +104,7 @@ const OptionsChain: React.FC = () => {
   const { data, isLoading, isFetching, error, refetch } = useOptionsChain(product, expiration, {
     enabled: isPro,
   });
+  const loadingSeconds = useElapsedSeconds(isLoading);
 
   // Reset the selected expiration when switching products, so we don't carry
   // over an expiration code that doesn't exist for the new product.
@@ -213,7 +261,7 @@ const OptionsChain: React.FC = () => {
               </CardContent>
             </Card>
 
-            {isLoading && <p className="text-sm text-muted-foreground">Loading options chain…</p>}
+            {isLoading && <ChainSkeleton seconds={loadingSeconds} />}
 
             {error && (
               <Card className="border-destructive/30 bg-destructive/5">

@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Activity, ArrowRight, Bell, BrainCircuit, CandlestickChart, ChartNoAxesCombined,
-  ChevronRight, Clock3, Layers3, Lock, Radar, RefreshCw, Scale, Sparkles, TrendingDown, TrendingUp,
+  ChevronRight, Clock3, Layers, Layers3, Lock, Radar, RefreshCw, Scale, Sparkles, TrendingDown, TrendingUp,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -101,6 +101,7 @@ const ProAnalyticsWorkspace = () => {
           <ToolTile title="Positioning" detail="COT commitment reports" icon={Scale} onClick={() => openTool('/cot')} />
           <ToolTile title="Seasonality" detail="Historical calendar patterns" icon={Clock3} onClick={() => openTool('/seasonality')} />
           <ToolTile title="Portfolio risk" detail="Exposure and drawdown" icon={Activity} onClick={() => openTool('/portfolio-analytics')} />
+          <ToolTile title="Options chain" detail="Settlements, OI, and IV by strike" icon={Layers} onClick={() => openTool('/options-chain')} />
         </section>
       </main>
       <PremiumPaywall open={paywallOpen} onOpenChange={setPaywallOpen} />
