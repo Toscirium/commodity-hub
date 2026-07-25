@@ -11,7 +11,13 @@ const limiter = new IpRateLimiter({ limit: 60, windowMs: 60_000 });
 // In-memory cache with TTL for historical data
 const historyCache = new Map<string, { data: any; source: string; timestamp: number }>();
 const HISTORY_CACHE_TTL = 10 * 60 * 1000; // 10 minutes (historical data changes less frequently)
-const HISTORICAL_TIMEFRAMES = new Set(['1d', '1m', '3m', '6m', '1y', '5y']);
+const HISTORICAL_TIMEFRAMES = new Set(['1d', '1m', '3m', '6m', '1y', '2y', '5y']);
+
+// Massive's plan currently backs up to 2 years of daily aggs, and that's the
+// practical ceiling for every provider here — asking for more (as '5y' used
+// to, requesting 1825 days) doesn't get you more bars, just a chart quietly
+// truncated to whatever history is actually available.
+const TWO_YEAR_DAYS = 730;
 
 function getHistoryDays(timeframe: string, intradayDays: number, oneMonthDays: number, threeMonthDays: number, sixMonthDays: number, oneYearDays: number): number {
   switch (timeframe) {
@@ -20,7 +26,8 @@ function getHistoryDays(timeframe: string, intradayDays: number, oneMonthDays: n
     case '3m': return threeMonthDays;
     case '6m': return sixMonthDays;
     case '1y': return oneYearDays;
-    case '5y': return 1825;
+    case '2y': return TWO_YEAR_DAYS;
+    case '5y': return TWO_YEAR_DAYS;
     default: return oneYearDays;
   }
 }

@@ -13,6 +13,7 @@ export const TIMEFRAMES: TimeframeOption[] = [
   { label: '3M', value: '3m' },
   { label: '6M', value: '6m' },
   { label: '1Y', value: '1y' },
+  { label: '2Y', value: '2y' },
   { label: '5Y', value: '5y' },
 ];
 
@@ -176,8 +177,8 @@ export const formatXAxisTick = (date: string, timeframe: string): string => {
       minute: '2-digit',
       hour12: false
     });
-  } else if (timeframe === '5y') {
-    // "Jul 15" is ambiguous across 5 years of ticks — show month + year instead
+  } else if (timeframe === '2y' || timeframe === '5y') {
+    // "Jul 15" is ambiguous once ticks span more than a year — show month + year instead
     return new Date(date).toLocaleDateString('en-US', {
       month: 'short',
       year: 'numeric',

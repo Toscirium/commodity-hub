@@ -40,6 +40,7 @@ const TIMEFRAMES = [
   { value: '3m', label: '3 Months' },
   { value: '6m', label: '6 Months' },
   { value: '1y', label: '1 Year' },
+  { value: '2y', label: '2 Years' },
   { value: '5y', label: '5 Years' },
 ];
 
@@ -203,7 +204,7 @@ export const PriceComparisonChart: React.FC<PriceComparisonChartProps> = ({ comm
     if (timeframe === '1d') {
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
-    if (timeframe === '5y') {
+    if (timeframe === '2y' || timeframe === '5y') {
       return date.toLocaleDateString([], { month: 'short', year: 'numeric' });
     }
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
