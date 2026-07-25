@@ -13,6 +13,7 @@ export const TIMEFRAMES: TimeframeOption[] = [
   { label: '3M', value: '3m' },
   { label: '6M', value: '6m' },
   { label: '1Y', value: '1y' },
+  { label: '5Y', value: '5y' },
 ];
 
 /**
@@ -136,7 +137,7 @@ export const getYAxisDomain = (
       paddingMultiplier = 0.06; // 6% padding for 3-month grains
     } else if (selectedTimeframe === '6m') {
       paddingMultiplier = 0.04; // 4% padding for 6-month grains
-    } else { // 1-year
+    } else { // 1-year and 5-year
       paddingMultiplier = 0.03; // 3% padding for yearly grains
     }
   } else {
@@ -149,7 +150,7 @@ export const getYAxisDomain = (
       paddingMultiplier = 0.02; // 2% padding for 3-month
     } else if (selectedTimeframe === '6m') {
       paddingMultiplier = 0.01; // 1% padding for 6-month
-    } else { // 1-year
+    } else { // 1-year and 5-year
       paddingMultiplier = 0.01; // 1% padding for yearly
     }
   }
@@ -170,16 +171,22 @@ export const getYAxisDomain = (
 export const formatXAxisTick = (date: string, timeframe: string): string => {
   if (timeframe === '1d') {
     // For daily timeframe, show hours
-    return new Date(date).toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
+    return new Date(date).toLocaleTimeString('en-US', {
+      hour: '2-digit',
       minute: '2-digit',
-      hour12: false 
+      hour12: false
+    });
+  } else if (timeframe === '5y') {
+    // "Jul 15" is ambiguous across 5 years of ticks — show month + year instead
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
+      year: 'numeric',
     });
   } else {
     // For other timeframes, show date
-    return new Date(date).toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric' 
+    return new Date(date).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric'
     });
   }
 };

@@ -90,7 +90,7 @@ const openApiSpec = {
                   commodityName: { type: "string", description: "Name of the commodity" },
                   timeframe: {
                     type: "string",
-                    enum: ["1d", "1w", "1m", "3m", "6m", "1y"],
+                    enum: ["1d", "1m", "3m", "6m", "1y", "5y"],
                     description: "Time period for historical data"
                   },
                   chartType: {

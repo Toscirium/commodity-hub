@@ -9,9 +9,11 @@ export interface OptionsChainRow {
   callSettle: number | null;
   callVolume: number | null;
   callOpenInterest: number | null;
+  callIV: number | null;
   putSettle: number | null;
   putVolume: number | null;
   putOpenInterest: number | null;
+  putIV: number | null;
 }
 
 export interface OptionsChainResponse {

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
-import { Filter, Search, TrendingUp, TrendingDown, BarChart3, RefreshCw, ArrowUp, ArrowDown, Download, Lock } from 'lucide-react';
+import { Filter, Search, TrendingUp, TrendingDown, BarChart3, RefreshCw, ArrowUp, ArrowDown, Download, Lock, Radar, Minus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAvailableCommodities } from '@/hooks/useCommodityData';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,6 +14,7 @@ import { formatPrice } from '@/lib/commodityUtils';
 import { limitsFor } from '@/utils/tiers';
 import { downloadCsv } from '@/utils/csvExport';
 import PremiumPaywall from '@/components/PremiumPaywall';
+import { useRegime, type RegimeRow } from '@/hooks/useProAnalytics';
 
 interface ScreenerFilters {
   category: string;
@@ -25,6 +26,21 @@ interface ScreenerFilters {
   sortOrder: 'asc' | 'desc';
 }
 
+type SignalPreset = 'all' | 'uptrend' | 'downtrend' | 'high-volatility' | 'momentum';
+
+const normaliseInstrument = (value: string) => value
+  .toLowerCase()
+  .replace(/futures|future|arabica|#11|class iii|oil/g, '')
+  .replace(/[^a-z0-9]/g, '');
+
+const findRegime = (commodity: string, rows: RegimeRow[]): RegimeRow | undefined => {
+  const instrument = normaliseInstrument(commodity);
+  return rows.find((row) => {
+    const label = normaliseInstrument(row.label);
+    return label.length > 2 && (instrument.includes(label) || label.includes(instrument));
+  });
+};
+
 const MarketScreener = () => {
   const navigate = useNavigate();
   // Lightweight mode = no polling, no refetch on mount; reuses Dashboard's cache.
@@ -32,10 +48,12 @@ const MarketScreener = () => {
   const { profile } = useAuth();
   const auth = useAuth();
   const tier = auth?.tier ?? 'free';
+  const isPro = auth?.isPro ?? tier === 'pro';
   const limits = limitsFor(tier);
   const [paywallOpen, setPaywallOpen] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [signalPreset, setSignalPreset] = useState<SignalPreset>('all');
   const [filters, setFilters] = useState<ScreenerFilters>({
     category: 'all',
     priceRange: [0, 5000],
@@ -45,10 +63,16 @@ const MarketScreener = () => {
     sortBy: 'change',
     sortOrder: 'desc'
   });
+  const { data: regimeData, isLoading: regimesLoading } = useRegime(isPro);
 
   // Show only metrics the source actually supplies. An unavailable metric is
   // preferable to a plausible-looking estimate in a trading workflow.
   const enhancedCommodities = React.useMemo(() => commodities ?? [], [commodities]);
+  const regimeRows = regimeData?.rows.filter((row) => !row.error) ?? [];
+  const regimesByCommodity = React.useMemo(
+    () => new Map(enhancedCommodities.map((commodity) => [commodity.name, findRegime(commodity.name, regimeRows)])),
+    [enhancedCommodities, regimeRows],
+  );
 
   const filteredCommodities = React.useMemo(() => {
     let result = enhancedCommodities;
@@ -77,6 +101,19 @@ const MarketScreener = () => {
       commodity.changePercent >= filters.changeRange[0] && 
       commodity.changePercent <= filters.changeRange[1]
     );
+
+    // Pro signal presets only use the verified regime feed; never infer trend
+    // or volatility from a single live quote.
+    if (signalPreset !== 'all' && isPro) {
+      result = result.filter((commodity) => {
+        const regime = regimesByCommodity.get(commodity.name);
+        if (!regime) return false;
+        if (signalPreset === 'uptrend') return regime.trend === 'up';
+        if (signalPreset === 'downtrend') return regime.trend === 'down';
+        if (signalPreset === 'high-volatility') return regime.vol === 'high';
+        return regime.trend === 'up' && (regime.return20d ?? 0) > 0 && (regime.return60d ?? 0) > 0;
+      });
+    }
 
     // Sort
     result = result.sort((a, b) => {
@@ -120,7 +157,7 @@ const MarketScreener = () => {
     });
 
     return result;
-  }, [enhancedCommodities, searchTerm, filters]);
+  }, [enhancedCommodities, searchTerm, filters, signalPreset, isPro, regimesByCommodity]);
 
   const handleSort = (column: string) => {
     setFilters(prev => ({
@@ -149,6 +186,14 @@ const MarketScreener = () => {
   };
 
   const categories = ['all', ...Array.from(new Set((commodities || []).map(c => c.category)))];
+
+  const selectPreset = (preset: SignalPreset) => {
+    if (preset !== 'all' && !isPro) {
+      setPaywallOpen(true);
+      return;
+    }
+    setSignalPreset(preset);
+  };
 
   const handleExportCsv = () => {
     if (!limits.csvExport) { setPaywallOpen(true); return; }
@@ -187,6 +232,21 @@ const MarketScreener = () => {
       </MobilePageHeader>
       
         <div className="container mx-auto p-4 space-y-6">
+          <Card className="border-primary/25 bg-primary/[0.03]">
+            <CardContent className="flex flex-col gap-3 py-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-start gap-3">
+                <div className="rounded-md bg-primary/10 p-2 text-primary"><Radar className="h-5 w-5" /></div>
+                <div><p className="font-semibold">Signal screener</p><p className="text-sm text-muted-foreground">Screen on verified 60-day trend and volatility regimes, then inspect the underlying market.</p></div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <SignalButton label="All markets" active={signalPreset === 'all'} onClick={() => selectPreset('all')} />
+                <SignalButton label="Uptrends" active={signalPreset === 'uptrend'} locked={!isPro} onClick={() => selectPreset('uptrend')} />
+                <SignalButton label="Downtrends" active={signalPreset === 'downtrend'} locked={!isPro} onClick={() => selectPreset('downtrend')} />
+                <SignalButton label="High volatility" active={signalPreset === 'high-volatility'} locked={!isPro} onClick={() => selectPreset('high-volatility')} />
+                <SignalButton label="Momentum" active={signalPreset === 'momentum'} locked={!isPro} onClick={() => selectPreset('momentum')} />
+              </div>
+            </CardContent>
+          </Card>
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Filters Sidebar */}
         <div className="lg:col-span-1 space-y-4">
@@ -393,6 +453,7 @@ const MarketScreener = () => {
                              {getSortIcon('volatility')}
                            </div>
                          </th>
+                         <th className="hidden p-3 text-left font-semibold lg:table-cell" title="Verified 60-day regime from the Pro analytics feed">Signal</th>
                          <th className="text-center p-3 font-semibold">Action</th>
                        </tr>
                      </thead>
@@ -437,7 +498,8 @@ const MarketScreener = () => {
                            <td className="p-3 text-right">
                              {commodity.volatility ? `${commodity.volatility}%` : '/'}
                            </td>
-                          <td className="p-3 text-center">
+                           <td className="hidden p-3 lg:table-cell"><RegimeSignal regime={regimesByCommodity.get(commodity.name)} loading={regimesLoading} isPro={isPro} /></td>
+                           <td className="p-3 text-center">
                             <Button variant="ghost" size="sm">
                               <BarChart3 className="w-4 h-4" />
                             </Button>
@@ -466,6 +528,20 @@ const MarketScreener = () => {
         <PremiumPaywall open={paywallOpen} onOpenChange={setPaywallOpen} />
     </div>
   );
+};
+
+const SignalButton = ({ label, active, locked = false, onClick }: { label: string; active: boolean; locked?: boolean; onClick: () => void }) => (
+  <Button type="button" size="sm" variant={active ? 'default' : 'outline'} onClick={onClick} className="gap-1.5">
+    {locked && <Lock className="h-3 w-3" />}{label}
+  </Button>
+);
+
+const RegimeSignal = ({ regime, loading, isPro }: { regime?: RegimeRow; loading: boolean; isPro: boolean }) => {
+  if (!isPro) return <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Lock className="h-3 w-3" />Pro</span>;
+  if (loading) return <span className="text-xs text-muted-foreground">Loading…</span>;
+  if (!regime) return <span className="text-xs text-muted-foreground">Unavailable</span>;
+  const trendClass = regime.trend === 'up' ? 'bg-emerald-500/10 text-emerald-600' : regime.trend === 'down' ? 'bg-red-500/10 text-red-600' : 'bg-muted text-muted-foreground';
+  return <div className="flex items-center gap-1.5"><span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase ${trendClass}`}>{regime.trend === 'up' ? <TrendingUp className="h-3 w-3" /> : regime.trend === 'down' ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}{regime.trend}</span><span className="text-[10px] text-muted-foreground">vol {regime.vol}</span></div>;
 };
 
 export default MarketScreener;

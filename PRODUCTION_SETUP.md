@@ -59,6 +59,7 @@ After making changes in either direction, run `git pull` locally, then `npx cap 
 FMP_API_KEY=your_production_fmp_key
 ALPHA_VANTAGE_API_KEY=your_production_alpha_key
 STRIPE_SECRET_KEY=your_production_stripe_key
+DATABENTO_API_KEY=your_production_databento_key
 ALERT_WEBHOOK_URL=your_monitoring_webhook
 ```
 

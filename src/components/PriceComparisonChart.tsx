@@ -35,16 +35,16 @@ const COLORS = [
 ];
 
 const TIMEFRAMES = [
-  { value: '1D', label: '1 Day' },
-  { value: '5D', label: '5 Days' },
-  { value: '1M', label: '1 Month' },
-  { value: '3M', label: '3 Months' },
-  { value: '6M', label: '6 Months' },
-  { value: '1Y', label: '1 Year' }
+  { value: '1d', label: '1 Day' },
+  { value: '1m', label: '1 Month' },
+  { value: '3m', label: '3 Months' },
+  { value: '6m', label: '6 Months' },
+  { value: '1y', label: '1 Year' },
+  { value: '5y', label: '5 Years' },
 ];
 
 export const PriceComparisonChart: React.FC<PriceComparisonChartProps> = ({ commodities }) => {
-  const [timeframe, setTimeframe] = React.useState('1D');
+  const [timeframe, setTimeframe] = React.useState('1d');
   const [chartData, setChartData] = React.useState<ChartDataPoint[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [failedCommodities, setFailedCommodities] = React.useState<string[]>([]);
@@ -177,11 +177,22 @@ export const PriceComparisonChart: React.FC<PriceComparisonChartProps> = ({ comm
     });
 
     setChartData(prevData => {
-      // Add new point and keep last 100 points for performance
-      const updatedData = [...prevData, newDataPoint].slice(-100);
-      return updatedData;
+      // Daily historical ranges already include today's bar. Update that bar in
+      // place so a 5Y chart does not accumulate a new point on every tick.
+      const today = currentTime.slice(0, 10);
+      const existingIndex = timeframe === '1d'
+        ? -1
+        : prevData.findIndex((point) => point.date.slice(0, 10) === today);
+      if (existingIndex >= 0) {
+        return prevData.map((point, index) =>
+          index === existingIndex ? { ...point, ...newDataPoint, date: point.date } : point
+        );
+      }
+      // Intraday updates are intentionally bounded; longer ranges retain every
+      // historical bar for an accurate 5Y view.
+      return timeframe === '1d' ? [...prevData, newDataPoint].slice(-100) : [...prevData, newDataPoint];
     });
-  }, [lastUpdate, prices, connected, commodities]);
+  }, [lastUpdate, prices, connected, commodities, timeframe]);
 
   const formatTooltipValue = (value: number) => {
     return [`$${value.toFixed(2)}`, ''];
@@ -189,8 +200,11 @@ export const PriceComparisonChart: React.FC<PriceComparisonChartProps> = ({ comm
 
   const formatAxisLabel = (value: string) => {
     const date = new Date(value);
-    if (timeframe === '1D') {
+    if (timeframe === '1d') {
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    if (timeframe === '5y') {
+      return date.toLocaleDateString([], { month: 'short', year: 'numeric' });
     }
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };

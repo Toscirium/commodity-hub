@@ -11,6 +11,19 @@ const limiter = new IpRateLimiter({ limit: 60, windowMs: 60_000 });
 // In-memory cache with TTL for historical data
 const historyCache = new Map<string, { data: any; source: string; timestamp: number }>();
 const HISTORY_CACHE_TTL = 10 * 60 * 1000; // 10 minutes (historical data changes less frequently)
+const HISTORICAL_TIMEFRAMES = new Set(['1d', '1m', '3m', '6m', '1y', '5y']);
+
+function getHistoryDays(timeframe: string, intradayDays: number, oneMonthDays: number, threeMonthDays: number, sixMonthDays: number, oneYearDays: number): number {
+  switch (timeframe) {
+    case '1d': return intradayDays;
+    case '1m': return oneMonthDays;
+    case '3m': return threeMonthDays;
+    case '6m': return sixMonthDays;
+    case '1y': return oneYearDays;
+    case '5y': return 1825;
+    default: return oneYearDays;
+  }
+}
 
 function getCachedHistory(key: string): { data: any; source: string } | null {
   const entry = historyCache.get(key);
@@ -109,10 +122,19 @@ serve(async (req) => {
       )
     }
 
+    if (!HISTORICAL_TIMEFRAMES.has(timeframe)) {
+      return new Response(
+        JSON.stringify({ error: 'Unsupported timeframe', supportedTimeframes: [...HISTORICAL_TIMEFRAMES] }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     console.log(`Fetching data for ${commodityName}, timeframe: ${timeframe}, chartType: ${chartType || 'line'}`)
 
     // Check cache first
-    const cacheKey = `history:${commodityName}:${timeframe}:${chartType || 'line'}:${dataDelay}`;
+    // The requested contract affects the response symbol even when its history
+    // falls back to the verified front-month series, so it must be cache-isolated.
+    const cacheKey = `history:${commodityName}:${contractSymbol || ''}:${timeframe}:${chartType || 'line'}:${dataDelay}`;
     const cached = getCachedHistory(cacheKey);
     if (cached) {
       console.log(`Cache hit for ${commodityName} ${timeframe}`);
@@ -160,8 +182,8 @@ serve(async (req) => {
     if (!historicalData && massiveCode) {
       try {
         const maxDays = isPremium
-          ? (timeframe === '1d' ? 5 : timeframe === '1m' ? 60 : timeframe === '3m' ? 180 : timeframe === '6m' ? 365 : 730)
-          : (timeframe === '1d' ? 5 : timeframe === '1m' ? 30 : timeframe === '3m' ? 90 : timeframe === '6m' ? 180 : 365);
+          ? getHistoryDays(timeframe, 5, 60, 180, 365, 730)
+          : getHistoryDays(timeframe, 5, 30, 90, 180, 365);
         const endDate = new Date();
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - maxDays);
@@ -193,8 +215,8 @@ serve(async (req) => {
     if (!historicalData && fmpSym) {
       try {
         const maxDays = isPremium
-          ? (timeframe === '1d' ? 2 : timeframe === '1m' ? 60 : timeframe === '3m' ? 180 : timeframe === '6m' ? 365 : 730)
-          : (timeframe === '1d' ? 2 : timeframe === '1m' ? 30 : timeframe === '3m' ? 90 : timeframe === '6m' ? 180 : 365);
+          ? getHistoryDays(timeframe, 2, 60, 180, 365, 730)
+          : getHistoryDays(timeframe, 2, 30, 90, 180, 365);
 
         const endDate = new Date();
         const startDate = new Date();

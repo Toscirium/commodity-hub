@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, PieChart as PieIcon, Lock, RefreshCw, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, PieChart as PieIcon, Lock, RefreshCw, AlertTriangle, ShieldAlert, ShieldCheck, Layers3 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LineChart, Line, ResponsiveContainer, YAxis, XAxis, Tooltip } from 'recharts';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePortfolioAnalytics } from '@/hooks/useProAnalytics';
+import { usePortfolio } from '@/hooks/usePortfolio';
 import PremiumPaywall from '@/components/PremiumPaywall';
 
 const Stat: React.FC<{ label: string; value: string; sub?: string; tone?: 'good' | 'bad' | 'warn' | 'neutral' }> = ({ label, value, sub, tone = 'neutral' }) => (
@@ -25,6 +26,19 @@ const PortfolioAnalytics: React.FC = () => {
   const isPro = auth?.isPro ?? false;
   const [paywallOpen, setPaywallOpen] = useState(false);
   const { data, isLoading, error, refetch, isFetching } = usePortfolioAnalytics(isPro);
+  const { positions, loading: positionsLoading } = usePortfolio();
+  const exposure = React.useMemo(() => {
+    const gross = positions.reduce((sum, position) => sum + Math.abs(position.current_value), 0);
+    const rows = positions
+      .map((position) => ({
+        name: position.commodity_name,
+        value: position.current_value,
+        weight: gross > 0 ? Math.abs(position.current_value) / gross : 0,
+      }))
+      .sort((a, b) => b.weight - a.weight);
+    const concentrationHhi = rows.reduce((sum, row) => sum + row.weight ** 2, 0) * 10_000;
+    return { gross, rows: rows.slice(0, 5), largestWeight: rows[0]?.weight ?? 0, concentrationHhi };
+  }, [positions]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -99,6 +113,26 @@ const PortfolioAnalytics: React.FC = () => {
               <Stat label="Sharpe (est)" value={data.sharpe != null ? data.sharpe.toFixed(2) : '—'} sub="Daily returns × √252" />
               <Stat label="Data days" value={String(data.history?.length ?? 0)} sub="Latest 90 shown below" />
             </div>
+            <section className="grid grid-cols-1 gap-3 mb-6 lg:grid-cols-[1.25fr_1fr]">
+              <Card>
+                <CardHeader className="pb-2"><CardDescription className="flex items-center gap-2"><Layers3 className="h-4 w-4 text-primary" />Gross exposure and concentration</CardDescription></CardHeader>
+                <CardContent>
+                  {positionsLoading ? <p className="text-sm text-muted-foreground">Loading position exposures…</p> : exposure.rows.length === 0 ? <p className="text-sm text-muted-foreground">Add positions to see exposure concentration.</p> : <>
+                    <div className="mb-4 grid grid-cols-2 gap-3 text-sm"><RiskReadout label="Gross exposure" value={`$${exposure.gross.toLocaleString(undefined, { maximumFractionDigits: 0 })}`} /><RiskReadout label="Concentration" value={`${exposure.concentrationHhi.toFixed(0)} HHI`} detail="10,000 = single holding" /></div>
+                    <div className="space-y-3">{exposure.rows.map((position) => <div key={position.name}><div className="mb-1 flex items-center justify-between gap-3 text-xs"><span className="truncate font-medium">{position.name}</span><span className="font-mono text-muted-foreground">{(position.weight * 100).toFixed(1)}%</span></div><div className="h-1.5 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.max(position.weight * 100, 2)}%` }} /></div></div>)}</div>
+                  </>}
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2"><CardDescription className="flex items-center gap-2"><ShieldAlert className="h-4 w-4 text-primary" />Risk guardrails</CardDescription></CardHeader>
+                <CardContent className="space-y-3">
+                  <Guardrail label="Daily VaR" value={data.var95Pct == null ? '—' : `${data.var95Pct.toFixed(2)}%`} state={data.var95Pct != null && data.var95Pct > 3 ? 'warn' : 'ok'} detail="95% one-day estimate" />
+                  <Guardrail label="Largest holding" value={`${(exposure.largestWeight * 100).toFixed(1)}%`} state={exposure.largestWeight > 0.4 ? 'warn' : 'ok'} detail="of gross exposure" />
+                  <Guardrail label="Crude beta" value={data.beta == null ? '—' : data.beta.toFixed(2)} state={data.beta != null && Math.abs(data.beta) > 1.2 ? 'warn' : 'ok'} detail="sensitivity to WTI" />
+                  <Guardrail label="Max drawdown" value={data.maxDrawdownPct == null ? '—' : `${data.maxDrawdownPct.toFixed(2)}%`} state={data.maxDrawdownPct != null && data.maxDrawdownPct < -15 ? 'warn' : 'ok'} detail="historical lookback" />
+                </CardContent>
+              </Card>
+            </section>
             <Card>
               <CardHeader><CardDescription>Portfolio value — last 90 sessions</CardDescription></CardHeader>
               <CardContent>
@@ -124,5 +158,8 @@ const PortfolioAnalytics: React.FC = () => {
     </div>
   );
 };
+
+const RiskReadout = ({ label, value, detail }: { label: string; value: string; detail?: string }) => <div><p className="text-xs text-muted-foreground">{label}</p><p className="font-mono text-base font-semibold">{value}</p>{detail && <p className="text-[10px] text-muted-foreground">{detail}</p>}</div>;
+const Guardrail = ({ label, value, detail, state }: { label: string; value: string; detail: string; state: 'ok' | 'warn' }) => <div className="flex items-center gap-2 border-b border-border pb-2 last:border-0 last:pb-0"><span className={state === 'warn' ? 'text-amber-500' : 'text-emerald-500'}>{state === 'warn' ? <ShieldAlert className="h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}</span><div className="min-w-0 flex-1"><p className="text-xs font-medium">{label}</p><p className="text-[10px] text-muted-foreground">{detail}</p></div><span className="font-mono text-sm font-semibold">{value}</span></div>;
 
 export default PortfolioAnalytics;

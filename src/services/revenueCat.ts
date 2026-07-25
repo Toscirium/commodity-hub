@@ -18,6 +18,12 @@ const REVENUECAT_IOS_KEY = import.meta.env.VITE_REVENUECAT_IOS_KEY as string | u
 
 // RevenueCat entitlement identifier configured in dashboard.
 export const PREMIUM_ENTITLEMENT = 'premium';
+export const PRO_ENTITLEMENT = 'pro';
+
+const getActivePaidEntitlement = (customerInfo: CustomerInfo) =>
+  customerInfo.entitlements.active[PRO_ENTITLEMENT] ??
+  customerInfo.entitlements.active[PREMIUM_ENTITLEMENT] ??
+  null;
 
 let configured = false;
 
@@ -96,12 +102,12 @@ export const purchasePackage = async (
   trackPurchaseEvent('purchase_started', pkgProps);
   try {
     const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
-    const isPremium = Boolean(customerInfo.entitlements.active[PREMIUM_ENTITLEMENT]);
+    const activeEntitlement = getActivePaidEntitlement(customerInfo);
     trackPurchaseEvent('purchase_succeeded', {
       ...pkgProps,
-      is_premium: isPremium,
+      entitlement: activeEntitlement?.identifier ?? null,
     });
-    return { success: isPremium, customerInfo };
+    return { success: Boolean(activeEntitlement), customerInfo };
   } catch (err: any) {
     if (err?.userCancelled) {
       trackPurchaseEvent('purchase_cancelled', pkgProps);
@@ -122,7 +128,7 @@ export const restorePurchases = async (): Promise<boolean> => {
   trackPurchaseEvent('restore_attempted', {});
   try {
     const { customerInfo } = await Purchases.restorePurchases();
-    const restored = Boolean(customerInfo.entitlements.active[PREMIUM_ENTITLEMENT]);
+    const restored = Boolean(getActivePaidEntitlement(customerInfo));
     trackPurchaseEvent(restored ? 'restore_succeeded' : 'restore_failed', {
       reason: restored ? 'ok' : 'no_active_entitlement',
     });
@@ -138,7 +144,7 @@ export const hasActivePremium = async (): Promise<boolean> => {
   if (!configured) return false;
   try {
     const { customerInfo } = await Purchases.getCustomerInfo();
-    return Boolean(customerInfo.entitlements.active[PREMIUM_ENTITLEMENT]);
+    return Boolean(getActivePaidEntitlement(customerInfo));
   } catch {
     return false;
   }
@@ -153,7 +159,7 @@ export const getActiveProductId = async (): Promise<string | null> => {
   if (!configured) return null;
   try {
     const { customerInfo } = await Purchases.getCustomerInfo();
-    const ent = customerInfo.entitlements.active[PREMIUM_ENTITLEMENT];
+    const ent = getActivePaidEntitlement(customerInfo);
     return ent?.productIdentifier ?? null;
   } catch {
     return null;

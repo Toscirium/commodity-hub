@@ -148,7 +148,7 @@ Deno.test({
 });
 
 Deno.test({
-  name: 'CANCELLATION deactivates and sets billing_state=canceled',
+  name: 'CANCELLATION keeps paid access through expiration and sets billing_state=canceled',
   ignore: !DB_TESTS_ENABLED,
   fn: async () => {
   const uid = newTestUserId();
@@ -159,8 +159,8 @@ Deno.test({
     assertEquals(res.status, 200);
     await res.text();
     const p = await readProfile(uid);
-    assertEquals(p.subscription_active, false);
-    assertEquals(p.subscription_tier, 'free');
+    assertEquals(p.subscription_active, true);
+    assertEquals(p.subscription_tier, 'premium');
     assertEquals(p.billing_state, 'canceled');
   } finally {
     await deleteProfile(uid);

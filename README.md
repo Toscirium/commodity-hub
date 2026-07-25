@@ -115,6 +115,7 @@ Add these secrets in your Supabase dashboard under Settings > Edge Functions:
 - `ALPHA_VANTAGE_API_KEY` - Alpha Vantage API key  
 - `STRIPE_SECRET_KEY` - Stripe secret key for payments
 - `CREDENTIAL_MASTER_KEY` - Master key for credential encryption
+- `DATABENTO_API_KEY` - Databento API key (CME Globex futures-options data for `fetch-options-chain`; get one at [databento.com/portal/keys](https://databento.com/portal/keys))
 
 ## 📱 Mobile Support
 

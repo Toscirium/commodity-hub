@@ -20,6 +20,15 @@ const pkg = JSON.parse(readFileSync(pkgPath, "utf-8")) as {
   version?: string;
 };
 
+// Computed once at module load, not inside the defineConfig callback: Vite
+// calls that callback repeatedly while resolving config (dep optimization,
+// SSR, etc.), and a value that changes on every call (e.g. `new Date()`)
+// makes Vite's config hash differ each time, which it interprets as "the
+// config changed" — triggering a dependency re-optimization loop on every
+// dev-server interaction instead of once at startup.
+const GIT_COMMIT = getGitCommit();
+const BUILD_TIME = new Date().toISOString();
+
 // Build a meaningful, always-changing version even when package.json is
 // pinned to 0.0.0 (Lovable does not bump package.json). Format:
 //   <CalVer YY.MM.DD>.<build-counter>+<git-sha>
@@ -37,7 +46,7 @@ const buildVersion = (): string => {
     pkg.version && pkg.version !== "0.0.0"
       ? pkg.version
       : `${yy}.${mm}.${dd}`;
-  return `${base}.${minutesIntoDay}+${getGitCommit()}`;
+  return `${base}.${minutesIntoDay}+${GIT_COMMIT}`;
 };
 
 const APP_VERSION = buildVersion();
@@ -51,8 +60,8 @@ export default defineConfig(({ mode }) => ({
   define: {
     __APP_VERSION__: JSON.stringify(APP_VERSION),
     __APP_NAME__: JSON.stringify(pkg.name || "commodity-hub"),
-    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
-    __BUILD_COMMIT__: JSON.stringify(getGitCommit()),
+    __BUILD_TIME__: JSON.stringify(BUILD_TIME),
+    __BUILD_COMMIT__: JSON.stringify(GIT_COMMIT),
     __BUILD_MODE__: JSON.stringify(mode),
   },
   plugins: [
