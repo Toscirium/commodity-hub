@@ -6,10 +6,21 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
-import { useOptionsChain, type OptionsProduct } from '@/hooks/useOptionsChain';
+import { useOptionsChain, type OptionsProduct, type OptionsChainRow } from '@/hooks/useOptionsChain';
 import { MarketDataProvenance } from '@/components/MarketDataProvenance';
 import PremiumPaywall from '@/components/PremiumPaywall';
 import { downloadCsv } from '@/utils/csvExport';
+import { impliedVol, daysToT } from '@/utils/blackScholes';
+
+// CME/Databento don't publish IV for these products via the statistics feed
+// (confirmed against live responses — every row comes back with callIV/putIV
+// null), so we solve for it ourselves from the settlement price. No live
+// risk-free-rate feed is wired up, so this uses a fixed short-term-rate
+// approximation rather than a precise curve point — fine for an estimate
+// that's already clearly marked as such in the UI, not for a Greeks desk.
+const FALLBACK_RISK_FREE_RATE = 0.05;
+
+interface ResolvedIV { value: number | null; estimated: boolean }
 
 const PRODUCTS: { value: OptionsProduct; label: string }[] = [
   { value: 'CL', label: 'WTI Crude Oil' },
@@ -20,7 +31,20 @@ const PRODUCTS: { value: OptionsProduct; label: string }[] = [
 ];
 
 const num = (v: number | null, decimals = 2) => (v == null ? '—' : v.toFixed(decimals));
-const iv = (v: number | null) => (v == null ? '—' : `${(v * 100).toFixed(1)}%`);
+
+const IvCell = ({ iv }: { iv: ResolvedIV }) => {
+  if (iv.value == null) return <span className="text-muted-foreground">—</span>;
+  const text = `${(iv.value * 100).toFixed(1)}%`;
+  if (!iv.estimated) return <span className="text-muted-foreground">{text}</span>;
+  return (
+    <span
+      className="text-muted-foreground/70 italic"
+      title="Estimated via Black-76 from the settlement price — CME does not publish IV for this product, so this is not an exchange-quoted value"
+    >
+      ~{text}
+    </span>
+  );
+};
 
 const OptionsChain: React.FC = () => {
   const navigate = useNavigate();
@@ -56,21 +80,60 @@ const OptionsChain: React.FC = () => {
     ).strike;
   }, [data]);
 
+  // Time-to-expiry as of the settlement (trade) date, not "now" — the
+  // settle price we're solving from is priced as of tradeDate.
+  const yearsToExpiry = React.useMemo(() => {
+    if (!data?.tradeDate) return null;
+    const expiryDate = data.expirationDate ?? data.expiration;
+    const tradeMs = Date.parse(`${data.tradeDate}T00:00:00Z`);
+    const expiryMs = Date.parse(`${expiryDate}T00:00:00Z`);
+    if (!Number.isFinite(tradeMs) || !Number.isFinite(expiryMs)) return null;
+    return daysToT((expiryMs - tradeMs) / 86_400_000);
+  }, [data]);
+
+  const resolveIv = React.useCallback(
+    (settle: number | null, publishedIv: number | null, strike: number, type: 'call' | 'put'): ResolvedIV => {
+      if (publishedIv != null) return { value: publishedIv, estimated: false };
+      if (settle == null || data?.underlying == null || !yearsToExpiry || yearsToExpiry <= 0) {
+        return { value: null, estimated: false };
+      }
+      const solved = impliedVol(settle, data.underlying, strike, yearsToExpiry, FALLBACK_RISK_FREE_RATE, type);
+      // Deep-OTM strikes often settle at the exchange's minimum tick (e.g.
+      // $0.01), which isn't really pricing time value — solving IV from that
+      // is numerically unstable and produces implausible vols (200%+). Treat
+      // those as unreliable rather than displaying a misleading number.
+      if (solved != null && solved > 3) return { value: null, estimated: false };
+      return { value: solved, estimated: solved != null };
+    },
+    [data?.underlying, yearsToExpiry],
+  );
+
+  const resolvedRows = React.useMemo(() => {
+    if (!data) return [];
+    return data.rows.map((row: OptionsChainRow) => ({
+      row,
+      callIv: resolveIv(row.callSettle, row.callIV, row.strike, 'call'),
+      putIv: resolveIv(row.putSettle, row.putIV, row.strike, 'put'),
+    }));
+  }, [data, resolveIv]);
+
   const handleExportCsv = () => {
     if (!data) return;
     downloadCsv(
       `options-chain-${data.product}-${data.expiration}.csv`,
-      ['Strike', 'Call Settle', 'Call Volume', 'Call OI', 'Call IV', 'Put Settle', 'Put Volume', 'Put OI', 'Put IV'],
-      data.rows.map((row) => [
+      ['Strike', 'Call Settle', 'Call Volume', 'Call OI', 'Call IV', 'Call IV Source', 'Put Settle', 'Put Volume', 'Put OI', 'Put IV', 'Put IV Source'],
+      resolvedRows.map(({ row, callIv, putIv }) => [
         row.strike,
         row.callSettle ?? '',
         row.callVolume ?? '',
         row.callOpenInterest ?? '',
-        row.callIV ?? '',
+        callIv.value ?? '',
+        callIv.value == null ? '' : callIv.estimated ? 'estimated (Black-76)' : 'exchange',
         row.putSettle ?? '',
         row.putVolume ?? '',
         row.putOpenInterest ?? '',
-        row.putIV ?? '',
+        putIv.value ?? '',
+        putIv.value == null ? '' : putIv.estimated ? 'estimated (Black-76)' : 'exchange',
       ]),
     );
   };
@@ -181,6 +244,9 @@ const OptionsChain: React.FC = () => {
                     <CardTitle className="text-base">{data.productLabel}</CardTitle>
                     <CardDescription>
                       Expiration {data.expirationDate ?? data.expiration} · {data.rows.length} strikes
+                      {resolvedRows.some((r) => r.callIv.estimated || r.putIv.estimated) && (
+                        <span className="ml-2 italic text-muted-foreground/70">· ~IV is a Black-76 estimate, not exchange-quoted</span>
+                      )}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="overflow-x-auto p-0">
@@ -207,12 +273,12 @@ const OptionsChain: React.FC = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {data.rows.map((row) => (
+                          {resolvedRows.map(({ row, callIv, putIv }) => (
                             <tr
                               key={row.strike}
                               className={`border-b border-border/60 last:border-0 ${row.strike === atmStrike ? 'bg-primary/5' : ''}`}
                             >
-                              <td className="p-2 text-right font-mono text-xs text-muted-foreground">{iv(row.callIV)}</td>
+                              <td className="p-2 text-right font-mono text-xs"><IvCell iv={callIv} /></td>
                               <td className="p-2 text-right font-mono text-xs text-muted-foreground">{row.callOpenInterest ?? '—'}</td>
                               <td className="p-2 text-right font-mono text-xs text-muted-foreground">{row.callVolume ?? '—'}</td>
                               <td className="p-2 text-right font-mono font-medium">{num(row.callSettle)}</td>
@@ -222,7 +288,7 @@ const OptionsChain: React.FC = () => {
                               <td className="p-2 text-left font-mono font-medium">{num(row.putSettle)}</td>
                               <td className="p-2 text-left font-mono text-xs text-muted-foreground">{row.putVolume ?? '—'}</td>
                               <td className="p-2 text-left font-mono text-xs text-muted-foreground">{row.putOpenInterest ?? '—'}</td>
-                              <td className="p-2 text-left font-mono text-xs text-muted-foreground">{iv(row.putIV)}</td>
+                              <td className="p-2 text-left font-mono text-xs"><IvCell iv={putIv} /></td>
                             </tr>
                           ))}
                         </tbody>
