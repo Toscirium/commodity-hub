@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>About — Commodity Hub</title>
+<meta name="description" content="What Commodity Hub is, how it sources data, and how to reach us." />
+<meta name="theme-color" content="#0d0d0f" />
+<link rel="icon" href="assets/app-icon.png" />
+<link rel="apple-touch-icon" href="assets/app-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="index.html">
+      <img src="assets/logo.png" alt="" />
+      <span class="brand-word">Commodity Hub</span>
+    </a>
+    <div class="nav-links">
+      <a href="index.html#coverage">Coverage</a>
+      <a href="index.html#toolkit">Toolkit</a>
+      <a href="index.html#pricing">Pricing</a>
+    </div>
+    <div class="nav-right">
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme">☾/☀</button>
+      <a class="nav-cta" href="https://commodity-hub.lovable.app">Open the app</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero hero-doc">
+  <div class="container">
+    <div class="doc">
+      <h1>About Commodity Hub</h1>
+      <div class="doc-updated">Commodity market data, analytics, and news</div>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="container">
+    <div class="doc">
+      <section>
+        <h2>What we do</h2>
+        <p>Commodity Hub tracks 31 commodities across energy, metals, grains, livestock, dairy, and industrials, sourced from CME, CBOT, COMEX, and NYMEX. Alongside live prices, the app provides the analysis tools commodity traders actually use — forward curves and term structure, Commitment of Traders positioning, historical seasonality, spread monitoring, portfolio and risk tools, and an AI copilot for market questions.</p>
+        <p>The "Trade" section links to independent, regulated brokers for people who want to act on what they're tracking — see our <a href="terms.html">Terms of Service</a> for how that works and what we do (and don't) do in that relationship.</p>
+      </section>
+      <section>
+        <h2>How we source data</h2>
+        <p>Prices and market data come from licensed third-party providers — Massive Futures for CME/CBOT/COMEX/NYMEX quotes, curves, and history, with FMP covering select ICE/LME instruments. Data may be delayed and is provided for informational purposes; see our <a href="terms.html">Terms of Service</a> for the full disclaimer.</p>
+      </section>
+      <section>
+        <h2>Get it</h2>
+        <p>Commodity Hub is available on <a href="https://play.google.com/store/apps/details?id=app.lovable.c8fabd7a96c74aff8d7b001690ec23c7">Google Play</a> and as a web app at <a href="https://commodity-hub.lovable.app">commodity-hub.lovable.app</a>. The free tier covers the core commodity catalog with no card required; Premium and Pro tiers add alerts, exports, and advanced analytics — see <a href="index.html#pricing">pricing</a>.</p>
+      </section>
+      <section>
+        <h2>Contact</h2>
+        <p>Questions, feedback, or partnership inquiries: <a href="mailto:support@commodityhub.com">support@commodityhub.com</a>.</p>
+      </section>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <a class="brand" href="index.html">
+        <img src="assets/logo.png" alt="" />
+        <span class="brand-word">Commodity Hub</span>
+      </a>
+      <div class="footer-links">
+        <a href="terms.html">Terms of Service</a>
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="about.html">About</a>
+        <a href="https://commodity-hub.lovable.app/delete-account">Delete account</a>
+      </div>
+    </div>
+    <div class="footer-fine">
+      Commodity Hub is an information service providing commodity market prices, news, and analytics. It does not execute trades, hold client funds, or provide investment advice. The "Trade" section of the app links to independent, regulated third parties (Capital.com, Kalshi); Commodity Hub may earn a referral commission from those links. © <span id="year"></span> Commodity Hub. All rights reserved.
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+  var t = document.getElementById('themeToggle');
+  var root = document.documentElement;
+  t.addEventListener('click', function () {
+    var current = root.getAttribute('data-theme');
+    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var effectiveDark = current ? current === 'dark' : prefersDark;
+    root.setAttribute('data-theme', effectiveDark ? 'light' : 'dark');
+  });
+</script>
+</body>
+</html>

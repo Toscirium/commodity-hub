@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Commodity Hub — Live Oil, Gold &amp; Metals Prices, Analytics, and News</title>
+<meta name="description" content="Track 31 commodities in real time — oil, gold, silver, natural gas, grains, and metals — with price alerts, forward curves, seasonality, COT reports, and an AI copilot built for commodity traders." />
+<meta name="theme-color" content="#0d0d0f" />
+<link rel="icon" href="assets/app-icon.png" />
+<link rel="apple-touch-icon" href="assets/app-icon.png" />
+
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Commodity Hub — Live Commodity Prices &amp; Analytics" />
+<meta property="og:description" content="Real-time oil, gold, and metals prices with price alerts, forward curves, seasonality, and an AI copilot for commodity traders." />
+<meta property="og:image" content="assets/app-icon.png" />
+<meta name="twitter:card" content="summary_large_image" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="ticker-bar">
+  <div class="container">
+    <div class="ticker-track" id="tickerTrack" aria-hidden="true">
+      <span><b>WTI CRUDE</b> CL=F</span>
+      <span><b>GOLD</b> GC=F</span>
+      <span><b>NAT GAS</b> NG=F</span>
+      <span><b>SILVER</b> SI=F</span>
+      <span><b>CORN</b> ZC=F</span>
+      <span><b>COPPER</b> HG=F</span>
+      <span><b>BRENT</b> BZ=F</span>
+      <span><b>WHEAT</b> ZW=F</span>
+      <span><b>LIVE CATTLE</b> LE=F</span>
+      <!-- duplicate for seamless loop -->
+      <span><b>WTI CRUDE</b> CL=F</span>
+      <span><b>GOLD</b> GC=F</span>
+      <span><b>NAT GAS</b> NG=F</span>
+      <span><b>SILVER</b> SI=F</span>
+      <span><b>CORN</b> ZC=F</span>
+      <span><b>COPPER</b> HG=F</span>
+      <span><b>BRENT</b> BZ=F</span>
+      <span><b>WHEAT</b> ZW=F</span>
+      <span><b>LIVE CATTLE</b> LE=F</span>
+    </div>
+  </div>
+</div>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="#top">
+      <img src="assets/logo.png" alt="" />
+      <span class="brand-word">Commodity Hub</span>
+    </a>
+    <div class="nav-links">
+      <a href="#coverage">Coverage</a>
+      <a href="#toolkit">Toolkit</a>
+      <a href="#pricing">Pricing</a>
+    </div>
+    <div class="nav-right">
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme">☾/☀</button>
+      <a class="nav-cta" href="https://commodity-hub.lovable.app">Open the app</a>
+    </div>
+  </div>
+</nav>
+
+<header id="top" class="hero">
+  <div class="container hero-grid">
+    <div>
+      <div class="eyebrow">Sourced from CME · CBOT · COMEX · NYMEX</div>
+      <h1>Commodities, kept<br>on the record<em>.</em></h1>
+      <p class="lede">Every price, curve, and position update the way it happened — not a screenshot of the market, a running ledger of it. Built for people who trade oil, gold, grain, and metal, not just watch them.</p>
+      <div class="hero-ctas">
+        <a class="btn btn-brass" href="https://play.google.com/store/apps/details?id=app.lovable.c8fabd7a96c74aff8d7b001690ec23c7">Get it on Google Play</a>
+        <a class="btn btn-line" href="https://commodity-hub.lovable.app">Open in browser</a>
+      </div>
+      <div class="ledger-facts">
+        <div><span class="num data">31</span><span class="label">Commodities</span></div>
+        <div><span class="num data">06</span><span class="label">Asset classes</span></div>
+        <div><span class="num data">$0</span><span class="label">To start</span></div>
+      </div>
+    </div>
+    <div class="hero-frame">
+      <div class="chrome"><span class="dot"></span><span class="dot"></span><span class="dot"></span>&nbsp;dashboard — live</div>
+      <img src="assets/tablet-dashboard.png" alt="Commodity Hub dashboard showing live commodity prices and charts" />
+    </div>
+  </div>
+</header>
+
+<section id="toolkit">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <div class="kicker">The toolkit</div>
+        <h2>Not a ticker. A desk.</h2>
+      </div>
+      <p class="sub">Six tools pulled straight from how commodity desks actually work, rebuilt for one trader instead of a Bloomberg terminal license.</p>
+    </div>
+    <div class="ledger">
+      <div class="ledger-row">
+        <div class="idx data">01</div>
+        <h3>Alerts that watch the tape</h3>
+        <p>Price, percent-move, and volatility-band alerts, fired the moment they trigger — not on the next refresh.</p>
+      </div>
+      <div class="ledger-row">
+        <div class="idx data">02</div>
+        <h3>Forward curves &amp; term structure</h3>
+        <p>Contango, backwardation, and roll yield at a glance, with a spread calculator and monitor for the calendar and crack spreads you follow.</p>
+      </div>
+      <div class="ledger-row">
+        <div class="idx data">03</div>
+        <h3>COT positioning &amp; seasonality</h3>
+        <p>Commitment of Traders data and historical seasonal patterns, with a regime scanner flagging when the market's off its usual script.</p>
+      </div>
+      <div class="ledger-row">
+        <div class="idx data">04</div>
+        <h3>AI Copilot</h3>
+        <p>Ask it about a spread, a seasonal pattern, or what's actually moving a commodity today — grounded in the same feed powering your dashboard.</p>
+      </div>
+      <div class="ledger-row">
+        <div class="idx data">05</div>
+        <h3>Portfolio &amp; risk</h3>
+        <p>Multiple portfolios with live P&amp;L, a position-size calculator, and a stress tester for historical shocks before they happen again.</p>
+      </div>
+      <div class="ledger-row">
+        <div class="idx data">06</div>
+        <h3>News &amp; sentiment</h3>
+        <p>Commodity-specific news, an economic calendar for the events that move prices, and a read on where the community thinks it's headed.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="coverage">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <div class="kicker">Coverage</div>
+        <h2>Six asset classes, one ledger.</h2>
+      </div>
+      <p class="sub">31 commodities, sourced from the exchanges that actually set the price.</p>
+    </div>
+    <div class="markets-grid">
+      <div class="market-cell">
+        <div class="cat">Energy</div>
+        <div class="items">WTI Crude<br>Brent Crude<br>Natural Gas<br>RBOB Gasoline<br>Heating Oil</div>
+      </div>
+      <div class="market-cell">
+        <div class="cat">Metals</div>
+        <div class="items">Gold · Silver<br>Copper<br>Platinum · Palladium<br>Micro contracts</div>
+      </div>
+      <div class="market-cell">
+        <div class="cat">Grains</div>
+        <div class="items">Corn · Wheat<br>Soybean · Meal · Oil<br>Oats · Rough Rice</div>
+      </div>
+      <div class="market-cell">
+        <div class="cat">Livestock</div>
+        <div class="items">Live Cattle<br>Feeder Cattle<br>Lean Hogs</div>
+      </div>
+      <div class="market-cell">
+        <div class="cat">Dairy</div>
+        <div class="items">Class III Milk<br>Dry Whey<br>Cheese · Butter</div>
+      </div>
+      <div class="market-cell">
+        <div class="cat">Industrials</div>
+        <div class="items">Lumber</div>
+      </div>
+      <div class="market-cell">
+        <div class="cat">Sourced from</div>
+        <div class="items">CME · CBOT<br>COMEX · NYMEX</div>
+      </div>
+      <div class="market-cell">
+        <div class="cat">Delivered as</div>
+        <div class="items">Live quotes<br>Historical curves<br>Positioning data</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <div class="kicker">Pricing</div>
+        <h2>Start free. Upgrade when the data earns it.</h2>
+      </div>
+      <p class="sub">No trial gimmicks. The free tier is a genuinely useful daily driver.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="plan">
+        <div class="name">Free</div>
+        <div class="price">$0</div>
+        <ul>
+          <li>Core commodity catalog</li>
+          <li>1 active price alert</li>
+          <li>1 portfolio, 1 watchlist</li>
+          <li>Position size calculator</li>
+        </ul>
+        <a class="btn btn-line" href="https://commodity-hub.lovable.app">Start free</a>
+      </div>
+      <div class="plan featured">
+        <div class="name">Premium</div>
+        <div class="price">$6.99<span>/mo</span></div>
+        <ul>
+          <li>Up to 10 active alerts</li>
+          <li>3 portfolios, 5 watchlists</li>
+          <li>CSV export</li>
+          <li>Percent-move alerts</li>
+        </ul>
+        <a class="btn btn-brass" href="https://commodity-hub.lovable.app">Get Premium</a>
+      </div>
+      <div class="plan">
+        <div class="name">Pro</div>
+        <div class="price">$19.99<span>/mo</span></div>
+        <ul>
+          <li>Unlimited alerts &amp; portfolios</li>
+          <li>Forward curves &amp; COT reports</li>
+          <li>Custom spreads, priority refresh</li>
+          <li>Full alert-type library</li>
+        </ul>
+        <a class="btn btn-line" href="https://commodity-hub.lovable.app">Get Pro</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="cta-band">
+      <div>
+        <h2>Your desk, in your pocket.</h2>
+        <p>Free to start, no card required. Android, iOS, and the web.</p>
+        <div class="hero-ctas">
+          <a class="btn btn-brass" href="https://play.google.com/store/apps/details?id=app.lovable.c8fabd7a96c74aff8d7b001690ec23c7">Get it on Google Play</a>
+          <a class="btn btn-line" href="https://commodity-hub.lovable.app">Open in browser</a>
+        </div>
+      </div>
+      <div class="cta-figure">
+        LAST SETTLE<br>
+        <b>WTI · GOLD · NAT GAS</b><br>
+        <b>CORN · COPPER · WHEAT</b><br>
+        + 25 more, live<br>
+        <br>
+        UPDATED CONTINUOUSLY
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <a class="brand" href="#top">
+        <img src="assets/logo.png" alt="" />
+        <span class="brand-word">Commodity Hub</span>
+      </a>
+      <div class="footer-links">
+        <a href="terms.html">Terms of Service</a>
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="about.html">About</a>
+        <a href="https://commodity-hub.lovable.app/delete-account">Delete account</a>
+      </div>
+    </div>
+    <div class="footer-fine">
+      Commodity Hub is an information service providing commodity market prices, news, and analytics. It does not execute trades, hold client funds, or provide investment advice. The "Trade" section of the app links to independent, regulated third parties (Capital.com, Kalshi); Commodity Hub may earn a referral commission from those links. © <span id="year"></span> Commodity Hub. All rights reserved.
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+  var t = document.getElementById('themeToggle');
+  var root = document.documentElement;
+  t.addEventListener('click', function () {
+    var current = root.getAttribute('data-theme');
+    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var effectiveDark = current ? current === 'dark' : prefersDark;
+    root.setAttribute('data-theme', effectiveDark ? 'light' : 'dark');
+  });
+
+  // Live ticker — pulls real prices from the same edge function the app uses.
+  // Falls back to the static symbol list already in the markup if it fails.
+  (function () {
+    var TICKER_SYMBOLS = ['CL=F', 'GC=F', 'NG=F', 'SI=F', 'ZC=F', 'HG=F', 'BZ=F', 'ZW=F', 'LE=F'];
+    var LABELS = {
+      'CL=F': 'WTI CRUDE', 'GC=F': 'GOLD', 'NG=F': 'NAT GAS', 'SI=F': 'SILVER',
+      'ZC=F': 'CORN', 'HG=F': 'COPPER', 'BZ=F': 'BRENT', 'ZW=F': 'WHEAT', 'LE=F': 'LIVE CATTLE',
+    };
+    var SUPABASE_URL = 'https://kcxhsmlqqyarhlmcapmj.supabase.co';
+    var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGhzbWxxcXlhcmhsbWNhcG1qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3ODM0MDcsImV4cCI6MjA2MTM1OTQwN30.qC25iAjNhbPVotryl7GONMgYkvg0DzEYp8uxioWzkfs';
+
+    function formatPrice(p) {
+      if (typeof p !== 'number' || !isFinite(p)) return '';
+      return p >= 100 ? p.toFixed(2) : p.toFixed(p >= 10 ? 2 : 3);
+    }
+
+    // Builds each ticker row as real DOM nodes (never innerHTML) so nothing
+    // from the API response — however unlikely to be hostile — can be
+    // interpreted as markup. Only known-safe, fixed label strings and
+    // numbers formatted via toFixed() ever become text content.
+    function renderRow(c) {
+      var pct = typeof c.changePercent === 'number' ? c.changePercent : 0;
+      var dir = pct > 0 ? 'up' : pct < 0 ? 'down' : '';
+      var arrow = pct > 0 ? '▲' : pct < 0 ? '▼' : '—';
+      var pctText = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
+
+      var span = document.createElement('span');
+      var b = document.createElement('b');
+      b.textContent = LABELS[c.symbol] || '';
+      span.appendChild(b);
+      span.appendChild(document.createTextNode(' $' + formatPrice(c.price) + ' '));
+      var em = document.createElement('em');
+      em.className = dir;
+      em.textContent = arrow + ' ' + pctText;
+      span.appendChild(em);
+      return span;
+    }
+
+    fetch(SUPABASE_URL + '/functions/v1/fetch-all-commodities', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ dataDelay: 'realtime' }),
+    })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function (data) {
+        var bySymbol = {};
+        (data.commodities || []).forEach(function (c) {
+          if (c && typeof c.symbol === 'string' && LABELS.hasOwnProperty(c.symbol)) {
+            bySymbol[c.symbol] = c;
+          }
+        });
+        var rows = TICKER_SYMBOLS.map(function (s) { return bySymbol[s]; }).filter(Boolean);
+        if (rows.length === 0) return;
+        var track = document.getElementById('tickerTrack');
+        var frag = document.createDocumentFragment();
+        rows.concat(rows).forEach(function (c) { frag.appendChild(renderRow(c)); }); // duplicate for the seamless scroll loop
+        track.textContent = '';
+        track.appendChild(frag);
+      })
+      .catch(function () {
+        // Leave the static symbol-only fallback already in the markup.
+      });
+  })();
+</script>
+</body>
+</html>
