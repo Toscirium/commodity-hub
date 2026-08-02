@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      affiliate_referral_clicks: {
+        Row: {
+          clicked_at: string
+          commodity_symbol: string
+          id: string
+          provider: string
+          user_id: string | null
+        }
+        Insert: {
+          clicked_at?: string
+          commodity_symbol: string
+          id?: string
+          provider: string
+          user_id?: string | null
+        }
+        Update: {
+          clicked_at?: string
+          commodity_symbol?: string
+          id?: string
+          provider?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       ai_messages: {
         Row: {
           created_at: string

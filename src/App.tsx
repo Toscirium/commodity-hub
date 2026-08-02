@@ -14,6 +14,7 @@ import Dashboard from '@/pages/Dashboard';
 import Auth from '@/pages/Auth';
 import BillingStatusBanner from '@/components/BillingStatusBanner';
 import Today from '@/pages/Today';
+import MobileBottomNavigation from '@/components/mobile/MobileBottomNavigation';
 
 // Lazy-load every non-critical route so initial Dashboard paint stays fast
 // and route transitions only fetch what they need.
@@ -58,6 +59,8 @@ const OptionsChain = lazy(() => import('@/pages/OptionsChain'));
 const ProAnalyticsWorkspace = lazy(() => import('@/pages/ProAnalyticsWorkspace'));
 const DataExports = lazy(() => import('@/pages/DataExports'));
 const StressTest = lazy(() => import('@/pages/StressTest'));
+const Messages = lazy(() => import('@/pages/Messages'));
+const Trade = lazy(() => import('@/pages/Trade'));
 
 const RouteFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -150,9 +153,12 @@ const App = () => {
                 <Route path="/options" element={<OptionsChain />} />
                 <Route path="/options-chain" element={<OptionsChain />} />
                 <Route path="/pro-analytics" element={<ProAnalyticsWorkspace />} />
+                <Route path="/messages" element={<Messages />} />
+                <Route path="/trade" element={<Trade />} />
                 <Route path="/admin/catalog-audit" element={<CatalogAudit />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              <MobileBottomNavigation />
               </Suspense>
               <Toaster />
             </RealtimeDataProvider>

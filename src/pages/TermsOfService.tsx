@@ -29,21 +29,41 @@ const TermsOfService = () => {
                 <FileText className="h-6 w-6 text-primary" />
                 <CardTitle>Terms of Service</CardTitle>
               </div>
-              <CardDescription>Last updated: July 18, 2026</CardDescription>
+              <CardDescription>Last updated: August 2, 2026</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 prose prose-sm dark:prose-invert max-w-none">
               <section>
                 <h2 className="text-lg font-semibold mb-2">1. About Commodity Hub</h2>
                 <p>
                   Commodity Hub is an information service that displays commodity market prices,
-                  news, and analytics. We do not offer trading, brokerage, custody, or investment
-                  advice. Prices shown are sourced from third-party data providers and may be
-                  delayed or inaccurate.
+                  news, and analytics. We do not execute trades, hold client funds, act as a
+                  broker, or provide investment advice. Prices shown are sourced from third-party
+                  data providers and may be delayed or inaccurate.
                 </p>
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold mb-2">2. Subscriptions</h2>
+                <h2 className="text-lg font-semibold mb-2">2. Third-Party Trading Partners &amp; Affiliate Links</h2>
+                <p>
+                  The "Trade" section of the app links out to independent, third-party brokers
+                  (currently Capital.com and Kalshi) where you can open your own account to trade
+                  CFDs or prediction contracts on commodity prices. These are separate companies,
+                  licensed and regulated in their own right — Commodity Hub is not a party to any
+                  account, trade, or transaction you enter into with them, does not execute orders,
+                  and never has access to your funds or trading credentials.
+                </p>
+                <p>
+                  Commodity Hub may receive a referral commission if you sign up through these
+                  links. This does not affect the price or terms you receive from the partner.
+                  Trading CFDs and prediction contracts involves substantial risk of loss,
+                  including the possibility of losing more than your initial deposit on leveraged
+                  products, and may not be available in your jurisdiction — review the partner's
+                  own risk disclosures and regulatory status before signing up.
+                </p>
+              </section>
+
+              <section>
+                <h2 className="text-lg font-semibold mb-2">3. Subscriptions</h2>
                 <p>
                   Some commodities and features require a paid subscription, billed via Google Play
                   Billing. Subscriptions auto-renew unless cancelled at least 24 hours before the
@@ -53,7 +73,7 @@ const TermsOfService = () => {
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold mb-2">3. Acceptable Use</h2>
+                <h2 className="text-lg font-semibold mb-2">4. Acceptable Use</h2>
                 <p>
                   You agree not to scrape, reverse-engineer, or redistribute the data shown in the
                   app. You may not use the service for any unlawful purpose.
@@ -61,7 +81,7 @@ const TermsOfService = () => {
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold mb-2">4. No Investment Advice</h2>
+                <h2 className="text-lg font-semibold mb-2">5. No Investment Advice</h2>
                 <p>
                   Nothing in Commodity Hub constitutes investment, financial, tax, or legal advice.
                   Always consult a qualified professional before making investment decisions.
@@ -69,7 +89,7 @@ const TermsOfService = () => {
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold mb-2">5. Limitation of Liability</h2>
+                <h2 className="text-lg font-semibold mb-2">6. Limitation of Liability</h2>
                 <p>
                   The service is provided "as is" without warranties of any kind. To the maximum
                   extent permitted by law, we are not liable for any losses arising from use of the
@@ -78,7 +98,7 @@ const TermsOfService = () => {
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold mb-2">6. Changes</h2>
+                <h2 className="text-lg font-semibold mb-2">7. Changes</h2>
                 <p>
                   We may update these terms from time to time. Continued use of the app after
                   changes are posted constitutes acceptance.
@@ -86,7 +106,7 @@ const TermsOfService = () => {
               </section>
 
               <section>
-                <h2 className="text-lg font-semibold mb-2">7. Contact</h2>
+                <h2 className="text-lg font-semibold mb-2">8. Contact</h2>
                 <p>For questions, contact support@commodityhub.com.</p>
               </section>
             </CardContent>

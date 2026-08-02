@@ -1,4 +1,4 @@
-import { Bell, CircleUserRound, Compass, LayoutDashboard, LineChart } from 'lucide-react';
+import { Bell, CircleUserRound, LayoutDashboard, LineChart, MessageCircle } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -6,7 +6,7 @@ const items = [
   { label: 'Today', path: '/today', icon: LayoutDashboard },
   { label: 'Markets', path: '/dashboard', icon: LineChart },
   { label: 'Alerts', path: '/alerts', icon: Bell },
-  { label: 'Portfolio', path: '/portfolio', icon: Compass },
+  { label: 'Messages', path: '/messages', icon: MessageCircle },
   { label: 'More', path: '/account-settings', icon: CircleUserRound },
 ];
 

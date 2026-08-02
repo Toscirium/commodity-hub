@@ -4,7 +4,7 @@ Updated: just now
 # Project Memory
 
 ## Core
-- **Product:** Commodity price-tracking app (Google Play Store launch). NO trading features. Read-only price data + news + analytics.
+- **Product:** Commodity price-tracking app (Google Play Store launch). Read-only price data + news + analytics; no in-app trade execution, no credential storage, no custody. `/trade` (added 2026-08-02) is affiliate-only — outbound links to independent brokers (Capital.com CFDs, Kalshi prediction contracts), never wire up execution against their APIs in-app. A prior attempt at real execution (IBKR/BloFin credentials, synthetic paper positions) was built and deliberately dropped in `20260424175556_...sql` — Play Store gambling/financial-services policy risk. Don't rebuild that path without re-litigating the same tradeoff.
 - **Monetization:** Three-tier freemium via RevenueCat (Play IAP). Free / Premium $6.99 (10 alerts, 3 portfolios, CSV) / Pro $19.99 (50 alerts, unlimited portfolios, +20 energy markets, priority refresh). See `mem://monetization/tiers`.
 - **Styling:** Dark theme with dark purple and teal branding.
 - **Navigation:** Hub-and-spoke pattern. Every sub-page requires a '← Dashboard' back button.

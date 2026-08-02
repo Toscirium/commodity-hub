@@ -15,6 +15,7 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [signupError, setSignupError] = useState<string | null>(null);
 
   // Uncontrolled inputs (refs) — required on Android WebView so that Gboard's
   // IME composition (keyCode 229) is not interrupted by React re-renders,
@@ -54,12 +55,21 @@ const Auth = () => {
     const password = signupPasswordRef.current?.value ?? '';
     const fullName = signupNameRef.current?.value.trim() ?? '';
     const confirm = signupConfirmRef.current?.value ?? '';
-    if (!email || !password || !fullName) return;
-    if (password !== confirm) return;
+    setSignupError(null);
+    if (!email || !password || !fullName || !confirm) {
+      setSignupError('Please complete every field to create your account.');
+      return;
+    }
+    if (password !== confirm) {
+      setSignupError('Passwords do not match. Please enter the same password twice.');
+      signupConfirmRef.current?.focus();
+      return;
+    }
 
     setIsLoading(true);
-    await signUp(email, password, fullName);
+    const { error } = await signUp(email, password, fullName);
     setIsLoading(false);
+    if (error) setSignupError(error instanceof Error ? error.message : 'We could not create your account. Please try again.');
   };
 
   const handleGoogleSignIn = async () => {
@@ -145,7 +155,7 @@ const Auth = () => {
                   <Input
                     id="signin-email"
                     name="email"
-                    type="text"
+                    type="email"
                     placeholder="your@email.com"
                     ref={signinEmailRef}
 
@@ -280,7 +290,7 @@ const Auth = () => {
                   <Input
                     id="signup-email"
                     name="email"
-                    type="text"
+                    type="email"
                     placeholder="your@email.com"
                     ref={signupEmailRef}
 
@@ -305,7 +315,7 @@ const Auth = () => {
                       ref={signupPasswordRef}
 
                       required
-                      minLength={6}
+                      minLength={8}
                       autoComplete="new-password"
                       autoCapitalize="off"
                       autoCorrect="off"
@@ -326,7 +336,14 @@ const Auth = () => {
                       )}
                     </Button>
                   </div>
+                  <p className="text-xs text-muted-foreground">Use at least 8 characters, including uppercase, lowercase, and a number.</p>
                 </div>
+
+                {signupError && (
+                  <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert" aria-live="polite">
+                    {signupError}
+                  </p>
+                )}
 
                 <div className="space-y-2">
                   <Label htmlFor="confirm-password">Confirm Password</Label>

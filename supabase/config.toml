@@ -9,7 +9,6 @@ max_rows = 1000
 
 [auth]
 enabled = true
-port = 54320
 site_url = "https://commodity-hub.lovable.app"
 additional_redirect_urls = [
   "commodityhub://auth-callback",
@@ -21,10 +20,9 @@ additional_redirect_urls = [
   "http://localhost:5173"
 ]
 jwt_expiry = 3600
-refresh_token_rotation_enabled = true
+enable_refresh_token_rotation = true
 refresh_token_reuse_interval = 10
 enable_signup = true
-password_min_length = 8
 
 [functions.create-checkout]
 verify_jwt = true
