@@ -525,3 +525,10 @@
 .animate-fade-in-up {
   animation: fadeInUp 0.3s ease-out;
 }
+
+/* Lovable's hosting layer injects this badge at serve time (not present in
+   this file's HTML) even on the free plan. Hide it — a Pro plan also has a
+   Project Settings > Publishing toggle that removes it server-side. */
+#lovable-badge {
+  display: none !important;
+}
