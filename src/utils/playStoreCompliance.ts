@@ -51,7 +51,7 @@ export const PRIVACY_SETTINGS = {
     dataEncryptedInTransit: true,
     dataEncryptedAtRest: true,
     userCanRequestDataDeletion: true,
-    dataDeletionUrl: 'https://commodity-hub.lovable.app/delete-account',
+    dataDeletionUrl: 'https://app.commodity-hub.eu/delete-account',
     followsPlayFamiliesPolicy: true,
   }
 };
@@ -207,9 +207,9 @@ IMPORTANT: Commodity Hub is a market data and information app. It does not provi
     ],
     category: "Finance",
     contentRating: "Teen",
-    website: "https://commodity-hub.lovableproject.com",
+    website: "https://app.commodity-hub.eu",
     email: "support@commodityhub.com",
-    privacyPolicy: "https://commodity-hub.lovable.app/privacy-policy"
+    privacyPolicy: "https://app.commodity-hub.eu/privacy-policy"
   };
 };
 

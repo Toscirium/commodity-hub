@@ -12,6 +12,7 @@ dist
 dist-ssr
 release
 *.local
+.vercel
 
 # Supabase CLI local cache
 supabase/.temp

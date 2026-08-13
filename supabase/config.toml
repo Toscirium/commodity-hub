@@ -9,14 +9,19 @@ max_rows = 1000
 
 [auth]
 enabled = true
-site_url = "https://commodity-hub.lovable.app"
+site_url = "https://app.commodity-hub.eu"
 additional_redirect_urls = [
   "commodityhub://auth-callback",
+  "https://app.commodity-hub.eu/?native=1",
+  "https://commodity-hub.vercel.app",
+  # Old Lovable-hosted URLs — keep until every published Android build has
+  # updated past the old NATIVE_OAUTH_WEB_BRIDGE_URL and Lovable hosting is
+  # fully decommissioned, then remove.
+  "https://commodity-hub.lovable.app",
   "https://commodity-hub.lovable.app/?native=1",
   "https://id-preview--0cea242b-6aba-4f5a-9e49-91997ef3b761.lovable.app",
   "https://0cea242b-6aba-4f5a-9e49-91997ef3b761.lovableproject.com",
   "https://commodity-hub.lovableproject.com",
-  "https://commodity-hub.vercel.app",
   "http://localhost:5173"
 ]
 jwt_expiry = 3600

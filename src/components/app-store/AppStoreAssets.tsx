@@ -149,10 +149,10 @@ Download Commodity Hub today and follow the world's commodity markets in real ti
 export const PLAY_STORE_METADATA = {
   title: "Commodity Hub - Trading Analytics",
   developer: "Commodity Hub Team",
-  website: "https://commodity-hub.lovableproject.com",
+  website: "https://app.commodity-hub.eu",
   email: "support@commodityhub.com",
-  privacyPolicy: "https://commodity-hub.lovable.app/privacy-policy",
-  termsOfService: "https://commodity-hub.lovable.app/terms-of-service",
+  privacyPolicy: "https://app.commodity-hub.eu/privacy-policy",
+  termsOfService: "https://app.commodity-hub.eu/terms-of-service",
   category: "Finance",
   contentRating: "Teen", // 13+ due to financial content
   countries: ["US", "CA", "GB", "AU", "DE", "FR", "JP", "SG"],
