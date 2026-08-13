@@ -3,33 +3,33 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>About — Commodity Hub</title>
-<meta name="description" content="What Commodity Hub is, how it sources data, and how to reach us." />
+<title>Live Commodity Prices — Commodity Hub</title>
+<meta name="description" content="Live prices, contract specs, and analysis for the commodities Commodity Hub tracks — oil, gold, metals, and grains." />
 <meta name="theme-color" content="#0d0d0f" />
-<link rel="canonical" href="https://commodity-hub.eu/about" />
+<link rel="canonical" href="https://commodity-hub.eu/commodities" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Commodity Hub" />
-<meta property="og:url" content="https://commodity-hub.eu/about" />
-<meta property="og:title" content="About — Commodity Hub" />
-<meta property="og:description" content="What Commodity Hub is, how it sources data, and how to reach us." />
+<meta property="og:url" content="https://commodity-hub.eu/commodities" />
+<meta property="og:title" content="Live Commodity Prices — Commodity Hub" />
+<meta property="og:description" content="Live prices, contract specs, and analysis for the commodities Commodity Hub tracks — oil, gold, metals, and grains." />
 <meta property="og:image" content="https://commodity-hub.eu/assets/app-icon.png" />
 <meta name="twitter:card" content="summary" />
-<meta name="twitter:title" content="About — Commodity Hub" />
-<meta name="twitter:description" content="What Commodity Hub is, how it sources data, and how to reach us." />
+<meta name="twitter:title" content="Live Commodity Prices — Commodity Hub" />
+<meta name="twitter:description" content="Live prices, contract specs, and analysis for the commodities Commodity Hub tracks — oil, gold, metals, and grains." />
 <meta name="twitter:image" content="https://commodity-hub.eu/assets/app-icon.png" />
-<link rel="icon" href="assets/app-icon.png" />
-<link rel="apple-touch-icon" href="assets/app-icon.png" />
+<link rel="icon" href="/assets/app-icon.png" />
+<link rel="apple-touch-icon" href="/assets/app-icon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
 
 <nav class="nav">
   <div class="container nav-inner">
     <a class="brand" href="/">
-      <img src="assets/logo.png" alt="" />
+      <img src="/assets/logo.png" alt="" />
       <span class="brand-word">Commodity Hub</span>
     </a>
     <div class="nav-links">
@@ -38,7 +38,7 @@
       <a href="/#pricing">Pricing</a>
     </div>
     <div class="nav-right">
-      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme">☾/☀</button>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme">☮/☀</button>
       <a class="nav-cta" href="https://app.commodity-hub.eu">Open the app</a>
     </div>
   </div>
@@ -47,8 +47,8 @@
 <header class="hero hero-doc">
   <div class="container">
     <div class="doc">
-      <h1>About Commodity Hub</h1>
-      <div class="doc-updated">Commodity market data, analytics, and news</div>
+      <h1>Live Commodity Prices</h1>
+      <div class="doc-updated">Oil, metals, and grains — more added regularly</div>
     </div>
   </div>
 </header>
@@ -57,21 +57,27 @@
   <div class="container">
     <div class="doc">
       <section>
-        <h2>What we do</h2>
-        <p>Commodity Hub tracks 31 commodities across energy, metals, grains, livestock, dairy, and industrials, sourced from CME, CBOT, COMEX, and NYMEX. Alongside live prices, the app provides the analysis tools commodity traders actually use — forward curves and term structure, Commitment of Traders positioning, historical seasonality, spread monitoring, portfolio and risk tools, and an AI copilot for market questions.</p>
-        <p>The "Trade" section links to independent, regulated brokers for people who want to act on what they're tracking — see our <a href="/terms">Terms of Service</a> for how that works and what we do (and don't) do in that relationship.</p>
+        <h2>Energy</h2>
+        <ul>
+          <li><a href="/commodities/wti-crude-oil">WTI Crude Oil</a> (CL=F)</li>
+          <li><a href="/commodities/brent-crude-oil">Brent Crude Oil</a> (BZ=F)</li>
+          <li><a href="/commodities/natural-gas">Natural Gas</a> (NG=F)</li>
+        </ul>
       </section>
       <section>
-        <h2>How we source data</h2>
-        <p>Prices and market data come from licensed third-party providers — Massive Futures for CME/CBOT/COMEX/NYMEX quotes, curves, and history, with FMP covering select ICE/LME instruments. Data may be delayed and is provided for informational purposes; see our <a href="/terms">Terms of Service</a> for the full disclaimer.</p>
+        <h2>Grains</h2>
+        <ul>
+          <li><a href="/commodities/corn">Corn</a> (ZC=F)</li>
+          <li><a href="/commodities/wheat">Wheat</a> (ZW=F)</li>
+        </ul>
       </section>
       <section>
-        <h2>Get it</h2>
-        <p>Commodity Hub is available as a web app at <a href="https://app.commodity-hub.eu">commodity-hub.lovable.app</a>, with a native Android app in progress. The free tier covers the core commodity catalog with no card required; Premium and Pro tiers add alerts, exports, and advanced analytics — see <a href="/#pricing">pricing</a>.</p>
-      </section>
-      <section>
-        <h2>Contact</h2>
-        <p>Questions, feedback, or partnership inquiries: <a href="mailto:support@commodityhub.com">support@commodityhub.com</a>.</p>
+        <h2>Metals</h2>
+        <ul>
+          <li><a href="/commodities/gold">Gold</a> (GC=F)</li>
+          <li><a href="/commodities/silver">Silver</a> (SI=F)</li>
+          <li><a href="/commodities/copper">Copper</a> (HG=F)</li>
+        </ul>
       </section>
     </div>
   </div>
@@ -81,7 +87,7 @@
   <div class="container">
     <div class="footer-grid">
       <a class="brand" href="/">
-        <img src="assets/logo.png" alt="" />
+        <img src="/assets/logo.png" alt="" />
         <span class="brand-word">Commodity Hub</span>
       </a>
       <div class="footer-links">

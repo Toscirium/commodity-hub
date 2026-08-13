@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Natural Gas Price Today — Commodity Hub</title>
+<meta name="description" content="Live Natural Gas price (NG=F, NYMEX) with historical chart, forward curve, and COT positioning — free on Commodity Hub." />
+<meta name="theme-color" content="#0d0d0f" />
+<link rel="canonical" href="https://commodity-hub.eu/commodities/natural-gas" />
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="Commodity Hub" />
+<meta property="og:url" content="https://commodity-hub.eu/commodities/natural-gas" />
+<meta property="og:title" content="Natural Gas Price Today — Commodity Hub" />
+<meta property="og:description" content="Live Natural Gas price (NG=F, NYMEX) with historical chart, forward curve, and COT positioning — free on Commodity Hub." />
+<meta property="og:image" content="https://commodity-hub.eu/assets/app-icon.png" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Natural Gas Price Today — Commodity Hub" />
+<meta name="twitter:description" content="Live Natural Gas price (NG=F, NYMEX) with historical chart, forward curve, and COT positioning — free on Commodity Hub." />
+<meta name="twitter:image" content="https://commodity-hub.eu/assets/app-icon.png" />
+<link rel="icon" href="/assets/app-icon.png" />
+<link rel="apple-touch-icon" href="/assets/app-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/styles.css" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "Natural Gas Price Today",
+  "description": "Live Natural Gas price (NG=F, NYMEX) with historical chart, forward curve, and COT positioning — free on Commodity Hub.",
+  "datePublished": "2026-08-03",
+  "dateModified": "2026-08-03",
+  "author": { "@type": "Organization", "name": "Commodity Hub" },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Commodity Hub",
+    "logo": { "@type": "ImageObject", "url": "https://commodity-hub.eu/assets/logo.png" }
+  },
+  "mainEntityOfPage": "https://commodity-hub.eu/commodities/natural-gas"
+}
+</script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="/">
+      <img src="/assets/logo.png" alt="" />
+      <span class="brand-word">Commodity Hub</span>
+    </a>
+    <div class="nav-links">
+      <a href="/#coverage">Coverage</a>
+      <a href="/#toolkit">Toolkit</a>
+      <a href="/#pricing">Pricing</a>
+    </div>
+    <div class="nav-right">
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme">☮/☀</button>
+      <a class="nav-cta" href="https://app.commodity-hub.eu">Open the app</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero hero-doc">
+  <div class="container">
+    <div class="doc">
+      <h1>Natural Gas</h1>
+      <div class="doc-updated">Energy · NYMEX · NG=F</div>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="container">
+    <div class="doc">
+      <section>
+        <div class="quote-card" id="liveQuote" data-symbol="NG=F">
+          <div class="quote-price">Loading live price…</div>
+          <div class="quote-meta"></div>
+        </div>
+      </section>
+      <section>
+        <h2>About Natural Gas</h2>
+        <p>Live Natural Gas price (NG=F, NYMEX) with historical chart, forward curve, and COT positioning — free on Commodity Hub.</p>
+        <ul>
+          <li><strong>Exchange:</strong> NYMEX</li>
+          <li><strong>Ticker:</strong> NG=F</li>
+          <li><strong>Contract size:</strong> 10,000 MMBtu per contract</li>
+        </ul>
+      </section>
+      <section>
+        <h2>Related concepts</h2>
+        <p>Relevant background: <a href="/glossary/commodity-seasonality">seasonality</a> and <a href="/glossary/contango-vs-backwardation">contango and backwardation</a>.</p>
+      </section>
+      <section>
+        <h2>See the full picture</h2>
+        <p>Commodity Hub tracks Natural Gas alongside 30 other commodities with historical charts, forward curves, COT positioning, and price alerts. <a href="https://app.commodity-hub.eu">Open the app</a> to see it live.</p>
+      </section>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <a class="brand" href="/">
+        <img src="/assets/logo.png" alt="" />
+        <span class="brand-word">Commodity Hub</span>
+      </a>
+      <div class="footer-links">
+        <a href="/commodities">Commodities</a>
+        <a href="/glossary">Glossary</a>
+        <a href="/terms">Terms of Service</a>
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/about">About</a>
+        <a href="https://app.commodity-hub.eu/delete-account">Delete account</a>
+      </div>
+    </div>
+    <div class="footer-fine">
+      Commodity Hub is an information service providing commodity market prices, news, and analytics. It does not execute trades, hold client funds, or provide investment advice. The "Trade" section of the app links to independent, regulated third parties (Capital.com, eToro, Kalshi); Commodity Hub may earn a referral commission from those links. © <span id="year"></span> Commodity Hub. All rights reserved.
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+  var t = document.getElementById('themeToggle');
+  var root = document.documentElement;
+  t.addEventListener('click', function () {
+    var current = root.getAttribute('data-theme');
+    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var effectiveDark = current ? current === 'dark' : prefersDark;
+    root.setAttribute('data-theme', effectiveDark ? 'light' : 'dark');
+  });
+</script>
+<script>
+  (function () {
+    var el = document.getElementById('liveQuote');
+    var SYMBOL = el.getAttribute('data-symbol');
+    var SUPABASE_URL = 'https://kcxhsmlqqyarhlmcapmj.supabase.co';
+    var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGhzbWxxcXlhcmhsbWNhcG1qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3ODM0MDcsImV4cCI6MjA2MTM1OTQwN30.qC25iAjNhbPVotryl7GONMgYkvg0DzEYp8uxioWzkfs';
+
+    function formatPrice(p) {
+      if (typeof p !== 'number' || !isFinite(p)) return '';
+      return p >= 100 ? p.toFixed(2) : p.toFixed(p >= 10 ? 2 : 3);
+    }
+
+    fetch(SUPABASE_URL + '/functions/v1/fetch-all-commodities', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: 'Bearer ' + SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ dataDelay: 'realtime' }),
+    })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function (data) {
+        var c = (data.commodities || []).find(function (x) { return x && x.symbol === SYMBOL; });
+        if (!c) return;
+        var pct = typeof c.changePercent === 'number' ? c.changePercent : 0;
+        var dir = pct > 0 ? 'up' : pct < 0 ? 'down' : '';
+        var arrow = pct > 0 ? '▲' : pct < 0 ? '▼' : '—';
+        var pctText = (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%';
+
+        var priceEl = el.querySelector('.quote-price');
+        priceEl.textContent = '';
+        var priceSpan = document.createElement('span');
+        priceSpan.className = 'data';
+        priceSpan.textContent = '$' + formatPrice(c.price);
+        var changeSpan = document.createElement('span');
+        changeSpan.className = 'quote-change ' + dir;
+        changeSpan.textContent = ' ' + arrow + ' ' + pctText;
+        priceEl.appendChild(priceSpan);
+        priceEl.appendChild(changeSpan);
+
+        var metaEl = el.querySelector('.quote-meta');
+        metaEl.textContent = 'Live price · updated ' + new Date().toLocaleTimeString();
+      })
+      .catch(function () {
+        el.querySelector('.quote-price').textContent = 'Live price unavailable right now — see it in the app.';
+      });
+  })();
+</script>
+</body>
+</html>

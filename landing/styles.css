@@ -266,6 +266,8 @@ section:last-of-type { border-bottom: none; }
 .market-cell:nth-child(4n) { border-right: none; }
 .market-cell .cat { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 0.6rem; }
 .market-cell .items { font-family: 'IBM Plex Mono', monospace; font-size: 0.86rem; color: var(--text); line-height: 1.8; }
+.market-cell .items a { color: inherit; text-decoration: none; border-bottom: 1px solid var(--line); }
+.market-cell .items a:hover { color: var(--brass-strong); border-bottom-color: var(--brass-strong); }
 @media (max-width: 760px) {
   .markets-grid { grid-template-columns: repeat(2, 1fr); }
   .market-cell:nth-child(2n) { border-right: none; }
@@ -344,6 +346,13 @@ section:last-of-type { border-bottom: none; }
 .doc li + li { margin-top: 0.5rem; }
 .doc li strong, .doc p strong { color: var(--text); font-weight: 600; }
 .doc a { color: var(--brass-strong); text-decoration: underline; text-underline-offset: 2px; }
+
+/* ---- Live quote card (commodity pages) ---- */
+.quote-card { border: 1px solid var(--line); border-radius: 10px; padding: 1.4rem 1.6rem; margin-bottom: 0.5rem; }
+.quote-price { font-family: 'IBM Plex Mono', monospace; font-size: 1.6rem; color: var(--text); }
+.quote-change.up { color: var(--up); }
+.quote-change.down { color: var(--down); }
+.quote-meta { margin-top: 0.4rem; font-size: 0.78rem; color: var(--text-dim); }
 
 /* ---- Footer ---- */
 footer { padding: 2.75rem 0; }
