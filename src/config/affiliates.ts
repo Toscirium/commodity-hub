@@ -7,12 +7,19 @@
  *
  * Set the *_AFFILIATE_URL env vars once each partnership is approved:
  * - Capital.com: https://capital.com/en-int/partnerships/affiliate-programme
+ * - eToro: https://etoropartners.com — approved partner as of Aug 2026.
+ *   Compliance guidelines: https://etoropartners.com/compliance-g. Notably:
+ *   never put "eToro" in PPC ad copy/URLs/bidding or bid on eToro brand
+ *   terms, never land PPC traffic directly on an eToro domain, any custom
+ *   promotional copy needs eToro pre-approval before publishing, and risk
+ *   warnings need a readable font, bold color, AND a border, positioned near
+ *   the CTA (see TradeCTA.tsx / Trade.tsx) — not just bold text.
  * - Kalshi: contact partnerships for an affiliate/publisher link (separate
  *   from the peer-to-peer "refer a friend" program).
  * Until then these CTAs render disabled rather than link to a placeholder.
  */
 
-export type AffiliateProvider = 'capital_com' | 'kalshi';
+export type AffiliateProvider = 'capital_com' | 'etoro' | 'kalshi';
 
 export interface AffiliateProviderConfig {
   id: AffiliateProvider;
@@ -29,6 +36,15 @@ export const AFFILIATE_PROVIDERS: Record<AffiliateProvider, AffiliateProviderCon
     tagline: 'Leveraged CFD trading — go long or short on the price',
     regionNote: 'Not available to US residents',
     baseUrl: import.meta.env.VITE_CAPITAL_COM_AFFILIATE_URL as string | undefined,
+  },
+  etoro: {
+    id: 'etoro',
+    name: 'eToro',
+    tagline: 'Leveraged CFD trading — go long or short on the price',
+    // eToro's affiliate compliance guidelines restrict CFD promotion to
+    // residents of these three: https://etoropartners.com/compliance-g
+    regionNote: 'Not available to US, Australian, or Spanish residents',
+    baseUrl: import.meta.env.VITE_ETORO_AFFILIATE_URL as string | undefined,
   },
   kalshi: {
     id: 'kalshi',
@@ -54,9 +70,10 @@ const KALSHI_SYMBOLS = new Set([
 
 export function isProviderAvailableFor(provider: AffiliateProvider, symbol: string): boolean {
   if (provider === 'kalshi') return KALSHI_SYMBOLS.has(symbol);
-  // Capital.com's CFD catalog is broad across energy/metals/grains; exact
-  // per-instrument availability varies and isn't worth hardcoding — the link
-  // lands on their markets search, not a guaranteed prefilled contract.
+  // Capital.com's and eToro's CFD catalogs are broad across energy/metals/
+  // grains; exact per-instrument availability varies and isn't worth
+  // hardcoding — the link lands on their markets search, not a guaranteed
+  // prefilled contract.
   return true;
 }
 

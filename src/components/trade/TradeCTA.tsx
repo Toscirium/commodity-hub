@@ -17,10 +17,10 @@ interface TradeCTAProps {
 }
 
 /**
- * Outbound CTAs to independent, regulated brokers (Capital.com CFDs, Kalshi
- * prediction contracts). Commodity Hub never executes the trade or touches
- * funds — clicking logs a referral event, then opens the partner's own signup
- * flow in a new tab.
+ * Outbound CTAs to independent, regulated brokers (Capital.com/eToro CFDs,
+ * Kalshi prediction contracts). Commodity Hub never executes the trade or
+ * touches funds — clicking logs a referral event, then opens the partner's
+ * own signup flow in a new tab.
  */
 const TradeCTA: React.FC<TradeCTAProps> = ({ symbol, commodityName, className }) => {
   const auth = useAuth();
@@ -61,9 +61,9 @@ const TradeCTA: React.FC<TradeCTAProps> = ({ symbol, commodityName, className })
           );
         })}
       </div>
-      <p className="text-xs text-muted-foreground mt-1">
-        {commodityName} — external, independent brokers. Commodity Hub doesn't execute trades or hold
-        funds, and may earn a referral commission.
+      <p className="text-sm font-medium text-destructive border border-destructive/50 rounded-md px-3 py-1.5 mt-1">
+        Risk of loss: {commodityName} CFDs/contracts are leveraged products offered by external,
+        independent brokers, not Commodity Hub. Commodity Hub may earn a referral commission.
       </p>
     </div>
   );

@@ -46,11 +46,11 @@ const TermsOfService = () => {
                 <h2 className="text-lg font-semibold mb-2">2. Third-Party Trading Partners &amp; Affiliate Links</h2>
                 <p>
                   The "Trade" section of the app links out to independent, third-party brokers
-                  (currently Capital.com and Kalshi) where you can open your own account to trade
-                  CFDs or prediction contracts on commodity prices. These are separate companies,
-                  licensed and regulated in their own right — Commodity Hub is not a party to any
-                  account, trade, or transaction you enter into with them, does not execute orders,
-                  and never has access to your funds or trading credentials.
+                  (currently Capital.com, eToro, and Kalshi) where you can open your own account to
+                  trade CFDs or prediction contracts on commodity prices. These are separate
+                  companies, licensed and regulated in their own right — Commodity Hub is not a
+                  party to any account, trade, or transaction you enter into with them, does not
+                  execute orders, and never has access to your funds or trading credentials.
                 </p>
                 <p>
                   Commodity Hub may receive a referral commission if you sign up through these
@@ -58,7 +58,13 @@ const TermsOfService = () => {
                   Trading CFDs and prediction contracts involves substantial risk of loss,
                   including the possibility of losing more than your initial deposit on leveraged
                   products, and may not be available in your jurisdiction — review the partner's
-                  own risk disclosures and regulatory status before signing up.
+                  own risk disclosures and regulatory status before signing up. CFD trading is not
+                  available to residents of the United States, Australia, or Spain through these
+                  links.
+                </p>
+                <p>
+                  You must be at least 18 years old to use the "Trade" section or open an account
+                  with any linked broker.
                 </p>
               </section>
 

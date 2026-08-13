@@ -1,9 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Landmark, Search } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Landmark, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useAvailableCommodities } from '@/hooks/useCommodityData';
 import TradeCTA from '@/components/trade/TradeCTA';
 import { AFFILIATE_PROVIDERS } from '@/config/affiliates';
@@ -49,15 +50,18 @@ const Trade: React.FC = () => {
           </p>
         </div>
 
-        <Card className="mb-6 border-dashed">
-          <CardContent className="pt-6 text-sm text-muted-foreground space-y-2">
+        <Alert variant="destructive" className="mb-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Trading involves risk of loss</AlertTitle>
+          <AlertDescription className="space-y-2">
             <p>
-              Commodity Hub is a price-tracking and analytics app — it does not execute trades,
-              hold funds, or provide investment advice. The links below take you to independent
-              third parties who are licensed to offer these products in their respective regions.
-              Commodity Hub may earn a referral commission if you sign up through them.
+              CFDs and prediction contracts are leveraged/complex products and carry a high risk of
+              losing money rapidly, including more than your initial deposit. You must be 18+ and
+              able to afford this risk before using any link below. Commodity Hub does not execute
+              trades, hold funds, or provide investment advice — every link goes to an independent,
+              licensed third party, and Commodity Hub may earn a referral commission if you sign up.
             </p>
-            <div className="flex flex-wrap gap-x-6 gap-y-1 pt-1">
+            <div className="flex flex-wrap gap-x-6 gap-y-1 pt-1 text-foreground/80">
               {Object.values(AFFILIATE_PROVIDERS).map((p) => (
                 <span key={p.id}>
                   <strong className="text-foreground">{p.name}</strong> — {p.tagline}.{' '}
@@ -65,8 +69,8 @@ const Trade: React.FC = () => {
                 </span>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </AlertDescription>
+        </Alert>
 
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
