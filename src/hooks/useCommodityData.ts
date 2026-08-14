@@ -99,6 +99,7 @@ export interface CommodityHistoricalData {
   high?: number;
   low?: number;
   close?: number;
+  volume?: number;
 }
 
 // Add a specific interface for candlestick data
@@ -180,6 +181,7 @@ interface RawHistoricalPoint {
   high?: number;
   low?: number;
   close?: number;
+  volume?: number;
 }
 
 interface FetchCommodityDataResponse {
@@ -250,12 +252,14 @@ export const useCommodityHistoricalData = (commodityName: string, timeframe: str
               open: item.open,
               high: item.high,
               low: item.low,
-              close: item.close
+              close: item.close,
+              volume: item.volume
             };
           } else {
             return {
               date: item.date,
-              price: item.price ?? 0
+              price: item.price ?? 0,
+              volume: item.volume
             };
           }
         }) || [];

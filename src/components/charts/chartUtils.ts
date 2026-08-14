@@ -74,6 +74,34 @@ export const smoothPriceData = (data: Array<{ date: string; price: number }>, co
 };
 
 /**
+ * Simple moving average over `period` bars, computed from closing price.
+ * Returns one point per input bar once `period` bars are available (the
+ * leading `period - 1` bars have no full window yet and are omitted,
+ * matching how MA lines render on most trading charts).
+ */
+export const calculateSMA = (
+  data: Array<{ date: string; price: number }>,
+  period: number
+): Array<{ date: string; value: number }> => {
+  if (data.length < period) return [];
+
+  const result: Array<{ date: string; value: number }> = [];
+  let windowSum = 0;
+
+  for (let i = 0; i < data.length; i++) {
+    windowSum += data[i].price;
+    if (i >= period) {
+      windowSum -= data[i - period].price;
+    }
+    if (i >= period - 1) {
+      result.push({ date: data[i].date, value: windowSum / period });
+    }
+  }
+
+  return result;
+};
+
+/**
  * Calculate dynamic y-axis domain to prevent flat-looking charts
  */
 export const getYAxisDomain = (

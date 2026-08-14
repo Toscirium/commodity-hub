@@ -3,6 +3,8 @@ import {
   createChart,
   CandlestickSeries,
   LineSeries,
+  AreaSeries,
+  HistogramSeries,
   CrosshairMode,
   type IChartApi,
   type ISeriesApi,
@@ -22,9 +24,24 @@ export interface PriceChartCompareData {
   data: { date: string; price: number }[];
 }
 
+export interface PriceChartVolumePoint {
+  date: string;
+  value: number;
+  up: boolean;
+}
+
+export interface PriceChartMovingAverage {
+  period: number;
+  data: { date: string; value: number }[];
+}
+
 interface PriceChartProps {
   lineData: { date: string; price: number }[];
   candlestickData: { date: string; open: number; high: number; low: number; close: number }[];
+  /** Volume histogram beneath the main series. Omit/empty to skip the volume subplot entirely. */
+  volumeData?: PriceChartVolumePoint[];
+  /** SMA overlays (e.g. 5/10/20-period), line-chart mode only. Empty entries (not enough bars yet) are skipped. */
+  maData?: PriceChartMovingAverage[];
   chartType: 'line' | 'candlestick';
   formatXAxisTick: (date: string) => string;
   formatTooltipLabel: (label: string) => string;
@@ -42,7 +59,17 @@ interface PriceChartProps {
   onPendingTrendlineChange?: (pending: boolean) => void;
 }
 
-type MainSeries = ISeriesApi<'Candlestick'> | ISeriesApi<'Line'>;
+type MainSeries = ISeriesApi<'Candlestick'> | ISeriesApi<'Area'>;
+
+// Distinct from trendlineColor (purple) and compareColor (amber) so all the
+// overlays stay visually separable on the same chart.
+const MA_COLORS = ['#f97316', '#eab308', '#6366f1'];
+
+const formatVolume = (value: number): string => {
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
+  return value.toFixed(0);
+};
 
 interface TooltipState {
   x: number;
@@ -54,11 +81,14 @@ interface TooltipState {
   close?: number;
   value?: number;
   compareValue?: number;
+  volume?: number;
 }
 
 const PriceChart: React.FC<PriceChartProps> = ({
   lineData,
   candlestickData,
+  volumeData = [],
+  maData = [],
   chartType,
   formatXAxisTick,
   formatTooltipLabel,
@@ -78,7 +108,9 @@ const PriceChart: React.FC<PriceChartProps> = ({
   const containerRef = React.useRef<HTMLDivElement>(null);
   const chartRef = React.useRef<IChartApi | null>(null);
   const seriesRef = React.useRef<MainSeries | null>(null);
+  const volumeSeriesRef = React.useRef<ISeriesApi<'Histogram'> | null>(null);
   const compareSeriesRef = React.useRef<ISeriesApi<'Line'> | null>(null);
+  const maSeriesRefs = React.useRef<ISeriesApi<'Line'>[]>([]);
   const primitivesRef = React.useRef<Map<string, TrendlinePrimitive>>(new Map());
 
   const [chartVersion, setChartVersion] = React.useState(0);
@@ -106,12 +138,18 @@ const PriceChart: React.FC<PriceChartProps> = ({
         secondsVisible: false,
         tickMarkFormatter: (time: Time) => formatXAxisTick(new Date((time as number) * 1000).toISOString()),
       },
-      rightPriceScale: { borderColor: colors.border },
+      rightPriceScale: {
+        borderColor: colors.border,
+        // Leave the bottom quarter of the scale for the volume subplot,
+        // rather than letting the price series stretch over it.
+        scaleMargins: { top: 0.08, bottom: 0.25 },
+      },
       localization: { priceFormatter: (price: number) => formatPrice(price) },
       width: containerRef.current.clientWidth,
       height: containerRef.current.clientHeight,
     });
 
+    const trendColor = isPositiveTrend ? colors.upColor : colors.downColor;
     const series: MainSeries =
       chartType === 'candlestick'
         ? chart.addSeries(CandlestickSeries, {
@@ -122,13 +160,28 @@ const PriceChart: React.FC<PriceChartProps> = ({
             borderUpColor: colors.wickUpColor,
             borderDownColor: colors.wickDownColor,
           })
-        : chart.addSeries(LineSeries, {
-            color: isPositiveTrend ? colors.upColor : colors.downColor,
+        : chart.addSeries(AreaSeries, {
+            lineColor: trendColor,
+            topColor: `${trendColor}4D`,
+            bottomColor: `${trendColor}00`,
             lineWidth: 2,
           });
 
+    // Volume histogram, confined to its own bottom-anchored price scale so it
+    // never competes with the main series for vertical space.
+    const volumeSeries = chart.addSeries(HistogramSeries, {
+      priceFormat: { type: 'volume' },
+      priceScaleId: 'volume',
+      lastValueVisible: false,
+      priceLineVisible: false,
+    });
+    chart.priceScale('volume').applyOptions({
+      scaleMargins: { top: 0.75, bottom: 0 },
+    });
+
     chartRef.current = chart;
     seriesRef.current = series;
+    volumeSeriesRef.current = volumeSeries;
     compareSeriesRef.current = null;
     primitives.clear();
     setChartVersion((v) => v + 1);
@@ -137,17 +190,21 @@ const PriceChart: React.FC<PriceChartProps> = ({
       chart.remove();
       chartRef.current = null;
       seriesRef.current = null;
+      volumeSeriesRef.current = null;
       compareSeriesRef.current = null;
       primitives.clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chartType, isDark]);
 
-  // Keep the line-series color in sync with trend direction without a full chart recreate.
+  // Keep the area-series color in sync with trend direction without a full chart recreate.
   React.useEffect(() => {
     if (chartType !== 'line' || !seriesRef.current) return;
-    (seriesRef.current as ISeriesApi<'Line'>).applyOptions({
-      color: isPositiveTrend ? colors.upColor : colors.downColor,
+    const trendColor = isPositiveTrend ? colors.upColor : colors.downColor;
+    (seriesRef.current as ISeriesApi<'Area'>).applyOptions({
+      lineColor: trendColor,
+      topColor: `${trendColor}4D`,
+      bottomColor: `${trendColor}00`,
     });
   }, [isPositiveTrend, chartType, colors, chartVersion]);
 
@@ -165,12 +222,51 @@ const PriceChart: React.FC<PriceChartProps> = ({
         }))
       );
     } else {
-      (seriesRef.current as ISeriesApi<'Line'>).setData(
+      (seriesRef.current as ISeriesApi<'Area'>).setData(
         lineData.map((d) => ({ time: toUtcTimestamp(d.date), value: d.price }))
       );
     }
     chartRef.current?.timeScale().fitContent();
   }, [chartType, candlestickData, lineData, chartVersion]);
+
+  // Push volume histogram data, colored per-bar by ChartContainer.
+  React.useEffect(() => {
+    if (!volumeSeriesRef.current) return;
+    volumeSeriesRef.current.setData(
+      volumeData.map((d) => ({
+        time: toUtcTimestamp(d.date),
+        value: d.value,
+        color: d.up ? `${colors.upColor}80` : `${colors.downColor}80`,
+      }))
+    );
+  }, [volumeData, colors.upColor, colors.downColor, chartVersion]);
+
+  // Moving-average overlays — one Line series per period. Recreated (not just
+  // re-set) whenever maData changes, mirroring the compare-series pattern
+  // below; cheap enough at this data size and keeps the lifecycle simple.
+  React.useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+
+    const series = maData.map((ma, i) =>
+      chart.addSeries(LineSeries, {
+        color: MA_COLORS[i % MA_COLORS.length],
+        lineWidth: 1,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      })
+    );
+    maData.forEach((ma, i) => {
+      series[i].setData(ma.data.map((d) => ({ time: toUtcTimestamp(d.date), value: d.value })));
+    });
+    maSeriesRefs.current = series;
+
+    return () => {
+      series.forEach((s) => chart.removeSeries(s));
+      maSeriesRefs.current = [];
+    };
+  }, [maData, chartVersion]);
 
   // Resize the chart to fill its container.
   React.useEffect(() => {
@@ -210,6 +306,10 @@ const PriceChart: React.FC<PriceChartProps> = ({
       const compareValue = compareSeries
         ? (param.seriesData.get(compareSeries) as { value?: number } | undefined)
         : undefined;
+      const volumeSeries = volumeSeriesRef.current;
+      const volumePoint = volumeSeries
+        ? (param.seriesData.get(volumeSeries) as { value?: number } | undefined)
+        : undefined;
 
       setTooltip({
         x: param.point.x,
@@ -221,6 +321,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
         close: mainValue.close,
         value: mainValue.value,
         compareValue: compareValue?.value,
+        volume: volumePoint?.value,
       });
     };
 
@@ -324,9 +425,9 @@ const PriceChart: React.FC<PriceChartProps> = ({
       chart.removeSeries(compareSeries);
       compareSeriesRef.current = null;
     };
-    // A future same-scale indicator overlay (e.g. SMA) would follow this exact
-    // attach/detach pattern, but omit priceScaleId so it shares the main scale,
-    // and compute its data client-side instead of fetching a second symbol.
+    // The MA overlay effect above follows this same attach/detach shape, but
+    // omits priceScaleId so it shares the main price scale instead of getting
+    // its own, and its data is computed client-side rather than fetched.
   }, [compareData, chartVersion, colors.compareColor, colors.border]);
 
   const handleResetZoom = () => chartRef.current?.timeScale().fitContent();
@@ -368,6 +469,17 @@ const PriceChart: React.FC<PriceChartProps> = ({
         {trendlinesEnabled && (
           <div className="bg-background/80 backdrop-blur-sm rounded-md px-2 py-1 border border-border/50 text-2xs text-muted-foreground">
             {pendingPoint ? 'Click to set the second point (Esc to cancel)' : 'Click to start a trendline'}
+          </div>
+        )}
+        {maData.some((ma) => ma.data.length > 0) && (
+          <div className="flex items-center gap-2 bg-background/80 backdrop-blur-sm rounded-md px-2 py-1 border border-border/50 text-2xs font-medium">
+            {maData.map((ma, i) =>
+              ma.data.length > 0 ? (
+                <span key={ma.period} style={{ color: MA_COLORS[i % MA_COLORS.length] }}>
+                  MA{ma.period}: {formatPrice(ma.data[ma.data.length - 1].value)}
+                </span>
+              ) : null
+            )}
           </div>
         )}
       </div>
@@ -419,6 +531,12 @@ const PriceChart: React.FC<PriceChartProps> = ({
             <div className="flex justify-between gap-2 mt-1 pt-1 border-t border-border/30">
               <span className="text-muted-foreground">{compareData.symbol}:</span>
               <span className="font-medium tabular-nums">{formatCommodityPrice(tooltip.compareValue, compareData.symbol)}</span>
+            </div>
+          )}
+          {tooltip.volume !== undefined && (
+            <div className="flex justify-between gap-2 mt-1 pt-1 border-t border-border/30">
+              <span className="text-muted-foreground">Vol:</span>
+              <span className="font-medium tabular-nums">{formatVolume(tooltip.volume)}</span>
             </div>
           )}
         </div>

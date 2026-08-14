@@ -2,7 +2,7 @@ import React from 'react';
 import { Loader, AlertCircle } from 'lucide-react';
 import { CommodityHistoricalData } from '@/hooks/useCommodityData';
 import { isCentPriced } from '@/lib/commodityUtils';
-import { formatXAxisTick, formatTooltipLabel, smoothPriceData } from './chartUtils';
+import { formatXAxisTick, formatTooltipLabel, smoothPriceData, calculateSMA } from './chartUtils';
 import PriceChart, { type PriceChartCompareData } from './PriceChart';
 import { useCurrency } from '@/hooks/useCurrency';
 import type { Trendline, TrendlinePoint } from '@/hooks/useTrendlines';
@@ -79,6 +79,31 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
     [convertedData]
   );
 
+  // Volume bars — colored per-bar the same way most trading charts do: green
+  // when that bar closed up (vs. its own open, or vs. the prior close when
+  // there's no open/close split for this series), red otherwise.
+  const volumeData = React.useMemo(
+    () =>
+      convertedData
+        .filter((item): item is CommodityHistoricalData & { volume: number } => typeof item.volume === 'number')
+        .map((item, index, arr) => ({
+          date: item.date,
+          value: item.volume,
+          up:
+            typeof item.open === 'number' && typeof item.close === 'number'
+              ? item.close >= item.open
+              : index === 0 || item.price >= arr[index - 1].price,
+        })),
+    [convertedData]
+  );
+
+  // Moving averages, computed from closing price regardless of chart type —
+  // smoothedData already resolves to "price = close" for candlestick data.
+  const maData = React.useMemo(() => {
+    const closes = smoothedData.map((d) => ({ date: d.date, price: d.price }));
+    return [5, 10, 20].map((period) => ({ period, data: calculateSMA(closes, period) }));
+  }, [smoothedData]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -117,6 +142,8 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
     <PriceChart
       lineData={smoothedData}
       candlestickData={filteredOhlcData}
+      volumeData={volumeData}
+      maData={maData}
       chartType={chartType}
       formatXAxisTick={(date) => formatXAxisTick(date, selectedTimeframe)}
       formatTooltipLabel={(label) => formatTooltipLabel(label, selectedTimeframe)}

@@ -38,6 +38,8 @@ vi.mock('lightweight-charts', () => ({
   createChart: vi.fn(() => mockChart),
   CandlestickSeries: { seriesType: 'Candlestick' },
   LineSeries: { seriesType: 'Line' },
+  AreaSeries: { seriesType: 'Area' },
+  HistogramSeries: { seriesType: 'Histogram' },
   CrosshairMode: { Normal: 0 },
 }))
 
@@ -79,7 +81,7 @@ describe('PriceChart', () => {
     ])
   })
 
-  it('adds a line series and pushes value data with numeric time when chartType is line', () => {
+  it('adds an area series and pushes value data with numeric time when chartType is line', () => {
     render(
       <PriceChart
         {...baseProps}
@@ -90,7 +92,7 @@ describe('PriceChart', () => {
     )
 
     expect(addSeries).toHaveBeenCalledWith(
-      expect.objectContaining({ seriesType: 'Line' }),
+      expect.objectContaining({ seriesType: 'Area' }),
       expect.any(Object)
     )
     expect(setData).toHaveBeenCalledWith([
@@ -103,5 +105,41 @@ describe('PriceChart', () => {
       <PriceChart {...baseProps} chartType="candlestick" lineData={[]} candlestickData={[]} />
     )
     expect(getByText(/No OHLC data available/i)).toBeInTheDocument()
+  })
+
+  it('adds a volume histogram series on its own price scale and pushes colored bars', () => {
+    render(
+      <PriceChart
+        {...baseProps}
+        chartType="line"
+        lineData={[{ date: '2024-01-01T00:00:00.000Z', price: 42 }]}
+        candlestickData={[]}
+        volumeData={[{ date: '2024-01-01T00:00:00.000Z', value: 1000, up: true }]}
+      />
+    )
+
+    expect(addSeries).toHaveBeenCalledWith(
+      expect.objectContaining({ seriesType: 'Histogram' }),
+      expect.objectContaining({ priceScaleId: 'volume' })
+    )
+    expect(setData).toHaveBeenCalledWith([
+      expect.objectContaining({ time: expect.any(Number), value: 1000, color: expect.any(String) }),
+    ])
+  })
+
+  it('adds one line series per moving average and pushes its data', () => {
+    render(
+      <PriceChart
+        {...baseProps}
+        chartType="line"
+        lineData={[{ date: '2024-01-01T00:00:00.000Z', price: 42 }]}
+        candlestickData={[]}
+        maData={[{ period: 5, data: [{ date: '2024-01-01T00:00:00.000Z', value: 41 }] }]}
+      />
+    )
+
+    expect(setData).toHaveBeenCalledWith([
+      expect.objectContaining({ time: expect.any(Number), value: 41 }),
+    ])
   })
 })

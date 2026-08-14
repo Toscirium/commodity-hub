@@ -206,6 +206,7 @@ serve(async (req) => {
             low: b.low,
             close: b.close,
             price: b.close,
+            volume: typeof b.volume === 'number' ? b.volume : undefined,
           }));
           ohlcAvailable = true;
           dataSourceUsed = 'massive';
@@ -240,6 +241,7 @@ serve(async (req) => {
             low: b.low,
             close: b.close,
             price: b.close,
+            volume: typeof b.volume === 'number' ? b.volume : undefined,
           }));
           ohlcAvailable = true;
           dataSourceUsed = 'fmp';
