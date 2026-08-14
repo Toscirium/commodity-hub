@@ -104,6 +104,22 @@ class CrashReporter {
     // Send to crash reporting service (implement your preferred service)
     this.sendCrashReport(crashReport);
 
+    // Unconditional — this is the primary observability channel for a
+    // bundled Capacitor app in the field (there's no remote crash service
+    // wired up yet, see sendCrashReport's TODO). Previously gated behind
+    // NODE_ENV === 'development', which a production Android build never
+    // is, so a real crash's actual message/stack never made it to logcat —
+    // only the single-frame filename/lineno/colno window.onerror already
+    // provides. Interpolated into a plain string rather than passed as the
+    // Error object: Capacitor's console bridge stringifies arguments for
+    // the native side, and Error's message/stack are non-enumerable, so a
+    // raw Error can come through as "{}" (this is exactly what happened
+    // with Capacitor's own internal JS-error report in the log that led
+    // here).
+    console.error(
+      `CrashReporter: ${error.message}\n${error.stack || '(no stack available)'}\nContext: ${JSON.stringify(context)}`
+    );
+
     // Log locally for development
     if (process.env.NODE_ENV === 'development') {
       console.group('🚨 Crash Report');

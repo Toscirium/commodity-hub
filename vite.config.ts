@@ -77,7 +77,15 @@ export default defineConfig(({ mode }) => ({
   build: {
     target: 'es2020',
     cssCodeSplit: true,
-    sourcemap: false,
+    // Was false — the JS this maps to is already bundled inside the APK
+    // either way (a sourcemap alongside it doesn't expose anything a
+    // curious party couldn't already get by unzipping the APK and
+    // deobfuscating), and without it a production crash log gives you
+    // useless positions like "router-BYGlZScH.js:30:3303" instead of the
+    // real file/line/column. Not served publicly, so no hosting-side
+    // exposure either — this only ships inside dist/, which becomes the
+    // Capacitor app bundle.
+    sourcemap: true,
     minify: 'esbuild',
     rollupOptions: {
       external: ['@capacitor/app', '@capacitor/haptics'],
