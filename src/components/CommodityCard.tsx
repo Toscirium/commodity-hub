@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { getMarketStatus } from '@/lib/marketHours';
 import LazyChart from './LazyChart';
 import LazyNews from './LazyNews';
+import TradeCTA from './trade/TradeCTA';
 
 interface CommodityCardProps {
   name: string;
@@ -376,6 +377,7 @@ const CommodityCard = React.memo<CommodityCardProps>(({
               venue: selectedContractData.venue || venue || 'NYMEX'
             } : undefined}
           />
+          <TradeCTA symbol={selectedContract} commodityName={name} />
           <LazyNews commodity={name} />
         </div>
       </CollapsibleContent>
