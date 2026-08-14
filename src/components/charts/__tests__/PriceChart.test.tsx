@@ -298,3 +298,36 @@ describe('toSortedSeriesData', () => {
     expect(toSortedSeriesData(input)).toEqual(input)
   })
 })
+
+// The mock's setData is otherwise a no-op that never throws — the real
+// library can, on a provider quirk toSortedSeriesData didn't anticipate.
+// This simulates that directly (rather than trying to reproduce the exact
+// upstream condition) to prove the failure mode is "this update is skipped,
+// logged, chart keeps whatever it had" rather than "render throws".
+describe('PriceChart — resilience to a setData failure', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    addSeries.mockReturnValue(mockSeries)
+  })
+
+  it('does not throw when the underlying library rejects the data, and logs instead', () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    setData.mockImplementationOnce(() => {
+      throw new Error('Assertion failed: data must be asc ordered by time')
+    })
+
+    expect(() =>
+      render(
+        <PriceChart
+          {...baseProps}
+          chartType="line"
+          lineData={[{ date: '2024-01-01T00:00:00.000Z', price: 42 }]}
+          candlestickData={[]}
+        />
+      )
+    ).not.toThrow()
+
+    expect(errorSpy).toHaveBeenCalled()
+    errorSpy.mockRestore()
+  })
+})

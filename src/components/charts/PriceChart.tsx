@@ -249,66 +249,83 @@ const PriceChart: React.FC<PriceChartProps> = ({
   // shown elsewhere in the UI is measured against, so the two stay visually
   // consistent. Distinct from the live price line: neutral gray, not
   // up/down-colored, so it doesn't compete with today's actual direction.
+  //
+  // The whole body is one try/catch: toSortedSeriesData + the finite filters
+  // guard the known failure modes, but lightweight-charts' setData/
+  // createPriceLine can still throw on something neither anticipated (a
+  // provider quirk we haven't seen yet). There's an ErrorBoundary above this
+  // component, but that unmounts and remounts the whole chart on every such
+  // error; failing this one update softly — keep whatever was on screen,
+  // log it, try again next data change — is a better failure mode for a
+  // chart the user is actively interacting with (e.g. mid-timeframe-switch).
   React.useEffect(() => {
     const series = seriesRef.current;
     if (!series) return;
 
-    let referencePrice: number | undefined;
-    if (chartType === 'candlestick') {
-      const sorted = toSortedSeriesData(
-        candlestickData
-          .filter((d) => [d.open, d.high, d.low, d.close].every(Number.isFinite))
-          .map((d) => ({
-            time: toUtcTimestamp(d.date),
-            open: d.open,
-            high: d.high,
-            low: d.low,
-            close: d.close,
-          }))
-      );
-      (series as ISeriesApi<'Candlestick'>).setData(sorted);
-      referencePrice = sorted[0]?.open;
-    } else {
-      const sorted = toSortedSeriesData(
-        lineData
-          .filter((d) => Number.isFinite(d.price))
-          .map((d) => ({ time: toUtcTimestamp(d.date), value: d.price }))
-      );
-      (series as ISeriesApi<'Area'>).setData(sorted);
-      referencePrice = sorted[0]?.value;
-    }
-    chartRef.current?.timeScale().fitContent();
+    try {
+      let referencePrice: number | undefined;
+      if (chartType === 'candlestick') {
+        const sorted = toSortedSeriesData(
+          candlestickData
+            .filter((d) => [d.open, d.high, d.low, d.close].every(Number.isFinite))
+            .map((d) => ({
+              time: toUtcTimestamp(d.date),
+              open: d.open,
+              high: d.high,
+              low: d.low,
+              close: d.close,
+            }))
+        );
+        (series as ISeriesApi<'Candlestick'>).setData(sorted);
+        referencePrice = sorted[0]?.open;
+      } else {
+        const sorted = toSortedSeriesData(
+          lineData
+            .filter((d) => Number.isFinite(d.price))
+            .map((d) => ({ time: toUtcTimestamp(d.date), value: d.price }))
+        );
+        (series as ISeriesApi<'Area'>).setData(sorted);
+        referencePrice = sorted[0]?.value;
+      }
+      chartRef.current?.timeScale().fitContent();
 
-    if (referenceLineRef.current) {
-      series.removePriceLine(referenceLineRef.current);
-      referenceLineRef.current = null;
-    }
-    if (referencePrice !== undefined) {
-      referenceLineRef.current = series.createPriceLine({
-        price: referencePrice,
-        color: colors.referenceLineColor,
-        lineWidth: 1,
-        lineStyle: LineStyle.Dashed,
-        axisLabelVisible: true,
-        title: '',
-      });
+      if (referenceLineRef.current) {
+        series.removePriceLine(referenceLineRef.current);
+        referenceLineRef.current = null;
+      }
+      if (referencePrice !== undefined) {
+        referenceLineRef.current = series.createPriceLine({
+          price: referencePrice,
+          color: colors.referenceLineColor,
+          lineWidth: 1,
+          lineStyle: LineStyle.Dashed,
+          axisLabelVisible: true,
+          title: '',
+        });
+      }
+    } catch (err) {
+      console.error('PriceChart: failed to update main series/reference line, leaving prior chart state in place', err);
     }
   }, [chartType, candlestickData, lineData, colors.referenceLineColor, chartVersion]);
 
   // Push volume histogram data, colored per-bar by ChartContainer.
   React.useEffect(() => {
     if (!volumeSeriesRef.current) return;
-    volumeSeriesRef.current.setData(
-      toSortedSeriesData(
-        volumeData
-          .filter((d) => Number.isFinite(d.value))
-          .map((d) => ({
-            time: toUtcTimestamp(d.date),
-            value: d.value,
-            color: d.up ? `${colors.upColor}80` : `${colors.downColor}80`,
-          }))
-      )
-    );
+    try {
+      volumeSeriesRef.current.setData(
+        toSortedSeriesData(
+          volumeData
+            .filter((d) => Number.isFinite(d.value))
+            .map((d) => ({
+              time: toUtcTimestamp(d.date),
+              value: d.value,
+              color: d.up ? `${colors.upColor}80` : `${colors.downColor}80`,
+            }))
+        )
+      );
+    } catch (err) {
+      console.error('PriceChart: failed to update volume series, leaving prior chart state in place', err);
+    }
   }, [volumeData, colors.upColor, colors.downColor, chartVersion]);
 
   // Moving-average overlays — one Line series per period. Recreated (not just
@@ -327,15 +344,19 @@ const PriceChart: React.FC<PriceChartProps> = ({
         crosshairMarkerVisible: false,
       })
     );
-    maData.forEach((ma, i) => {
-      series[i].setData(
-        toSortedSeriesData(
-          ma.data
-            .filter((d) => Number.isFinite(d.value))
-            .map((d) => ({ time: toUtcTimestamp(d.date), value: d.value }))
-        )
-      );
-    });
+    try {
+      maData.forEach((ma, i) => {
+        series[i].setData(
+          toSortedSeriesData(
+            ma.data
+              .filter((d) => Number.isFinite(d.value))
+              .map((d) => ({ time: toUtcTimestamp(d.date), value: d.value }))
+          )
+        );
+      });
+    } catch (err) {
+      console.error('PriceChart: failed to update MA overlay series, leaving prior chart state in place', err);
+    }
     maSeriesRefs.current = series;
 
     return () => {
@@ -494,13 +515,17 @@ const PriceChart: React.FC<PriceChartProps> = ({
       borderColor: colors.border,
       scaleMargins: { top: 0.1, bottom: 0.1 },
     });
-    compareSeries.setData(
-      toSortedSeriesData(
-        compareData.data
-          .filter((d) => Number.isFinite(d.price))
-          .map((d) => ({ time: toUtcTimestamp(d.date), value: d.price }))
-      )
-    );
+    try {
+      compareSeries.setData(
+        toSortedSeriesData(
+          compareData.data
+            .filter((d) => Number.isFinite(d.price))
+            .map((d) => ({ time: toUtcTimestamp(d.date), value: d.price }))
+        )
+      );
+    } catch (err) {
+      console.error('PriceChart: failed to update compare series, leaving prior chart state in place', err);
+    }
     compareSeriesRef.current = compareSeries;
 
     return () => {
