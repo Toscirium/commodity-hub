@@ -323,7 +323,11 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
         currentSymbol={name}
       />
 
-      <div className="h-[200px] sm:h-[250px] lg:h-[300px] w-full min-w-0 max-w-full overflow-hidden p-2 sm:p-4 bg-muted/20 rounded-md border border-border">
+      {/* Roughly half the viewport height on mobile (capped so it doesn't
+          blow out on unusually tall screens), fixed and larger on tablet/
+          desktop — was a flat 200px on mobile, cramped even before the
+          volume subplot and MA legend gave the chart more to show. */}
+      <div className="h-[min(55vh,420px)] min-h-[320px] sm:h-[480px] lg:h-[560px] w-full min-w-0 max-w-full overflow-hidden p-2 sm:p-4 bg-muted/20 rounded-md border border-border">
         <ErrorBoundary key={`${selectedTimeframe}-${chartType}`} fallback={<ChartErrorFallback />}>
           <ChartContainer
             data={data}
