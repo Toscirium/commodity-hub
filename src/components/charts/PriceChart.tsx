@@ -209,9 +209,30 @@ const PriceChart: React.FC<PriceChartProps> = ({
       scaleMargins: { top: 0.75, bottom: 0 },
     });
 
+    // MA overlays — a fixed MA_COLORS.length of them, created once here
+    // (like every other series) rather than torn down and rebuilt on every
+    // maData change. maData is always MA_COLORS.length entries in practice
+    // (ChartContainer computes a fixed [5, 10, 20]); a separate effect below
+    // just calls setData on whichever of these already exist per update.
+    // This used to recreate 3 series via addSeries/removeSeries on every
+    // data refetch (react-query refetches reasonably often), which is a
+    // plausible trigger for an internal lightweight-charts assertion
+    // ("Value is undefined" in ensureDefined, seen in a production crash
+    // report) if a stale reference briefly outlives a torn-down series.
+    const maSeries = MA_COLORS.map((color) =>
+      chart.addSeries(LineSeries, {
+        color,
+        lineWidth: 1,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      })
+    );
+
     chartRef.current = chart;
     seriesRef.current = series;
     volumeSeriesRef.current = volumeSeries;
+    maSeriesRefs.current = maSeries;
     compareSeriesRef.current = null;
     // The reference price line belongs to the series being torn down below;
     // null it out so the data-push effect (which reruns right after, via
@@ -226,6 +247,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
       chartRef.current = null;
       seriesRef.current = null;
       volumeSeriesRef.current = null;
+      maSeriesRefs.current = [];
       compareSeriesRef.current = null;
       referenceLineRef.current = null;
       primitives.clear();
@@ -328,25 +350,15 @@ const PriceChart: React.FC<PriceChartProps> = ({
     }
   }, [volumeData, colors.upColor, colors.downColor, chartVersion]);
 
-  // Moving-average overlays — one Line series per period. Recreated (not just
-  // re-set) whenever maData changes, mirroring the compare-series pattern
-  // below; cheap enough at this data size and keeps the lifecycle simple.
+  // Push MA overlay data. The series themselves are created once, in the
+  // chart-creation effect above — this only ever calls setData on whichever
+  // already exist, by index, same as the main/volume series.
   React.useEffect(() => {
-    const chart = chartRef.current;
-    if (!chart) return;
-
-    const series = maData.map((ma, i) =>
-      chart.addSeries(LineSeries, {
-        color: MA_COLORS[i % MA_COLORS.length],
-        lineWidth: 1,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerVisible: false,
-      })
-    );
+    const series = maSeriesRefs.current;
+    if (series.length === 0) return;
     try {
       maData.forEach((ma, i) => {
-        series[i].setData(
+        series[i]?.setData(
           toSortedSeriesData(
             ma.data
               .filter((d) => Number.isFinite(d.value))
@@ -357,12 +369,6 @@ const PriceChart: React.FC<PriceChartProps> = ({
     } catch (err) {
       console.error('PriceChart: failed to update MA overlay series, leaving prior chart state in place', err);
     }
-    maSeriesRefs.current = series;
-
-    return () => {
-      series.forEach((s) => chart.removeSeries(s));
-      maSeriesRefs.current = [];
-    };
   }, [maData, chartVersion]);
 
   // Resize the chart to fill its container.
