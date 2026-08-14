@@ -34,6 +34,9 @@ const COLORS = [
   '#ffb3ba', '#bae1ff', '#ffffba', '#baffc9', '#ffd6cc', '#e1c6ff'
 ];
 
+// 5Y intentionally omitted: every provider backing this app caps daily
+// history at ~2 years, so a 5Y option would just silently render the same
+// data as 2Y — see the matching cap in fetch-commodity-data.
 const TIMEFRAMES = [
   { value: '1d', label: '1 Day' },
   { value: '1m', label: '1 Month' },
@@ -41,7 +44,6 @@ const TIMEFRAMES = [
   { value: '6m', label: '6 Months' },
   { value: '1y', label: '1 Year' },
   { value: '2y', label: '2 Years' },
-  { value: '5y', label: '5 Years' },
 ];
 
 export const PriceComparisonChart: React.FC<PriceComparisonChartProps> = ({ commodities }) => {
@@ -179,7 +181,7 @@ export const PriceComparisonChart: React.FC<PriceComparisonChartProps> = ({ comm
 
     setChartData(prevData => {
       // Daily historical ranges already include today's bar. Update that bar in
-      // place so a 5Y chart does not accumulate a new point on every tick.
+      // place so a longer-range chart does not accumulate a new point on every tick.
       const today = currentTime.slice(0, 10);
       const existingIndex = timeframe === '1d'
         ? -1
@@ -190,7 +192,7 @@ export const PriceComparisonChart: React.FC<PriceComparisonChartProps> = ({ comm
         );
       }
       // Intraday updates are intentionally bounded; longer ranges retain every
-      // historical bar for an accurate 5Y view.
+      // historical bar for an accurate view.
       return timeframe === '1d' ? [...prevData, newDataPoint].slice(-100) : [...prevData, newDataPoint];
     });
   }, [lastUpdate, prices, connected, commodities, timeframe]);
@@ -204,7 +206,7 @@ export const PriceComparisonChart: React.FC<PriceComparisonChartProps> = ({ comm
     if (timeframe === '1d') {
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
-    if (timeframe === '2y' || timeframe === '5y') {
+    if (timeframe === '2y') {
       return date.toLocaleDateString([], { month: 'short', year: 'numeric' });
     }
     return date.toLocaleDateString([], { month: 'short', day: 'numeric' });

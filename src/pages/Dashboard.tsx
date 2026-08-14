@@ -109,22 +109,29 @@ const DashboardContent = ({
   const { setOpenMobile, toggleSidebar } = useSidebar();
   const { connected: realtimeConnected, delayStatus } = useRealtimeDataContext();
 
-  // Simple swipe handler for mobile sidebar
+  // Edge-swipe handler for mobile sidebar. Only tracks drags that start
+  // within a thin strip along the left edge of the screen (like a native
+  // drawer), so panning gestures elsewhere on the page — e.g. dragging a
+  // price chart left to scroll through history — aren't hijacked into
+  // opening the sidebar mid-interaction.
+  const EDGE_SWIPE_ZONE_PX = 24;
   const [touchStart, setTouchStart] = useState<number | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.targetTouches[0].clientX);
+    const x = e.targetTouches[0].clientX;
+    setTouchStart(x <= EDGE_SWIPE_ZONE_PX ? x : null);
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!touchStart) return;
+    if (touchStart === null) return;
     const touchEnd = e.changedTouches[0].clientX;
     const diff = touchStart - touchEnd;
-    
+
     // Swipe right to open sidebar
     if (diff < -100 && isMobile) {
       setOpenMobile(true);
     }
+    setTouchStart(null);
   };
 
   // Get filtered commodities
