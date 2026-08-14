@@ -149,16 +149,30 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
 
   // Full-screen overlay — in practice this only ever renders in mobile
   // landscape (see the orientation effect above), so it's built as a lean,
-  // trading-app-style view: two slim control rows and the chart taking
-  // essentially all remaining height, rather than stacking the same blocks
-  // the portrait card uses (which ate most of a landscape phone's limited
-  // vertical space and left the chart itself tiny and fiddly to touch).
+  // trading-app-style view: one slim identity bar above the chart, one slim
+  // timeframe strip below it (not stacked together — that's what made the
+  // timeframe row hard to hit, jammed right under the close button with no
+  // account for the device's overlaid status bar), and the chart itself
+  // takes essentially all remaining height in between.
   if (isFullScreen) {
     return (
-      <div className="fixed inset-0 z-50 bg-background flex flex-col overflow-hidden">
-        {/* Identity bar: close, name + price + change. Nothing else — every
-            row of height is scarce in landscape. */}
-        <div className="flex items-center gap-2 px-2 py-1.5 border-b bg-background shrink-0">
+      // Side padding clears a landscape notch/camera cutout — env() resolves to
+      // 0 when there isn't one, so this is a no-op on ordinary devices/web.
+      <div
+        className="fixed inset-0 z-50 bg-background flex flex-col overflow-hidden"
+        style={{ paddingLeft: 'env(safe-area-inset-left, 0px)', paddingRight: 'env(safe-area-inset-right, 0px)' }}
+      >
+        {/* Identity bar: close, name + price + change, then the secondary
+            controls (currency/candle/trendline/compare). Padded below
+            var(--app-top-buffer) so it isn't obscured by Android's overlaid
+            status bar (same variable src/index.css's .app-top-bar uses) —
+            the previous version had no top-safe-area padding at all, which
+            is what made this row (and the timeframe row that used to sit
+            directly under it) hard to hit on a real device. */}
+        <div
+          className="flex items-center gap-1.5 px-2 pb-1.5 border-b bg-background shrink-0"
+          style={{ paddingTop: 'calc(var(--app-top-buffer, 0px) + 0.375rem)' }}
+        >
           <Button
             variant="ghost"
             size="icon"
@@ -185,6 +199,16 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
               </span>
             )}
           </div>
+          <ChartToolbar
+            compact
+            trendlineMode={trendlineMode}
+            onTrendlineModeChange={setTrendlineMode}
+            trendlineCount={trendlines.length}
+            onClearTrendlines={clearTrendlines}
+            compareSymbol={compareSymbol}
+            onCompareSymbolChange={setCompareSymbol}
+            currentSymbol={name}
+          />
           <CurrencySelector compact />
           <Toggle
             pressed={chartType === 'candlestick' && ohlcAvailable}
@@ -198,46 +222,10 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
           </Toggle>
         </div>
 
-        {/* Controls: timeframe pills (scrolls if it overflows) + trendline/compare, one dense row. */}
-        <div className="flex items-center gap-1 px-2 py-1 border-b bg-background/95 shrink-0">
-          <div className="flex items-center gap-1 overflow-x-auto">
-            {TIMEFRAMES.map((tf) => (
-              <Button
-                key={tf.value}
-                variant={selectedTimeframe === tf.value ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setSelectedTimeframe(tf.value)}
-                disabled={loading}
-                className={`h-7 px-2 text-xs font-semibold shrink-0 ${
-                  selectedTimeframe === tf.value
-                    ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {tf.label}
-              </Button>
-            ))}
-          </div>
-          <div className="flex-1" />
-          <ChartToolbar
-            compact
-            trendlineMode={trendlineMode}
-            onTrendlineModeChange={setTrendlineMode}
-            trendlineCount={trendlines.length}
-            onClearTrendlines={clearTrendlines}
-            compareSymbol={compareSymbol}
-            onCompareSymbolChange={setCompareSymbol}
-            currentSymbol={name}
-          />
-        </div>
-
-        {/* Chart — takes essentially all remaining height. Sized purely by
-            the flex chain above (flex-1 min-h-0 → h-full), not a fixed
-            viewport calc: landscape has a much shorter viewport than
-            portrait, so a hardcoded "100vh minus N px" offset was either
-            crushing the chart or leaving dead space depending on
-            orientation. Edge-to-edge (no card padding) to maximize the
-            actual touch/drag surface, matching a dedicated trading app. */}
+        {/* Chart — the identity bar above and the timeframe strip below are
+            the only chrome; this gets everything else, sized purely by the
+            flex chain (flex-1 min-h-0 → h-full) rather than a fixed
+            viewport calc, so it's always exactly "whatever's left". */}
         <div className="flex-1 min-h-0 p-1">
           <ChartContainer
             data={data}
@@ -257,6 +245,33 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
             onTrendlineDelete={removeTrendline}
             onPendingTrendlineChange={setTrendlineDrawPending}
           />
+        </div>
+
+        {/* Timeframe strip — dedicated row, nothing else competing for tap
+            space (trendline/compare live in the identity bar instead), and
+            anchored at the bottom edge, away from the status-bar corner
+            where the overlap was actually happening. Padded above
+            safe-area-inset-bottom for devices with a gesture nav bar. */}
+        <div
+          className="flex items-center gap-1.5 px-2 pt-1.5 border-t bg-background/95 shrink-0 overflow-x-auto"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.375rem)' }}
+        >
+          {TIMEFRAMES.map((tf) => (
+            <Button
+              key={tf.value}
+              variant={selectedTimeframe === tf.value ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setSelectedTimeframe(tf.value)}
+              disabled={loading}
+              className={`h-8 px-3 text-xs font-semibold shrink-0 ${
+                selectedTimeframe === tf.value
+                  ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {tf.label}
+            </Button>
+          ))}
         </div>
       </div>
     );
