@@ -142,4 +142,49 @@ describe('PriceChart', () => {
       expect.objectContaining({ time: expect.any(Number), value: 41 }),
     ])
   })
+
+  // lightweight-charts' setData() throws (crashing the chart, and with it the
+  // page) if input isn't strictly ascending by time with unique timestamps.
+  // Wide ranges like 2Y are the most likely to surface a provider quirk that
+  // violates this — this pins the sort+dedupe safety net that guards it.
+  it('sorts and deduplicates out-of-order/duplicate timestamps before calling setData', () => {
+    render(
+      <PriceChart
+        {...baseProps}
+        chartType="line"
+        lineData={[
+          { date: '2024-01-03T00:00:00.000Z', price: 3 },
+          { date: '2024-01-01T00:00:00.000Z', price: 1 },
+          { date: '2024-01-02T00:00:00.000Z', price: 2 },
+          { date: '2024-01-01T00:00:00.000Z', price: 1.5 }, // duplicate timestamp — later value wins
+        ]}
+        candlestickData={[]}
+      />
+    )
+
+    const mainSeriesCall = setData.mock.calls.find((call) =>
+      call[0].some((point: { value?: number }) => point.value === 3)
+    )
+    expect(mainSeriesCall![0]).toEqual([
+      expect.objectContaining({ value: 1.5 }),
+      expect.objectContaining({ value: 2 }),
+      expect.objectContaining({ value: 3 }),
+    ])
+  })
+
+  it('drops non-finite values before calling setData instead of pushing NaN into the chart', () => {
+    render(
+      <PriceChart
+        {...baseProps}
+        chartType="line"
+        lineData={[
+          { date: '2024-01-01T00:00:00.000Z', price: NaN },
+          { date: '2024-01-02T00:00:00.000Z', price: 7 },
+        ]}
+        candlestickData={[]}
+      />
+    )
+
+    expect(setData).toHaveBeenCalledWith([expect.objectContaining({ value: 7 })])
+  })
 })

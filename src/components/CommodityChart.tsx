@@ -8,10 +8,25 @@ import { smoothPriceData, TIMEFRAMES } from './charts/chartUtils';
 import ChartHeader from './charts/ChartHeader';
 import ChartToolbar from './charts/ChartToolbar';
 import ChartContainer from './charts/ChartContainer';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { formatPrice as formatCommodityPrice } from '@/lib/commodityUtils';
 import CurrencySelector from './CurrencySelector';
 import { Toggle } from '@/components/ui/toggle';
-import { X, ChartCandlestick } from 'lucide-react';
+import { X, ChartCandlestick, AlertTriangle } from 'lucide-react';
+
+// A chart-rendering bug (e.g. a charting-library assertion failure) should
+// take down this one chart, not the whole app — there's no boundary above
+// this in the tree, so an uncaught error here otherwise unmounts everything.
+// Keyed by timeframe/type at each call site so switching away from whatever
+// triggered it gets a fresh mount instead of staying stuck on the fallback.
+const ChartErrorFallback = () => (
+  <div className="flex items-center justify-center h-full text-center p-4">
+    <div className="space-y-2">
+      <AlertTriangle className="w-6 h-6 text-destructive mx-auto" />
+      <p className="text-sm text-muted-foreground">Chart failed to render. Try a different timeframe.</p>
+    </div>
+  </div>
+);
 
 interface FuturesContract {
   name: string;
@@ -227,24 +242,26 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
             flex chain (flex-1 min-h-0 → h-full) rather than a fixed
             viewport calc, so it's always exactly "whatever's left". */}
         <div className="flex-1 min-h-0 p-1">
-          <ChartContainer
-            data={data}
-            name={name}
-            selectedTimeframe={selectedTimeframe}
-            chartType={chartType}
-            loading={loading}
-            error={error}
-            isPositiveTrend={isPositiveTrend}
-            compareData={compareData}
-            onCompareRemove={() => setCompareSymbol(null)}
-            trendlinesEnabled={trendlineMode}
-            trendlines={trendlines}
-            selectedTrendlineId={selectedId}
-            onTrendlineCreate={(p1, p2) => addTrendline(p1, p2)}
-            onTrendlineSelect={setSelectedId}
-            onTrendlineDelete={removeTrendline}
-            onPendingTrendlineChange={setTrendlineDrawPending}
-          />
+          <ErrorBoundary key={`${selectedTimeframe}-${chartType}`} fallback={<ChartErrorFallback />}>
+            <ChartContainer
+              data={data}
+              name={name}
+              selectedTimeframe={selectedTimeframe}
+              chartType={chartType}
+              loading={loading}
+              error={error}
+              isPositiveTrend={isPositiveTrend}
+              compareData={compareData}
+              onCompareRemove={() => setCompareSymbol(null)}
+              trendlinesEnabled={trendlineMode}
+              trendlines={trendlines}
+              selectedTrendlineId={selectedId}
+              onTrendlineCreate={(p1, p2) => addTrendline(p1, p2)}
+              onTrendlineSelect={setSelectedId}
+              onTrendlineDelete={removeTrendline}
+              onPendingTrendlineChange={setTrendlineDrawPending}
+            />
+          </ErrorBoundary>
         </div>
 
         {/* Timeframe strip — dedicated row, nothing else competing for tap
@@ -307,24 +324,26 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
       />
 
       <div className="h-[200px] sm:h-[250px] lg:h-[300px] w-full min-w-0 max-w-full overflow-hidden p-2 sm:p-4 bg-muted/20 rounded-md border border-border">
-        <ChartContainer
-          data={data}
-          name={name}
-          selectedTimeframe={selectedTimeframe}
-          chartType={chartType}
-          loading={loading}
-          error={error}
-          isPositiveTrend={isPositiveTrend}
-          compareData={compareData}
-          onCompareRemove={() => setCompareSymbol(null)}
-          trendlinesEnabled={trendlineMode}
-          trendlines={trendlines}
-          selectedTrendlineId={selectedId}
-          onTrendlineCreate={(p1, p2) => addTrendline(p1, p2)}
-          onTrendlineSelect={setSelectedId}
-          onTrendlineDelete={removeTrendline}
-          onPendingTrendlineChange={setTrendlineDrawPending}
-        />
+        <ErrorBoundary key={`${selectedTimeframe}-${chartType}`} fallback={<ChartErrorFallback />}>
+          <ChartContainer
+            data={data}
+            name={name}
+            selectedTimeframe={selectedTimeframe}
+            chartType={chartType}
+            loading={loading}
+            error={error}
+            isPositiveTrend={isPositiveTrend}
+            compareData={compareData}
+            onCompareRemove={() => setCompareSymbol(null)}
+            trendlinesEnabled={trendlineMode}
+            trendlines={trendlines}
+            selectedTrendlineId={selectedId}
+            onTrendlineCreate={(p1, p2) => addTrendline(p1, p2)}
+            onTrendlineSelect={setSelectedId}
+            onTrendlineDelete={removeTrendline}
+            onPendingTrendlineChange={setTrendlineDrawPending}
+          />
+        </ErrorBoundary>
       </div>
     </Card>
   );

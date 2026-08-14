@@ -71,6 +71,21 @@ const formatVolume = (value: number): string => {
   return value.toFixed(0);
 };
 
+/**
+ * lightweight-charts requires setData() input to be strictly ascending by
+ * time with no duplicate timestamps, or it throws (taking the whole chart —
+ * and with it the page — down with it). Provider data occasionally has
+ * same-day duplicates or out-of-order bars, and that only reliably surfaces
+ * on wide ranges like 2Y, so every series pushed to the chart goes through
+ * this rather than trusting the upstream feed to already be well-formed.
+ * On a duplicate timestamp, the later occurrence in input order wins.
+ */
+function toSortedSeriesData<T extends { time: UTCTimestamp }>(points: T[]): T[] {
+  const byTime = new Map<UTCTimestamp, T>();
+  for (const p of points) byTime.set(p.time, p);
+  return Array.from(byTime.values()).sort((a, b) => (a.time as number) - (b.time as number));
+}
+
 interface TooltipState {
   x: number;
   y: number;
@@ -213,17 +228,25 @@ const PriceChart: React.FC<PriceChartProps> = ({
     if (!seriesRef.current) return;
     if (chartType === 'candlestick') {
       (seriesRef.current as ISeriesApi<'Candlestick'>).setData(
-        candlestickData.map((d) => ({
-          time: toUtcTimestamp(d.date),
-          open: d.open,
-          high: d.high,
-          low: d.low,
-          close: d.close,
-        }))
+        toSortedSeriesData(
+          candlestickData
+            .filter((d) => [d.open, d.high, d.low, d.close].every(Number.isFinite))
+            .map((d) => ({
+              time: toUtcTimestamp(d.date),
+              open: d.open,
+              high: d.high,
+              low: d.low,
+              close: d.close,
+            }))
+        )
       );
     } else {
       (seriesRef.current as ISeriesApi<'Area'>).setData(
-        lineData.map((d) => ({ time: toUtcTimestamp(d.date), value: d.price }))
+        toSortedSeriesData(
+          lineData
+            .filter((d) => Number.isFinite(d.price))
+            .map((d) => ({ time: toUtcTimestamp(d.date), value: d.price }))
+        )
       );
     }
     chartRef.current?.timeScale().fitContent();
@@ -233,11 +256,15 @@ const PriceChart: React.FC<PriceChartProps> = ({
   React.useEffect(() => {
     if (!volumeSeriesRef.current) return;
     volumeSeriesRef.current.setData(
-      volumeData.map((d) => ({
-        time: toUtcTimestamp(d.date),
-        value: d.value,
-        color: d.up ? `${colors.upColor}80` : `${colors.downColor}80`,
-      }))
+      toSortedSeriesData(
+        volumeData
+          .filter((d) => Number.isFinite(d.value))
+          .map((d) => ({
+            time: toUtcTimestamp(d.date),
+            value: d.value,
+            color: d.up ? `${colors.upColor}80` : `${colors.downColor}80`,
+          }))
+      )
     );
   }, [volumeData, colors.upColor, colors.downColor, chartVersion]);
 
@@ -258,7 +285,13 @@ const PriceChart: React.FC<PriceChartProps> = ({
       })
     );
     maData.forEach((ma, i) => {
-      series[i].setData(ma.data.map((d) => ({ time: toUtcTimestamp(d.date), value: d.value })));
+      series[i].setData(
+        toSortedSeriesData(
+          ma.data
+            .filter((d) => Number.isFinite(d.value))
+            .map((d) => ({ time: toUtcTimestamp(d.date), value: d.value }))
+        )
+      );
     });
     maSeriesRefs.current = series;
 
@@ -418,7 +451,13 @@ const PriceChart: React.FC<PriceChartProps> = ({
       borderColor: colors.border,
       scaleMargins: { top: 0.1, bottom: 0.1 },
     });
-    compareSeries.setData(compareData.data.map((d) => ({ time: toUtcTimestamp(d.date), value: d.price })));
+    compareSeries.setData(
+      toSortedSeriesData(
+        compareData.data
+          .filter((d) => Number.isFinite(d.price))
+          .map((d) => ({ time: toUtcTimestamp(d.date), value: d.price }))
+      )
+    );
     compareSeriesRef.current = compareSeries;
 
     return () => {
