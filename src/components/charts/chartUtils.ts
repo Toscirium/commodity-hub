@@ -7,6 +7,9 @@ export interface TimeframeOption {
   value: string;
 }
 
+// 5Y intentionally omitted: every provider backing this app caps daily
+// history at ~2 years, so a 5Y option would just silently render the same
+// data as 2Y — see the matching cap in fetch-commodity-data.
 export const TIMEFRAMES: TimeframeOption[] = [
   { label: '1D', value: '1d' },
   { label: '1M', value: '1m' },
@@ -14,7 +17,6 @@ export const TIMEFRAMES: TimeframeOption[] = [
   { label: '6M', value: '6m' },
   { label: '1Y', value: '1y' },
   { label: '2Y', value: '2y' },
-  { label: '5Y', value: '5y' },
 ];
 
 /**
@@ -177,7 +179,7 @@ export const formatXAxisTick = (date: string, timeframe: string): string => {
       minute: '2-digit',
       hour12: false
     });
-  } else if (timeframe === '2y' || timeframe === '5y') {
+  } else if (timeframe === '2y') {
     // "Jul 15" is ambiguous once ticks span more than a year — show month + year instead
     return new Date(date).toLocaleDateString('en-US', {
       month: 'short',
