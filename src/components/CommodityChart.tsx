@@ -323,11 +323,13 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
         currentSymbol={name}
       />
 
-      {/* Roughly half the viewport height on mobile (capped so it doesn't
-          blow out on unusually tall screens), fixed and larger on tablet/
-          desktop — was a flat 200px on mobile, cramped even before the
-          volume subplot and MA legend gave the chart more to show. */}
-      <div className="h-[min(55vh,420px)] min-h-[320px] sm:h-[480px] lg:h-[560px] w-full min-w-0 max-w-full overflow-hidden p-2 sm:p-4 bg-muted/20 rounded-md border border-border">
+      {/* About a third of the viewport height, edge-to-edge — negative
+          margins cancel exactly the Card's own p-3/sm:p-6 so the chart
+          bleeds flush to the card's edges instead of sitting in a bordered,
+          padded box (the Card has overflow-hidden, so this can't leak past
+          the card itself). Matches a dedicated trading app's chart, which
+          is never boxed in with a border/background of its own. */}
+      <div className="h-[33vh] min-h-[240px] max-h-[480px] -mx-3 sm:-mx-6 overflow-hidden">
         <ErrorBoundary key={`${selectedTimeframe}-${chartType}`} fallback={<ChartErrorFallback />}>
           <ChartContainer
             data={data}
@@ -341,6 +343,7 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
             onCompareRemove={() => setCompareSymbol(null)}
             trendlinesEnabled={trendlineMode}
             trendlines={trendlines}
+            bordered={false}
             selectedTrendlineId={selectedId}
             onTrendlineCreate={(p1, p2) => addTrendline(p1, p2)}
             onTrendlineSelect={setSelectedId}

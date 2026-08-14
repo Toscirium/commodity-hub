@@ -57,6 +57,8 @@ interface PriceChartProps {
   onTrendlineSelect: (id: string | null) => void;
   onTrendlineDelete: (id: string) => void;
   onPendingTrendlineChange?: (pending: boolean) => void;
+  /** false for an edge-to-edge chart with no visible frame around it (e.g. bled flush to a card's edges). Defaults to true. */
+  bordered?: boolean;
 }
 
 type MainSeries = ISeriesApi<'Candlestick'> | ISeriesApi<'Area'>;
@@ -119,6 +121,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
   onTrendlineSelect,
   onTrendlineDelete,
   onPendingTrendlineChange,
+  bordered = true,
 }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const chartRef = React.useRef<IChartApi | null>(null);
@@ -487,7 +490,9 @@ const PriceChart: React.FC<PriceChartProps> = ({
   }
 
   return (
-    <div className="relative w-full h-full bg-card rounded-lg border border-border/50 overflow-hidden">
+    <div
+      className={`relative w-full h-full bg-card overflow-hidden ${bordered ? 'rounded-lg border border-border/50' : ''}`}
+    >
       {/* Legend */}
       <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
         <div className="flex items-center gap-1.5 bg-background/80 backdrop-blur-sm rounded-md px-2 py-1 border border-border/50 text-xs font-medium">

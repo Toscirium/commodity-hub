@@ -24,6 +24,8 @@ interface ChartContainerProps {
   onTrendlineSelect: (id: string | null) => void;
   onTrendlineDelete: (id: string) => void;
   onPendingTrendlineChange?: (pending: boolean) => void;
+  /** false for an edge-to-edge chart with no visible frame around it. Defaults to true. */
+  bordered?: boolean;
 }
 
 const ChartContainer: React.FC<ChartContainerProps> = ({
@@ -43,6 +45,7 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
   onTrendlineSelect,
   onTrendlineDelete,
   onPendingTrendlineChange,
+  bordered,
 }) => {
   const { selectedCurrency, convertPrice, currencyInfo } = useCurrency();
   const isCent = isCentPriced(name) && selectedCurrency === 'USD';
@@ -159,6 +162,7 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
       onTrendlineSelect={onTrendlineSelect}
       onTrendlineDelete={onTrendlineDelete}
       onPendingTrendlineChange={onPendingTrendlineChange}
+      bordered={bordered}
     />
   );
 };
