@@ -3,14 +3,15 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useCommodityHistoricalData, useCommodityPrice } from '@/hooks/useCommodityData';
 import { useTrendlines } from '@/hooks/useTrendlines';
-import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { smoothPriceData } from './charts/chartUtils';
+import { smoothPriceData, TIMEFRAMES } from './charts/chartUtils';
 import ChartHeader from './charts/ChartHeader';
 import ChartToolbar from './charts/ChartToolbar';
 import ChartContainer from './charts/ChartContainer';
-import ChartFooter from './charts/ChartFooter';
-import { X, Maximize2, BarChart3 } from 'lucide-react';
+import { formatPrice as formatCommodityPrice } from '@/lib/commodityUtils';
+import CurrencySelector from './CurrencySelector';
+import { Toggle } from '@/components/ui/toggle';
+import { X, ChartCandlestick } from 'lucide-react';
 
 interface FuturesContract {
   name: string;
@@ -38,7 +39,6 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
   const [selectedTimeframe, setSelectedTimeframe] = React.useState<string>('1m');
   const [chartType, setChartType] = React.useState<'line' | 'candlestick'>('line');
   const [isFullScreen, setIsFullScreen] = React.useState(false);
-  const [isLandscape, setIsLandscape] = React.useState(false);
   const [trendlineMode, setTrendlineMode] = React.useState(false);
   const [trendlineDrawPending, setTrendlineDrawPending] = React.useState(false);
   const [compareSymbol, setCompareSymbol] = React.useState<string | null>(null);
@@ -47,7 +47,6 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
   const { data: queryData, isLoading: loading, error: queryError } = useCommodityHistoricalData(name, selectedTimeframe, chartType, selectedContract);
   const { data: currentPrice } = useCommodityPrice(name);
   const { data: compareQueryData } = useCommodityHistoricalData(compareSymbol ?? '', selectedTimeframe, 'line');
-  const { profile } = useAuth();
   const { trendlines, addTrendline, removeTrendline, clearTrendlines, selectedId, setSelectedId } = useTrendlines(name);
 
   // Trendlines/compare are session-scoped per commodity — don't leak across navigation.
@@ -60,8 +59,7 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
   React.useEffect(() => {
     const checkOrientation = () => {
       const isLandscapeMode = window.innerWidth > window.innerHeight && isMobile;
-      setIsLandscape(isLandscapeMode);
-      
+
       // Auto full-screen on landscape for mobile - immediate response
       if (isLandscapeMode && isMobile) {
         setIsFullScreen(true);
@@ -122,8 +120,6 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
     };
   }, [isFullScreen]);
 
-  const isPremium = !!(profile?.subscription_active && profile?.subscription_tier === 'premium');
-  
   // Extract data from query result
   const data = queryData?.data || [];
   const error = queryError?.message || queryData?.error || null;
@@ -151,50 +147,80 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
     ? { symbol: compareSymbol, data: compareQueryData.data }
     : null;
 
-  // Full-screen overlay component
+  // Full-screen overlay — in practice this only ever renders in mobile
+  // landscape (see the orientation effect above), so it's built as a lean,
+  // trading-app-style view: two slim control rows and the chart taking
+  // essentially all remaining height, rather than stacking the same blocks
+  // the portrait card uses (which ate most of a landscape phone's limited
+  // vertical space and left the chart itself tiny and fiddly to touch).
   if (isFullScreen) {
     return (
       <div className="fixed inset-0 z-50 bg-background flex flex-col overflow-hidden">
-        {/* Full-screen header - compact for mobile */}
-        <div className="flex items-center justify-between px-4 py-3 border-b bg-background shrink-0">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="p-2 rounded-lg bg-primary/10 text-primary">
-              <BarChart3 className="w-4 h-4" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h2 className="text-sm font-bold text-foreground truncate">{name}</h2>
-              <p className="text-xs text-muted-foreground truncate">
-                {selectedTimeframe.toUpperCase()} • {chartType === 'line' ? 'Line' : 'Candlestick'}
-                {selectedContract && ` • ${selectedContract}`}
-              </p>
-            </div>
-          </div>
-          
+        {/* Identity bar: close, name + price + change. Nothing else — every
+            row of height is scarce in landscape. */}
+        <div className="flex items-center gap-2 px-2 py-1.5 border-b bg-background shrink-0">
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
             onClick={() => setIsFullScreen(false)}
-            className="shrink-0"
+            className="h-8 w-8 shrink-0"
+            aria-label="Exit full-screen chart"
           >
             <X className="w-4 h-4" />
           </Button>
+          <div className="flex items-baseline gap-2 min-w-0 flex-1">
+            <span className="text-sm font-bold text-foreground truncate">{name}</span>
+            {displayPrice != null && (
+              <span className="text-sm font-semibold text-foreground number-display tabular-nums shrink-0">
+                {formatCommodityPrice(displayPrice, name, 2, false)}
+              </span>
+            )}
+            {trendData.length > 1 && (
+              <span
+                className={`text-xs font-semibold number-display shrink-0 ${
+                  isPositiveTrend ? 'text-[hsl(var(--success))]' : 'text-[hsl(var(--destructive))]'
+                }`}
+              >
+                {priceChange > 0 ? '+' : ''}{priceChange.toFixed(2)}%
+              </span>
+            )}
+          </div>
+          <CurrencySelector compact />
+          <Toggle
+            pressed={chartType === 'candlestick' && ohlcAvailable}
+            onPressedChange={(pressed) => setChartType(pressed ? 'candlestick' : 'line')}
+            disabled={!ohlcAvailable}
+            aria-label="Toggle candlestick chart"
+            size="sm"
+            className="data-[state=on]:bg-primary/20 data-[state=on]:text-primary disabled:opacity-40 shrink-0"
+          >
+            <ChartCandlestick className="w-4 h-4" />
+          </Toggle>
         </div>
 
-        {/* Full-screen chart controls - compact */}
-        <div className="px-4 py-2 border-b bg-background/95 shrink-0">
-          <ChartHeader
-            name={name}
-            selectedTimeframe={selectedTimeframe}
-            onTimeframeChange={setSelectedTimeframe}
-            chartType={chartType}
-            onChartTypeChange={setChartType}
-            dataPoints={data.length}
-            loading={loading}
-            isPositiveTrend={isPositiveTrend}
-            priceChange={priceChange}
-            ohlcAvailable={ohlcAvailable}
-          />
+        {/* Controls: timeframe pills (scrolls if it overflows) + trendline/compare, one dense row. */}
+        <div className="flex items-center gap-1 px-2 py-1 border-b bg-background/95 shrink-0">
+          <div className="flex items-center gap-1 overflow-x-auto">
+            {TIMEFRAMES.map((tf) => (
+              <Button
+                key={tf.value}
+                variant={selectedTimeframe === tf.value ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setSelectedTimeframe(tf.value)}
+                disabled={loading}
+                className={`h-7 px-2 text-xs font-semibold shrink-0 ${
+                  selectedTimeframe === tf.value
+                    ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {tf.label}
+              </Button>
+            ))}
+          </div>
+          <div className="flex-1" />
           <ChartToolbar
+            compact
             trendlineMode={trendlineMode}
             onTrendlineModeChange={setTrendlineMode}
             trendlineCount={trendlines.length}
@@ -205,56 +231,32 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
           />
         </div>
 
-        {/* Full-screen chart - takes remaining space. Sized purely by the flex
-            chain above (flex-1 min-h-0 → h-full), not a fixed viewport calc —
-            landscape mode has a much shorter viewport and different
-            header/toolbar/footer proportions than portrait, so a hardcoded
-            "100vh minus N px" offset was either crushing the chart or leaving
-            dead space depending on orientation. */}
-        <div className="flex-1 p-4 overflow-hidden min-h-0">
-          <div className="w-full h-full bg-card rounded-lg border shadow-sm p-4">
-            <div className="w-full h-full">
-              <ChartContainer
-                data={data}
-                name={name}
-                selectedTimeframe={selectedTimeframe}
-                chartType={chartType}
-                loading={loading}
-                error={error}
-                isPositiveTrend={isPositiveTrend}
-                compareData={compareData}
-                onCompareRemove={() => setCompareSymbol(null)}
-                trendlinesEnabled={trendlineMode}
-                trendlines={trendlines}
-                selectedTrendlineId={selectedId}
-                onTrendlineCreate={(p1, p2) => addTrendline(p1, p2)}
-                onTrendlineSelect={setSelectedId}
-                onTrendlineDelete={removeTrendline}
-                onPendingTrendlineChange={setTrendlineDrawPending}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Full-screen footer - compact */}
-        <div className="px-4 py-2 border-t bg-background shrink-0">
-          <ChartFooter
+        {/* Chart — takes essentially all remaining height. Sized purely by
+            the flex chain above (flex-1 min-h-0 → h-full), not a fixed
+            viewport calc: landscape has a much shorter viewport than
+            portrait, so a hardcoded "100vh minus N px" offset was either
+            crushing the chart or leaving dead space depending on
+            orientation. Edge-to-edge (no card padding) to maximize the
+            actual touch/drag surface, matching a dedicated trading app. */}
+        <div className="flex-1 min-h-0 p-1">
+          <ChartContainer
+            data={data}
             name={name}
             selectedTimeframe={selectedTimeframe}
+            chartType={chartType}
             loading={loading}
             error={error}
             isPositiveTrend={isPositiveTrend}
-            displayPrice={displayPrice}
-            isPremium={isPremium}
-            currentPrice={currentPrice}
+            compareData={compareData}
+            onCompareRemove={() => setCompareSymbol(null)}
+            trendlinesEnabled={trendlineMode}
+            trendlines={trendlines}
+            selectedTrendlineId={selectedId}
+            onTrendlineCreate={(p1, p2) => addTrendline(p1, p2)}
+            onTrendlineSelect={setSelectedId}
+            onTrendlineDelete={removeTrendline}
+            onPendingTrendlineChange={setTrendlineDrawPending}
           />
-        </div>
-
-        {/* Exit instruction */}
-        <div className="px-4 py-1 text-center bg-background/80 shrink-0">
-          <p className="text-xs text-muted-foreground">
-            {isLandscape ? 'Rotate to portrait to exit' : 'Tap X to exit'}
-          </p>
         </div>
       </div>
     );
@@ -309,17 +311,6 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
           onPendingTrendlineChange={setTrendlineDrawPending}
         />
       </div>
-
-      <ChartFooter
-        name={name}
-        selectedTimeframe={selectedTimeframe}
-        loading={loading}
-        error={error}
-        isPositiveTrend={isPositiveTrend}
-        displayPrice={displayPrice}
-        isPremium={isPremium}
-        currentPrice={currentPrice}
-      />
     </Card>
   );
 };
