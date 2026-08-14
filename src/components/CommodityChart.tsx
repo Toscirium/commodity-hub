@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useCommodityHistoricalData, useCommodityPrice } from '@/hooks/useCommodityData';
@@ -170,11 +171,24 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
   // account for the device's overlaid status bar), and the chart itself
   // takes essentially all remaining height in between.
   if (isFullScreen) {
-    return (
+    return createPortal(
+      // Portalled to document.body (rather than rendered in place, deep
+      // inside CommodityCard/CollapsibleContent) and z-[80]: the app's
+      // sticky top bar is position:fixed with z-index 60/61 on native
+      // Android (see .app-top-bar in index.css), and the bottom tab nav is
+      // fixed at z-index 70 — both higher than this used to be, so they
+      // painted over this "fullscreen" overlay's own close button and
+      // timeframe strip instead of being hidden by it. The portal is
+      // belt-and-suspenders: fixed positioning already escapes DOM nesting
+      // for layout purposes, but not if some ancestor ever gains a
+      // transform/filter (which creates a containing block that would
+      // constrain it) — rendering at the body level up front removes that
+      // whole class of future bug.
+      //
       // Side padding clears a landscape notch/camera cutout — env() resolves to
       // 0 when there isn't one, so this is a no-op on ordinary devices/web.
       <div
-        className="fixed inset-0 z-50 bg-background flex flex-col overflow-hidden"
+        className="fixed inset-0 z-[80] bg-background flex flex-col overflow-hidden"
         style={{ paddingLeft: 'env(safe-area-inset-left, 0px)', paddingRight: 'env(safe-area-inset-right, 0px)' }}
       >
         {/* Identity bar: close, name + price + change, then the secondary
@@ -290,7 +304,8 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
             </Button>
           ))}
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 
