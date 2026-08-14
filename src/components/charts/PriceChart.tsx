@@ -564,37 +564,45 @@ const PriceChart: React.FC<PriceChartProps> = ({
     <div
       className={`relative w-full h-full bg-card overflow-hidden ${bordered ? 'rounded-lg border border-border/50' : ''}`}
     >
-      {/* Legend */}
-      <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
-        <div className="flex items-center gap-1.5 bg-background/80 backdrop-blur-sm rounded-md px-2 py-1 border border-border/50 text-xs font-medium">
-          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: isPositiveTrend ? colors.upColor : colors.downColor }} />
-          {commodityName}
-        </div>
-        {compareData && (
-          <div className="flex items-center gap-1.5 bg-background/80 backdrop-blur-sm rounded-md px-2 py-1 border border-border/50 text-xs font-medium">
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: colors.compareColor }} />
-            {compareData.symbol}
-            {onCompareRemove && (
-              <button onClick={onCompareRemove} className="ml-1 text-muted-foreground hover:text-foreground" aria-label="Remove compare series">
-                <X className="w-3 h-3" />
-              </button>
+      {/* Legend — one consolidated block rather than a separately-bordered
+          chip per piece of info. Compare + MA together used to stack 3-4
+          individually-bordered/backdrop-blurred boxes down the top-left
+          corner, eating a big chunk of a now-shorter chart; this is one box
+          with internal rows instead. */}
+      <div className="absolute top-2 left-2 z-10 flex flex-col gap-1 max-w-[75%]">
+        <div className="flex flex-col gap-0.5 bg-background/80 backdrop-blur-sm rounded-md px-2 py-1 border border-border/50">
+          <div className="flex items-center flex-wrap gap-x-3 gap-y-0.5 text-xs font-medium">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: isPositiveTrend ? colors.upColor : colors.downColor }} />
+              {commodityName}
+            </span>
+            {compareData && (
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: colors.compareColor }} />
+                {compareData.symbol}
+                {onCompareRemove && (
+                  <button onClick={onCompareRemove} className="text-muted-foreground hover:text-foreground" aria-label="Remove compare series">
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </span>
             )}
           </div>
-        )}
+          {maData.some((ma) => ma.data.length > 0) && (
+            <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5 text-2xs font-medium pt-0.5 border-t border-border/30">
+              {maData.map((ma, i) =>
+                ma.data.length > 0 ? (
+                  <span key={ma.period} style={{ color: MA_COLORS[i % MA_COLORS.length] }}>
+                    MA{ma.period}: {formatPrice(ma.data[ma.data.length - 1].value)}
+                  </span>
+                ) : null
+              )}
+            </div>
+          )}
+        </div>
         {trendlinesEnabled && (
           <div className="bg-background/80 backdrop-blur-sm rounded-md px-2 py-1 border border-border/50 text-2xs text-muted-foreground">
             {pendingPoint ? 'Click to set the second point (Esc to cancel)' : 'Click to start a trendline'}
-          </div>
-        )}
-        {maData.some((ma) => ma.data.length > 0) && (
-          <div className="flex items-center gap-2 bg-background/80 backdrop-blur-sm rounded-md px-2 py-1 border border-border/50 text-2xs font-medium">
-            {maData.map((ma, i) =>
-              ma.data.length > 0 ? (
-                <span key={ma.period} style={{ color: MA_COLORS[i % MA_COLORS.length] }}>
-                  MA{ma.period}: {formatPrice(ma.data[ma.data.length - 1].value)}
-                </span>
-              ) : null
-            )}
           </div>
         )}
       </div>

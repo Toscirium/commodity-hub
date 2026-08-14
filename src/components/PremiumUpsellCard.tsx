@@ -68,25 +68,23 @@ const PremiumUpsellCard: React.FC<PremiumUpsellCardProps> = ({ onUpgrade, varian
 
   return (
     <>
-      <Card className="mb-6 border-primary/30 bg-card overflow-hidden">
-        <CardHeader className="pb-4">
-          <div className="flex items-start justify-between gap-3 flex-wrap">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <Icon className="w-5 h-5 text-primary" />
+      <Card className="mb-4 border-primary/30 bg-card overflow-hidden">
+        <CardHeader className="py-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Icon className="w-4 h-4 text-primary" />
               </div>
               <div>
-                <CardTitle className="text-base flex items-center gap-2">
+                <CardTitle className="text-sm flex items-center gap-2">
                   {title}
                   <Badge variant="secondary" className="text-[10px]">PREMIUM</Badge>
                 </CardTitle>
-                <CardDescription className="mt-1">
+                <CardDescription className="mt-0.5 text-xs">
                   {description}
-                  <span className="block mt-1 text-foreground/80">
-                    One subscription unlocks every premium benchmark across all groups, with transparent <strong>LIVE</strong> / <strong>EOD</strong> / <strong>REF</strong> sourcing labels on each market.
-                  </span>
-                  <span className="block mt-1 font-medium text-foreground">
-                    Premium starts at $6.99/mo for alerts, exports, and up to 3 portfolios. Pro adds advanced analytics.
+                  <span className="block text-foreground/70">
+                    All premium benchmarks, <strong>LIVE</strong>/<strong>EOD</strong>/<strong>REF</strong> labeled · from{' '}
+                    <strong className="text-foreground">$6.99/mo</strong>
                   </span>
                 </CardDescription>
               </div>
