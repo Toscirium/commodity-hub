@@ -17,6 +17,11 @@ release
 # Supabase CLI local cache
 supabase/.temp
 
+# Signing keys (should not live in the repo at all)
+*.jks
+*.keystore
+*.pem
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
