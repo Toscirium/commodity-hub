@@ -46,8 +46,8 @@ const TermsOfService = () => {
                 <h2 className="text-lg font-semibold mb-2">2. Third-Party Trading Partners &amp; Affiliate Links</h2>
                 <p>
                   The "Trade" section of the app links out to independent, third-party brokers
-                  (currently Capital.com, eToro, and Kalshi) where you can open your own account to
-                  trade CFDs or prediction contracts on commodity prices. These are separate
+                  (currently eToro) where you can open your own account to
+                  trade CFDs on commodity prices. These are separate
                   companies, licensed and regulated in their own right — Commodity Hub is not a
                   party to any account, trade, or transaction you enter into with them, does not
                   execute orders, and never has access to your funds or trading credentials.
@@ -55,7 +55,7 @@ const TermsOfService = () => {
                 <p>
                   Commodity Hub may receive a referral commission if you sign up through these
                   links. This does not affect the price or terms you receive from the partner.
-                  Trading CFDs and prediction contracts involves substantial risk of loss,
+                  Trading CFDs involves substantial risk of loss,
                   including the possibility of losing more than your initial deposit on leveraged
                   products, and may not be available in your jurisdiction — review the partner's
                   own risk disclosures and regulatory status before signing up. CFD trading is not

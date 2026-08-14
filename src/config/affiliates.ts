@@ -5,21 +5,23 @@
  * referral commission (CPA / rev-share), not from spreads or commissions on
  * the trade itself.
  *
- * Set the *_AFFILIATE_URL env vars once each partnership is approved:
- * - Capital.com: https://capital.com/en-int/partnerships/affiliate-programme
- * - eToro: https://etoropartners.com — approved partner as of Aug 2026.
- *   Compliance guidelines: https://etoropartners.com/compliance-g. Notably:
- *   never put "eToro" in PPC ad copy/URLs/bidding or bid on eToro brand
- *   terms, never land PPC traffic directly on an eToro domain, any custom
- *   promotional copy needs eToro pre-approval before publishing, and risk
- *   warnings need a readable font, bold color, AND a border, positioned near
- *   the CTA (see TradeCTA.tsx / Trade.tsx) — not just bold text.
- * - Kalshi: contact partnerships for an affiliate/publisher link (separate
- *   from the peer-to-peer "refer a friend" program).
- * Until then these CTAs render disabled rather than link to a placeholder.
+ * eToro is the only live partner right now (approved as of Aug 2026). Capital.com
+ * and Kalshi were removed 2026-08-14 — no approved affiliate link for either yet.
+ * Re-add them here (and restore their VITE_*_AFFILIATE_URL env vars) once a
+ * partnership is signed.
+ *
+ * Set VITE_ETORO_AFFILIATE_URL once the partnership is approved — see
+ * https://etoropartners.com. Compliance guidelines:
+ * https://etoropartners.com/compliance-g. Notably: never put "eToro" in PPC ad
+ * copy/URLs/bidding or bid on eToro brand terms, never land PPC traffic
+ * directly on an eToro domain, any custom promotional copy needs eToro
+ * pre-approval before publishing, and risk warnings need a readable font,
+ * bold color, AND a border, positioned near the CTA (see TradeCTA.tsx /
+ * Trade.tsx) — not just bold text.
+ * Until the env var is set, the CTA renders disabled rather than link to a placeholder.
  */
 
-export type AffiliateProvider = 'capital_com' | 'etoro' | 'kalshi';
+export type AffiliateProvider = 'etoro';
 
 export interface AffiliateProviderConfig {
   id: AffiliateProvider;
@@ -30,13 +32,6 @@ export interface AffiliateProviderConfig {
 }
 
 export const AFFILIATE_PROVIDERS: Record<AffiliateProvider, AffiliateProviderConfig> = {
-  capital_com: {
-    id: 'capital_com',
-    name: 'Capital.com',
-    tagline: 'Leveraged CFD trading — go long or short on the price',
-    regionNote: 'Not available to US residents',
-    baseUrl: import.meta.env.VITE_CAPITAL_COM_AFFILIATE_URL as string | undefined,
-  },
   etoro: {
     id: 'etoro',
     name: 'eToro',
@@ -46,34 +41,12 @@ export const AFFILIATE_PROVIDERS: Record<AffiliateProvider, AffiliateProviderCon
     regionNote: 'Not available to US, Australian, or Spanish residents',
     baseUrl: import.meta.env.VITE_ETORO_AFFILIATE_URL as string | undefined,
   },
-  kalshi: {
-    id: 'kalshi',
-    name: 'Kalshi',
-    tagline: 'Yes/no prediction contracts on the price direction',
-    regionNote: 'US-regulated (CFTC); available to US residents',
-    baseUrl: import.meta.env.VITE_KALSHI_AFFILIATE_URL as string | undefined,
-  },
 };
 
-/** Commodities Kalshi's dedicated Commodities Hub actually lists, mapped to our catalog symbols. */
-const KALSHI_SYMBOLS = new Set([
-  'CL=F', // WTI Crude
-  'BZ=F', // Brent Crude
-  'GC=F', // Gold
-  'SI=F', // Silver
-  'NG=F', // Natural Gas
-  'HG=F', // Copper
-  'ZC=F', // Corn
-  'ZS=F', // Soybeans
-  'ZW=F', // Wheat
-]);
-
-export function isProviderAvailableFor(provider: AffiliateProvider, symbol: string): boolean {
-  if (provider === 'kalshi') return KALSHI_SYMBOLS.has(symbol);
-  // Capital.com's and eToro's CFD catalogs are broad across energy/metals/
-  // grains; exact per-instrument availability varies and isn't worth
-  // hardcoding — the link lands on their markets search, not a guaranteed
-  // prefilled contract.
+export function isProviderAvailableFor(_provider: AffiliateProvider, _symbol: string): boolean {
+  // eToro's CFD catalog is broad across energy/metals/grains; exact
+  // per-instrument availability varies and isn't worth hardcoding — the link
+  // lands on their markets search, not a guaranteed prefilled contract.
   return true;
 }
 

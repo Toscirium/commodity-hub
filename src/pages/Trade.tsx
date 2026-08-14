@@ -55,7 +55,7 @@ const Trade: React.FC = () => {
           <AlertTitle>Trading involves risk of loss</AlertTitle>
           <AlertDescription className="space-y-2">
             <p>
-              CFDs and prediction contracts are leveraged/complex products and carry a high risk of
+              CFDs are leveraged/complex products and carry a high risk of
               losing money rapidly, including more than your initial deposit. You must be 18+ and
               able to afford this risk before using any link below. Commodity Hub does not execute
               trades, hold funds, or provide investment advice — every link goes to an independent,

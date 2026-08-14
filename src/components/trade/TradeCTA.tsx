@@ -17,10 +17,10 @@ interface TradeCTAProps {
 }
 
 /**
- * Outbound CTAs to independent, regulated brokers (Capital.com/eToro CFDs,
- * Kalshi prediction contracts). Commodity Hub never executes the trade or
- * touches funds — clicking logs a referral event, then opens the partner's
- * own signup flow in a new tab.
+ * Outbound CTAs to independent, regulated brokers — currently eToro CFDs
+ * only (see src/config/affiliates.ts). Commodity Hub never executes the
+ * trade or touches funds — clicking logs a referral event, then opens the
+ * partner's own signup flow in a new tab.
  */
 const TradeCTA: React.FC<TradeCTAProps> = ({ symbol, commodityName, className }) => {
   const auth = useAuth();
