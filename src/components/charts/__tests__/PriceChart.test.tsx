@@ -12,6 +12,8 @@ const attachPrimitive = vi.fn()
 const detachPrimitive = vi.fn()
 const fitContent = vi.fn()
 const timeToCoordinate = vi.fn()
+const createPriceLine = vi.fn(() => ({}))
+const removePriceLine = vi.fn()
 
 const mockSeries = {
   setData,
@@ -20,6 +22,8 @@ const mockSeries = {
   coordinateToPrice,
   attachPrimitive,
   detachPrimitive,
+  createPriceLine,
+  removePriceLine,
 }
 
 const mockChart = {
@@ -42,6 +46,7 @@ vi.mock('lightweight-charts', () => ({
   AreaSeries: { seriesType: 'Area' },
   HistogramSeries: { seriesType: 'Histogram' },
   CrosshairMode: { Normal: 0 },
+  LineStyle: { Solid: 0, Dotted: 1, Dashed: 2, LargeDashed: 3, SparseDotted: 4 },
 }))
 
 const baseProps = {
@@ -99,6 +104,52 @@ describe('PriceChart', () => {
     expect(setData).toHaveBeenCalledWith([
       expect.objectContaining({ time: expect.any(Number), value: 42 }),
     ])
+  })
+
+  it('pins a dashed reference line at the first bar\'s price, matching the period-open the % change elsewhere is measured against', () => {
+    render(
+      <PriceChart
+        {...baseProps}
+        chartType="line"
+        lineData={[
+          { date: '2024-01-01T00:00:00.000Z', price: 100 },
+          { date: '2024-01-02T00:00:00.000Z', price: 110 },
+        ]}
+        candlestickData={[]}
+      />
+    )
+
+    expect(createPriceLine).toHaveBeenCalledWith(expect.objectContaining({ price: 100, lineStyle: 2 }))
+  })
+
+  it('replaces the old reference line rather than stacking a new one when data changes', () => {
+    // Note: PriceChart's chartVersion bump-after-mount means every
+    // chartVersion-dependent effect (this one included) legitimately fires
+    // twice during the initial mount alone — pre-existing, harmless (same
+    // for the main setData push), and internal to a single commit cycle
+    // before paint. So this asserts the *delta* the rerender causes rather
+    // than an absolute count, to avoid pinning that unrelated detail.
+    const { rerender } = render(
+      <PriceChart
+        {...baseProps}
+        chartType="line"
+        lineData={[{ date: '2024-01-01T00:00:00.000Z', price: 100 }]}
+        candlestickData={[]}
+      />
+    )
+    const removalsBeforeRerender = removePriceLine.mock.calls.length
+
+    rerender(
+      <PriceChart
+        {...baseProps}
+        chartType="line"
+        lineData={[{ date: '2024-01-03T00:00:00.000Z', price: 200 }]}
+        candlestickData={[]}
+      />
+    )
+
+    expect(removePriceLine.mock.calls.length).toBeGreaterThan(removalsBeforeRerender)
+    expect(createPriceLine).toHaveBeenLastCalledWith(expect.objectContaining({ price: 200 }))
   })
 
   it('shows the no-OHLC-data message for candlestick mode when there is no candle data', () => {

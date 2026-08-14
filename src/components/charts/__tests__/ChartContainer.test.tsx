@@ -19,6 +19,8 @@ const mockSeries = {
   coordinateToPrice: vi.fn(),
   attachPrimitive: vi.fn(),
   detachPrimitive: vi.fn(),
+  createPriceLine: vi.fn(() => ({})),
+  removePriceLine: vi.fn(),
 }
 const mockChart = {
   addSeries: addSeries.mockReturnValue(mockSeries),
@@ -39,6 +41,7 @@ vi.mock('lightweight-charts', () => ({
   AreaSeries: { seriesType: 'Area' },
   HistogramSeries: { seriesType: 'Histogram' },
   CrosshairMode: { Normal: 0 },
+  LineStyle: { Solid: 0, Dotted: 1, Dashed: 2, LargeDashed: 3, SparseDotted: 4 },
 }))
 
 const renderWithQueryClient = (ui: React.ReactElement) =>

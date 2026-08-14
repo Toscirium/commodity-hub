@@ -6,8 +6,10 @@ import {
   AreaSeries,
   HistogramSeries,
   CrosshairMode,
+  LineStyle,
   type IChartApi,
   type ISeriesApi,
+  type IPriceLine,
   type MouseEventParams,
   type Time,
   type UTCTimestamp,
@@ -15,7 +17,7 @@ import {
 import { TrendingUp, RotateCcw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatPrice as formatCommodityPrice } from '@/lib/commodityUtils';
-import { useIsDarkMode, getLightweightChartColors, toUtcTimestamp } from './lightweightChartTheme';
+import { useIsDarkMode, getLightweightChartColors, toUtcTimestamp, CHART_FONT_FAMILY } from './lightweightChartTheme';
 import { TrendlinePrimitive } from './trendlinePrimitive';
 import type { Trendline, TrendlinePoint } from '@/hooks/useTrendlines';
 
@@ -129,6 +131,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
   const volumeSeriesRef = React.useRef<ISeriesApi<'Histogram'> | null>(null);
   const compareSeriesRef = React.useRef<ISeriesApi<'Line'> | null>(null);
   const maSeriesRefs = React.useRef<ISeriesApi<'Line'>[]>([]);
+  const referenceLineRef = React.useRef<IPriceLine | null>(null);
   const primitivesRef = React.useRef<Map<string, TrendlinePrimitive>>(new Map());
 
   const [chartVersion, setChartVersion] = React.useState(0);
@@ -144,10 +147,13 @@ const PriceChart: React.FC<PriceChartProps> = ({
     const primitives = primitivesRef.current;
 
     const chart = createChart(containerRef.current, {
-      layout: { background: { color: colors.background }, textColor: colors.text },
+      layout: { background: { color: colors.background }, textColor: colors.text, fontFamily: CHART_FONT_FAMILY },
       grid: {
-        vertLines: { color: colors.grid },
-        horzLines: { color: colors.grid },
+        // Dotted rather than solid — closer to how faint a trading app's
+        // grid usually reads; it's there to align your eye, not to compete
+        // with the data.
+        vertLines: { color: colors.grid, style: LineStyle.Dotted },
+        horzLines: { color: colors.grid, style: LineStyle.Dotted },
       },
       crosshair: { mode: CrosshairMode.Normal },
       timeScale: {
@@ -177,12 +183,18 @@ const PriceChart: React.FC<PriceChartProps> = ({
             wickDownColor: colors.wickDownColor,
             borderUpColor: colors.wickUpColor,
             borderDownColor: colors.wickDownColor,
+            priceLineVisible: true,
+            lastValueVisible: true,
+            priceLineStyle: LineStyle.Dashed,
           })
         : chart.addSeries(AreaSeries, {
             lineColor: trendColor,
             topColor: `${trendColor}4D`,
             bottomColor: `${trendColor}00`,
             lineWidth: 2,
+            priceLineVisible: true,
+            lastValueVisible: true,
+            priceLineStyle: LineStyle.Dashed,
           });
 
     // Volume histogram, confined to its own bottom-anchored price scale so it
@@ -201,6 +213,11 @@ const PriceChart: React.FC<PriceChartProps> = ({
     seriesRef.current = series;
     volumeSeriesRef.current = volumeSeries;
     compareSeriesRef.current = null;
+    // The reference price line belongs to the series being torn down below;
+    // null it out so the data-push effect (which reruns right after, via
+    // chartVersion) creates a fresh one on the new series instead of trying
+    // to remove a handle that no longer belongs to it.
+    referenceLineRef.current = null;
     primitives.clear();
     setChartVersion((v) => v + 1);
 
@@ -210,6 +227,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
       seriesRef.current = null;
       volumeSeriesRef.current = null;
       compareSeriesRef.current = null;
+      referenceLineRef.current = null;
       primitives.clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -226,34 +244,56 @@ const PriceChart: React.FC<PriceChartProps> = ({
     });
   }, [isPositiveTrend, chartType, colors, chartVersion]);
 
-  // Push main series data.
+  // Push main series data, and keep a dashed reference line pinned to the
+  // first bar's price — the period-open, matching what the price-change %
+  // shown elsewhere in the UI is measured against, so the two stay visually
+  // consistent. Distinct from the live price line: neutral gray, not
+  // up/down-colored, so it doesn't compete with today's actual direction.
   React.useEffect(() => {
-    if (!seriesRef.current) return;
+    const series = seriesRef.current;
+    if (!series) return;
+
+    let referencePrice: number | undefined;
     if (chartType === 'candlestick') {
-      (seriesRef.current as ISeriesApi<'Candlestick'>).setData(
-        toSortedSeriesData(
-          candlestickData
-            .filter((d) => [d.open, d.high, d.low, d.close].every(Number.isFinite))
-            .map((d) => ({
-              time: toUtcTimestamp(d.date),
-              open: d.open,
-              high: d.high,
-              low: d.low,
-              close: d.close,
-            }))
-        )
+      const sorted = toSortedSeriesData(
+        candlestickData
+          .filter((d) => [d.open, d.high, d.low, d.close].every(Number.isFinite))
+          .map((d) => ({
+            time: toUtcTimestamp(d.date),
+            open: d.open,
+            high: d.high,
+            low: d.low,
+            close: d.close,
+          }))
       );
+      (series as ISeriesApi<'Candlestick'>).setData(sorted);
+      referencePrice = sorted[0]?.open;
     } else {
-      (seriesRef.current as ISeriesApi<'Area'>).setData(
-        toSortedSeriesData(
-          lineData
-            .filter((d) => Number.isFinite(d.price))
-            .map((d) => ({ time: toUtcTimestamp(d.date), value: d.price }))
-        )
+      const sorted = toSortedSeriesData(
+        lineData
+          .filter((d) => Number.isFinite(d.price))
+          .map((d) => ({ time: toUtcTimestamp(d.date), value: d.price }))
       );
+      (series as ISeriesApi<'Area'>).setData(sorted);
+      referencePrice = sorted[0]?.value;
     }
     chartRef.current?.timeScale().fitContent();
-  }, [chartType, candlestickData, lineData, chartVersion]);
+
+    if (referenceLineRef.current) {
+      series.removePriceLine(referenceLineRef.current);
+      referenceLineRef.current = null;
+    }
+    if (referencePrice !== undefined) {
+      referenceLineRef.current = series.createPriceLine({
+        price: referencePrice,
+        color: colors.referenceLineColor,
+        lineWidth: 1,
+        lineStyle: LineStyle.Dashed,
+        axisLabelVisible: true,
+        title: '',
+      });
+    }
+  }, [chartType, candlestickData, lineData, colors.referenceLineColor, chartVersion]);
 
   // Push volume histogram data, colored per-bar by ChartContainer.
   React.useEffect(() => {
