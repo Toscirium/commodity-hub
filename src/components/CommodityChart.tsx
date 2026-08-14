@@ -205,10 +205,15 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
           />
         </div>
 
-        {/* Full-screen chart - takes remaining space */}
+        {/* Full-screen chart - takes remaining space. Sized purely by the flex
+            chain above (flex-1 min-h-0 → h-full), not a fixed viewport calc —
+            landscape mode has a much shorter viewport and different
+            header/toolbar/footer proportions than portrait, so a hardcoded
+            "100vh minus N px" offset was either crushing the chart or leaving
+            dead space depending on orientation. */}
         <div className="flex-1 p-4 overflow-hidden min-h-0">
           <div className="w-full h-full bg-card rounded-lg border shadow-sm p-4">
-            <div style={{ width: '100%', height: 'calc(100vh - 200px)' }}>
+            <div className="w-full h-full">
               <ChartContainer
                 data={data}
                 name={name}
