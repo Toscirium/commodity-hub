@@ -82,7 +82,7 @@ const formatVolume = (value: number): string => {
  * this rather than trusting the upstream feed to already be well-formed.
  * On a duplicate timestamp, the later occurrence in input order wins.
  */
-function toSortedSeriesData<T extends { time: UTCTimestamp }>(points: T[]): T[] {
+export function toSortedSeriesData<T extends { time: UTCTimestamp }>(points: T[]): T[] {
   const byTime = new Map<UTCTimestamp, T>();
   for (const p of points) byTime.set(p.time, p);
   return Array.from(byTime.values()).sort((a, b) => (a.time as number) - (b.time as number));

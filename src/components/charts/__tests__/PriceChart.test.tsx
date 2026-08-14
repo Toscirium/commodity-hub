@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render } from '@testing-library/react'
-import PriceChart from '../PriceChart'
+import PriceChart, { toSortedSeriesData } from '../PriceChart'
+import type { UTCTimestamp } from 'lightweight-charts'
 
 const addSeries = vi.fn()
 const setData = vi.fn()
@@ -186,5 +187,63 @@ describe('PriceChart', () => {
     )
 
     expect(setData).toHaveBeenCalledWith([expect.objectContaining({ value: 7 })])
+  })
+})
+
+// The mocked lightweight-charts module above is a plain vi.fn() stub — it
+// doesn't replicate the real library's runtime assertion that setData()
+// input must be strictly ascending by time with unique timestamps. So the
+// tests above only prove *this code calls setData with sorted arguments*,
+// not that the real library would accept them. This tests the actual
+// invariant directly, at roughly 2Y scale (~730 daily bars — the timeframe
+// that originally crashed), independent of any mock.
+describe('toSortedSeriesData', () => {
+  const isStrictlyAscendingUnique = (points: { time: UTCTimestamp }[]) =>
+    points.every((p, i) => i === 0 || (p.time as number) > (points[i - 1].time as number))
+
+  it('produces strictly ascending, unique timestamps from a realistic 2Y-scale dataset with duplicates and shuffling', () => {
+    const DAY = 86_400 as UTCTimestamp
+    const start = 1_700_000_000 as UTCTimestamp
+
+    // ~730 daily bars, each carrying a distinct value so a dedupe bug (wrong
+    // point kept) would be as detectable as an ordering bug.
+    const points = Array.from({ length: 730 }, (_, i) => ({
+      time: (start + i * DAY) as UTCTimestamp,
+      value: i,
+    }))
+
+    // A handful of exact duplicate timestamps, as a provider pagination
+    // boundary overlap would produce.
+    const duplicates = [10, 200, 500, 729].map((i) => ({ time: points[i].time, value: 9999 + i }))
+
+    // Simple deterministic shuffle (Fisher-Yates with a fixed seed) rather
+    // than Math.random(), so a failure is reproducible.
+    const input = [...points, ...duplicates]
+    let seed = 42
+    const rand = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff
+      return seed / 0x7fffffff
+    }
+    for (let i = input.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1))
+      ;[input[i], input[j]] = [input[j], input[i]]
+    }
+
+    const result = toSortedSeriesData(input)
+
+    expect(isStrictlyAscendingUnique(result)).toBe(true)
+    expect(result).toHaveLength(730) // duplicates collapsed, nothing else lost
+    // Duplicate timestamps resolve to the later occurrence in *input* order,
+    // not necessarily the pre-shuffle "original" bar — just confirm exactly
+    // one survivor per timestamp and that it came from the known candidate set.
+    for (const i of [10, 200, 500, 729]) {
+      const survivor = result.find((p) => p.time === points[i].time)
+      expect([points[i].value, 9999 + i]).toContain(survivor?.value)
+    }
+  })
+
+  it('is a no-op on already-sorted, unique input', () => {
+    const input = [1, 2, 3].map((t) => ({ time: t as UTCTimestamp, value: t }))
+    expect(toSortedSeriesData(input)).toEqual(input)
   })
 })
