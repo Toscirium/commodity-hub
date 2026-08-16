@@ -122,12 +122,18 @@ Deno.serve(async (req) => {
     const gateway = createLovableAiGatewayProvider(LOVABLE_API_KEY);
     const model = gateway("google/gemini-3-flash-preview");
 
-    // Detect Pro tier to expose extra grounding tools.
+    // Detect tier to expose extra grounding tools (Pro only) and size the
+    // daily quota. Premium previously fell through to the same 30/day limit
+    // as Free — it got nothing extra from a feature Pro users get 200/day
+    // of — so Copilot now sits in the upgrade ladder at every tier instead
+    // of being a Pro-or-nothing perk.
     const { data: tierData } = await admin.rpc('get_user_tier', { _user_id: userId });
-    const isPro = tierData === 'pro';
+    const tier = (tierData === 'pro' || tierData === 'premium' ? tierData : 'free') as 'free' | 'premium' | 'pro';
+    const isPro = tier === 'pro';
+    const AI_DAILY_QUOTA: Record<'free' | 'premium' | 'pro', number> = { free: 30, premium: 75, pro: 200 };
     const { data: quotaAllowed, error: quotaError } = await admin.rpc('consume_ai_request_quota', {
       _user_id: userId,
-      _limit: isPro ? 200 : 30,
+      _limit: AI_DAILY_QUOTA[tier],
     });
     if (quotaError) throw quotaError;
     if (!quotaAllowed) {

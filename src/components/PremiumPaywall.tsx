@@ -51,6 +51,24 @@ const PRO_FEATURES = [
 const PLAY_STORE_URL =
   'https://play.google.com/store/apps/details?id=com.commodityhub.app';
 
+/**
+ * Annual and monthly packages were rendered as two identical-looking
+ * buttons with no framing — nothing nudged toward the plan that's actually
+ * better for both sides (locks in revenue upfront, cuts monthly churn
+ * opportunities). This orders Annual first when both exist and returns the
+ * % saved vs. paying monthly all year, so the UI can call it out.
+ */
+export const orderWithAnnualFirst = (pkgs: PurchasesPackage[]): PurchasesPackage[] =>
+  [...pkgs].sort((a, b) => (a.packageType === 'ANNUAL' ? -1 : b.packageType === 'ANNUAL' ? 1 : 0));
+
+export const getAnnualSavingsPct = (pkgs: PurchasesPackage[]): number | null => {
+  const monthly = pkgs.find((p) => p.packageType === 'MONTHLY');
+  const annual = pkgs.find((p) => p.packageType === 'ANNUAL');
+  if (!monthly || !annual || !annual.product.pricePerMonth) return null;
+  const pct = (1 - annual.product.pricePerMonth / monthly.product.price) * 100;
+  return pct > 0 ? Math.round(pct) : null;
+};
+
 const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, source = 'unknown' }) => {
   const { toast } = useToast();
   const auth = useAuth();
@@ -174,29 +192,49 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
           </li>
         ))}
       </ul>
-      {isNative && pkgs.length > 0 && (
-        <div className="space-y-2 pt-1">
-          {pkgs.map((pkg) => (
-            <Button
-              key={pkg.identifier}
-              onClick={() => handlePurchase(pkg)}
-              disabled={purchasing !== null}
-              className="w-full justify-between"
-              variant={accent === 'pro' ? 'default' : 'outline'}
-              size="sm"
-            >
-              <span>{pkg.packageType === 'ANNUAL' ? 'Annual' : 'Monthly'}</span>
-              <span>
-                {purchasing === pkg.identifier ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  pkg.product.priceString
-                )}
-              </span>
-            </Button>
-          ))}
-        </div>
-      )}
+      {isNative && pkgs.length > 0 && (() => {
+        const savingsPct = getAnnualSavingsPct(pkgs);
+        return (
+          <div className="space-y-2 pt-1">
+            {orderWithAnnualFirst(pkgs).map((pkg) => {
+              const isAnnual = pkg.packageType === 'ANNUAL';
+              return (
+                <div key={pkg.identifier} className="space-y-1">
+                  <Button
+                    onClick={() => handlePurchase(pkg)}
+                    disabled={purchasing !== null}
+                    className="w-full justify-between"
+                    // Annual is always the visually primary choice when it's
+                    // an option — Monthly steps back to outline, regardless
+                    // of the card's own Premium/Pro accent.
+                    variant={isAnnual ? 'default' : 'outline'}
+                    size="sm"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      {isAnnual ? 'Annual' : 'Monthly'}
+                      {isAnnual && savingsPct && (
+                        <Badge variant="secondary" className="text-[10px]">Save {savingsPct}%</Badge>
+                      )}
+                    </span>
+                    <span>
+                      {purchasing === pkg.identifier ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        pkg.product.priceString
+                      )}
+                    </span>
+                  </Button>
+                  {isAnnual && pkg.product.pricePerMonthString && (
+                    <p className="text-[10px] text-muted-foreground text-right pr-1">
+                      just {pkg.product.pricePerMonthString}/mo, billed annually
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        );
+      })()}
     </div>
   );
 
