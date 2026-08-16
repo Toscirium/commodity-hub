@@ -5,29 +5,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader, Plus } from 'lucide-react';
-import { usePortfolio } from '@/hooks/usePortfolio';
-
-// Commodity options for the dropdown
-const COMMODITY_OPTIONS = [
-  'Gold Futures',
-  'Silver Futures',
-  'WTI Crude Oil',
-  'Natural Gas',
-  'Copper',
-  'Platinum',
-  'Palladium',
-  'Brent Crude Oil',
-  'Corn Futures',
-  'Wheat Futures',
-  'Soybean Futures',
-  'Live Cattle Futures',
-  'Lean Hogs Futures',
-  'Coffee Futures',
-  'Sugar Futures',
-  'Cotton Futures',
-  'Cocoa Futures'
-];
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Loader, Plus, TrendingUp, TrendingDown } from 'lucide-react';
+import { usePortfolio, PositionSide, PositionStatus } from '@/hooks/usePortfolio';
+import { COMMODITY_OPTIONS, KNOWN_BROKERS } from '@/lib/brokerPositions';
 
 interface AddPositionFormProps {
   onSuccess?: () => void;
@@ -40,20 +21,28 @@ const AddPositionForm: React.FC<AddPositionFormProps> = ({ onSuccess, portfolioI
     quantity: '',
     entry_price: '',
     entry_date: new Date().toISOString().split('T')[0],
-    notes: ''
+    notes: '',
+    side: 'buy' as PositionSide,
+    leverage: '',
+    broker: '',
+    status: 'open' as PositionStatus,
+    exit_price: '',
+    closed_date: new Date().toISOString().split('T')[0],
   });
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const { addPosition } = usePortfolio(portfolioId);
 
+  const isClosed = formData.status === 'closed';
+  const canSubmit =
+    formData.commodity_name && formData.quantity && formData.entry_price &&
+    (!isClosed || formData.exit_price);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.commodity_name || !formData.quantity || !formData.entry_price) {
-      return;
-    }
+    if (!canSubmit) return;
 
     setIsSubmitting(true);
-    
+
     try {
       await addPosition({
         commodity_name: formData.commodity_name,
@@ -62,17 +51,29 @@ const AddPositionForm: React.FC<AddPositionFormProps> = ({ onSuccess, portfolioI
         entry_date: formData.entry_date,
         notes: formData.notes || undefined,
         portfolio_id: portfolioId,
+        side: formData.side,
+        leverage: formData.leverage ? parseFloat(formData.leverage) : null,
+        broker: formData.broker || null,
+        status: formData.status,
+        exit_price: isClosed ? parseFloat(formData.exit_price) : null,
+        closed_date: isClosed ? formData.closed_date : null,
       });
-      
+
       // Reset form
       setFormData({
         commodity_name: '',
         quantity: '',
         entry_price: '',
         entry_date: new Date().toISOString().split('T')[0],
-        notes: ''
+        notes: '',
+        side: 'buy',
+        leverage: '',
+        broker: '',
+        status: 'open',
+        exit_price: '',
+        closed_date: new Date().toISOString().split('T')[0],
       });
-      
+
       onSuccess?.();
     } catch (error) {
       console.error('Failed to add position:', error);
@@ -93,7 +94,9 @@ const AddPositionForm: React.FC<AddPositionFormProps> = ({ onSuccess, portfolioI
           Add New Position
         </CardTitle>
         <CardDescription>
-          Track your commodity investments by adding positions to your portfolio
+          Log a position by hand — including one you're actually holding at eToro or another
+          broker — so it shows up here with live P&amp;L. This never connects to or reads from
+          any real broker account.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -101,8 +104,8 @@ const AddPositionForm: React.FC<AddPositionFormProps> = ({ onSuccess, portfolioI
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="commodity">Commodity</Label>
-              <Select 
-                value={formData.commodity_name} 
+              <Select
+                value={formData.commodity_name}
                 onValueChange={(value) => handleChange('commodity_name', value)}
               >
                 <SelectTrigger>
@@ -119,7 +122,26 @@ const AddPositionForm: React.FC<AddPositionFormProps> = ({ onSuccess, portfolioI
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="quantity">Quantity</Label>
+              <Label>Direction</Label>
+              <ToggleGroup
+                type="single"
+                value={formData.side}
+                onValueChange={(value) => value && handleChange('side', value)}
+                className="justify-start"
+              >
+                <ToggleGroupItem value="buy" className="gap-1.5 data-[state=on]:bg-green-100 data-[state=on]:text-green-700 dark:data-[state=on]:bg-green-950/40 dark:data-[state=on]:text-green-400">
+                  <TrendingUp className="w-3.5 h-3.5" />
+                  Buy / Long
+                </ToggleGroupItem>
+                <ToggleGroupItem value="sell" className="gap-1.5 data-[state=on]:bg-red-100 data-[state=on]:text-red-700 dark:data-[state=on]:bg-red-950/40 dark:data-[state=on]:text-red-400">
+                  <TrendingDown className="w-3.5 h-3.5" />
+                  Sell / Short
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="quantity">Quantity / Units</Label>
               <Input
                 id="quantity"
                 type="number"
@@ -133,7 +155,7 @@ const AddPositionForm: React.FC<AddPositionFormProps> = ({ onSuccess, portfolioI
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="entry_price">Entry Price ($)</Label>
+              <Label htmlFor="entry_price">Entry (Open) Price ($)</Label>
               <Input
                 id="entry_price"
                 type="number"
@@ -156,7 +178,77 @@ const AddPositionForm: React.FC<AddPositionFormProps> = ({ onSuccess, portfolioI
                 required
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="leverage">Leverage (optional)</Label>
+              <Input
+                id="leverage"
+                type="number"
+                step="1"
+                min="1"
+                placeholder="e.g., 5 (for 5x)"
+                value={formData.leverage}
+                onChange={(e) => handleChange('leverage', e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="broker">Broker (optional)</Label>
+              <Input
+                id="broker"
+                list="broker-suggestions"
+                placeholder="e.g., eToro"
+                value={formData.broker}
+                onChange={(e) => handleChange('broker', e.target.value)}
+              />
+              <datalist id="broker-suggestions">
+                {KNOWN_BROKERS.map((b) => (
+                  <option key={b} value={b} />
+                ))}
+              </datalist>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <ToggleGroup
+                type="single"
+                value={formData.status}
+                onValueChange={(value) => value && handleChange('status', value)}
+                className="justify-start"
+              >
+                <ToggleGroupItem value="open">Open</ToggleGroupItem>
+                <ToggleGroupItem value="closed">Closed</ToggleGroupItem>
+              </ToggleGroup>
+            </div>
           </div>
+
+          {isClosed && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 rounded-lg border bg-muted/30">
+              <div className="space-y-2">
+                <Label htmlFor="exit_price">Exit (Close) Price ($)</Label>
+                <Input
+                  id="exit_price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="e.g., 2050.00"
+                  value={formData.exit_price}
+                  onChange={(e) => handleChange('exit_price', e.target.value)}
+                  required={isClosed}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="closed_date">Closed Date</Label>
+                <Input
+                  id="closed_date"
+                  type="date"
+                  value={formData.closed_date}
+                  onChange={(e) => handleChange('closed_date', e.target.value)}
+                  required={isClosed}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes (Optional)</Label>
@@ -169,9 +261,9 @@ const AddPositionForm: React.FC<AddPositionFormProps> = ({ onSuccess, portfolioI
             />
           </div>
 
-          <Button 
-            type="submit" 
-            disabled={isSubmitting || !formData.commodity_name || !formData.quantity || !formData.entry_price}
+          <Button
+            type="submit"
+            disabled={isSubmitting || !canSubmit}
             className="w-full"
           >
             {isSubmitting ? (

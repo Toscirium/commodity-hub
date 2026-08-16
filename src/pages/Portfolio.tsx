@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import {
   Loader, TrendingUp, TrendingDown, DollarSign, Briefcase, Plus,
-  Download, Lock, FolderPlus, Trash2, Pencil, Star,
+  Download, Upload, Lock, FolderPlus, Trash2, Pencil, Star,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePortfolio, PositionWithCurrentPrice } from '@/hooks/usePortfolio';
@@ -22,6 +22,7 @@ import {
   useMovePosition,
 } from '@/hooks/usePortfolios';
 import AddPositionForm from '@/components/AddPositionForm';
+import ImportPositionsDialog from '@/components/ImportPositionsDialog';
 import PositionCard from '@/components/PositionCard';
 import { MobilePageHeader } from '@/components/mobile/MobilePageHeader';
 import CurrencySelector from '@/components/CurrencySelector';
@@ -49,8 +50,9 @@ const Portfolio = () => {
     }
   }, [portfolios, selectedPortfolioId]);
 
-  const { positions, loading, portfolioSummary, deletePosition } = usePortfolio(selectedPortfolioId);
+  const { positions, loading, portfolioSummary, deletePosition, refreshPositions } = usePortfolio(selectedPortfolioId);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
   const [editingPosition, setEditingPosition] = useState<PositionWithCurrentPrice | null>(null);
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [newPortfolioOpen, setNewPortfolioOpen] = useState(false);
@@ -132,9 +134,13 @@ const Portfolio = () => {
     }
     downloadCsv(
       `${selectedPortfolio?.name ?? 'portfolio'}.csv`,
-      ['Commodity', 'Quantity', 'Entry Price', 'Entry Date', 'Current Price', 'Current Value', 'Return', 'Return %', 'Notes'],
+      [
+        'Commodity', 'Side', 'Quantity', 'Entry Price', 'Entry Date', 'Leverage', 'Broker',
+        'Status', 'Current Price', 'Current Value', 'Return', 'Return %', 'Notes',
+      ],
       positions.map((p) => [
-        p.commodity_name, p.quantity, p.entry_price, p.entry_date,
+        p.commodity_name, p.side, p.quantity, p.entry_price, p.entry_date,
+        p.leverage ?? '', p.broker ?? '', p.status,
         p.current_price, p.current_value, p.total_return,
         p.return_percentage.toFixed(2), p.notes ?? '',
       ]),
@@ -178,8 +184,18 @@ const Portfolio = () => {
               {limits.csvExport ? <Download className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
               <span className="hidden sm:inline">Export CSV</span>
             </Button>
-            <Button 
-              onClick={() => setShowAddForm(true)} 
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowImportDialog(true)}
+              className="gap-2 touch-manipulation"
+            >
+              <Upload className="w-4 h-4" />
+              <span className="hidden sm:inline">Import Statement</span>
+              <span className="sm:hidden">Import</span>
+            </Button>
+            <Button
+              onClick={() => setShowAddForm(true)}
               className="gap-2 touch-manipulation"
             >
               <Plus className="w-4 h-4" />
@@ -354,10 +370,16 @@ const Portfolio = () => {
               Start building your commodity portfolio by adding your first position. 
               Track performance and stay updated with real-time prices.
             </p>
-            <Button onClick={() => setShowAddForm(true)} className="gap-2">
-              <Plus className="w-4 h-4" />
-              Add Your First Position
-            </Button>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Button onClick={() => setShowAddForm(true)} className="gap-2">
+                <Plus className="w-4 h-4" />
+                Add Your First Position
+              </Button>
+              <Button variant="outline" onClick={() => setShowImportDialog(true)} className="gap-2">
+                <Upload className="w-4 h-4" />
+                Import from a Statement
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (
@@ -395,6 +417,13 @@ const Portfolio = () => {
           />
         </DialogContent>
       </Dialog>
+
+      <ImportPositionsDialog
+        open={showImportDialog}
+        onOpenChange={setShowImportDialog}
+        portfolioId={selectedPortfolioId}
+        onImported={refreshPositions}
+      />
 
       <Dialog open={!!editingPosition} onOpenChange={() => setEditingPosition(null)}>
         <DialogContent className="max-w-2xl">

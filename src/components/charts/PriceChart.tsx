@@ -16,6 +16,7 @@ import {
 } from 'lightweight-charts';
 import { TrendingUp, RotateCcw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatPrice as formatCommodityPrice } from '@/lib/commodityUtils';
 import { useIsDarkMode, getLightweightChartColors, toUtcTimestamp, CHART_FONT_FAMILY } from './lightweightChartTheme';
 import { TrendlinePrimitive } from './trendlinePrimitive';
@@ -607,11 +608,26 @@ const PriceChart: React.FC<PriceChartProps> = ({
         )}
       </div>
 
-      {/* Reset zoom */}
+      {/* Reset zoom — icon-only, so it needs a tooltip/aria-label to be
+          discoverable at all; there was previously no way to tell what this
+          button did without clicking it first. */}
       <div className="absolute top-2 right-2 z-10">
-        <Button variant="ghost" size="sm" onClick={handleResetZoom} className="h-7 w-7 p-0 bg-background/80 backdrop-blur-sm hover:bg-muted/80 border border-border/50">
-          <RotateCcw className="h-3 w-3" />
-        </Button>
+        <TooltipProvider delayDuration={150}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleResetZoom}
+                aria-label="Reset zoom and pan"
+                className="h-7 w-7 p-0 bg-background/80 backdrop-blur-sm hover:bg-muted/80 border border-border/50"
+              >
+                <RotateCcw className="h-3 w-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Reset zoom &amp; pan</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
       <div ref={containerRef} className="w-full h-full" />

@@ -459,38 +459,62 @@ export type Database = {
       }
       portfolio_positions: {
         Row: {
+          broker: string | null
+          closed_date: string | null
           commodity_name: string
           created_at: string
           entry_date: string
           entry_price: number
+          exit_price: number | null
+          external_id: string | null
           id: string
+          leverage: number | null
           notes: string | null
           portfolio_id: string | null
           quantity: number
+          side: string
+          source: string
+          status: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          broker?: string | null
+          closed_date?: string | null
           commodity_name: string
           created_at?: string
           entry_date?: string
           entry_price: number
+          exit_price?: number | null
+          external_id?: string | null
           id?: string
+          leverage?: number | null
           notes?: string | null
           portfolio_id?: string | null
           quantity: number
+          side?: string
+          source?: string
+          status?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          broker?: string | null
+          closed_date?: string | null
           commodity_name?: string
           created_at?: string
           entry_date?: string
           entry_price?: number
+          exit_price?: number | null
+          external_id?: string | null
           id?: string
+          leverage?: number | null
           notes?: string | null
           portfolio_id?: string | null
           quantity?: number
+          side?: string
+          source?: string
+          status?: string
           updated_at?: string
           user_id?: string
         }

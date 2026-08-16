@@ -54,7 +54,20 @@ interface CommodityChartProps {
 const CommodityChart = ({ name, basePrice, selectedContract, contractData }: CommodityChartProps) => {
   const [selectedTimeframe, setSelectedTimeframe] = React.useState<string>('1m');
   const [chartType, setChartType] = React.useState<'line' | 'candlestick'>('line');
-  const [isFullScreen, setIsFullScreen] = React.useState(false);
+  // Two independent triggers for the same full-screen overlay: rotating a
+  // mobile device to landscape (auto) and clicking the expand button, which
+  // is the only entry point on desktop or in portrait (manual). Kept apart
+  // so a stray resize/orientation event while in a manual session can't
+  // silently kick the user out of a full screen they opened on purpose —
+  // only exiting (X / Escape) or actually rotating out of landscape clears
+  // its own trigger.
+  const [autoFullScreen, setAutoFullScreen] = React.useState(false);
+  const [manualFullScreen, setManualFullScreen] = React.useState(false);
+  const isFullScreen = autoFullScreen || manualFullScreen;
+  const exitFullScreen = React.useCallback(() => {
+    setAutoFullScreen(false);
+    setManualFullScreen(false);
+  }, []);
   const [trendlineMode, setTrendlineMode] = React.useState(false);
   const [trendlineDrawPending, setTrendlineDrawPending] = React.useState(false);
   const [compareSymbol, setCompareSymbol] = React.useState<string | null>(null);
@@ -78,9 +91,9 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
 
       // Auto full-screen on landscape for mobile - immediate response
       if (isLandscapeMode && isMobile) {
-        setIsFullScreen(true);
+        setAutoFullScreen(true);
       } else if (!isLandscapeMode) {
-        setIsFullScreen(false);
+        setAutoFullScreen(false);
       }
     };
 
@@ -115,13 +128,13 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
   React.useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isFullScreen && !trendlineDrawPending) {
-        setIsFullScreen(false);
+        exitFullScreen();
       }
     };
 
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
-  }, [isFullScreen, trendlineDrawPending]);
+  }, [isFullScreen, trendlineDrawPending, exitFullScreen]);
 
   // Prevent body scroll when full screen
   React.useEffect(() => {
@@ -163,13 +176,14 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
     ? { symbol: compareSymbol, data: compareQueryData.data }
     : null;
 
-  // Full-screen overlay — in practice this only ever renders in mobile
-  // landscape (see the orientation effect above), so it's built as a lean,
-  // trading-app-style view: one slim identity bar above the chart, one slim
-  // timeframe strip below it (not stacked together — that's what made the
-  // timeframe row hard to hit, jammed right under the close button with no
-  // account for the device's overlaid status bar), and the chart itself
-  // takes essentially all remaining height in between.
+  // Full-screen overlay — opens automatically on mobile landscape (see the
+  // orientation effect above) and manually from the expand button in
+  // ChartHeader on any device/orientation. Same lean, trading-app-style view
+  // either way: one slim identity bar above the chart, one slim timeframe
+  // strip below it (not stacked together — that's what made the timeframe
+  // row hard to hit, jammed right under the close button with no account for
+  // the device's overlaid status bar), and the chart itself takes
+  // essentially all remaining height in between.
   if (isFullScreen) {
     return createPortal(
       // Portalled to document.body (rather than rendered in place, deep
@@ -205,7 +219,7 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setIsFullScreen(false)}
+            onClick={exitFullScreen}
             className="h-8 w-8 shrink-0"
             aria-label="Exit full-screen chart"
           >
@@ -324,6 +338,7 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
           isPositiveTrend={isPositiveTrend}
           priceChange={priceChange}
           ohlcAvailable={ohlcAvailable}
+          onExpand={() => setManualFullScreen(true)}
         />
 
       </div>
