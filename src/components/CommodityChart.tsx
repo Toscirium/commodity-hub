@@ -374,6 +374,7 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
             trendlinesEnabled={trendlineMode}
             trendlines={trendlines}
             bordered={false}
+            interactive={false}
             selectedTrendlineId={selectedId}
             onTrendlineCreate={(p1, p2) => addTrendline(p1, p2)}
             onTrendlineSelect={setSelectedId}
