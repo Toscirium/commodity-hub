@@ -542,10 +542,22 @@ const PriceChart: React.FC<PriceChartProps> = ({
     });
   }, [trendlines, selectedTrendlineId, colors.trendlineColor, chartVersion]);
 
-  // Compare overlay: a second line series on its own independent right-side price scale.
+  // Compare overlay: a second line series on its own independent right-side
+  // price scale. Created/destroyed only when the compared *symbol* changes
+  // (a stable primitive) — not on every `compareData` prop change, which is
+  // a fresh object every time the parent re-renders (timeframe switches
+  // trigger several: the main query's loading→success, then the compare
+  // query's own loading→success). Recreating the series that often used to
+  // hit the same lightweight-charts crash already fixed for the MA overlays
+  // above ("Value is undefined" in ensureDefined, from a stale series
+  // reference briefly outliving a torn-down one) — most visible right after
+  // a timeframe change in compare mode, which is exactly when this fired
+  // rapidly. Data itself is pushed by a separate effect below, same split
+  // as the MA overlays use.
+  const compareSymbol = compareData?.symbol ?? null;
   React.useEffect(() => {
     const chart = chartRef.current;
-    if (!chart || !compareData) return;
+    if (!chart || !compareSymbol) return;
 
     const compareSeries = chart.addSeries(LineSeries, {
       color: colors.compareColor,
@@ -556,8 +568,20 @@ const PriceChart: React.FC<PriceChartProps> = ({
       borderColor: colors.border,
       scaleMargins: { top: 0.1, bottom: 0.1 },
     });
+    compareSeriesRef.current = compareSeries;
+
+    return () => {
+      chart.removeSeries(compareSeries);
+      compareSeriesRef.current = null;
+    };
+  }, [compareSymbol, chartVersion, colors.compareColor, colors.border]);
+
+  // Push compare series data whenever it changes, without recreating the series.
+  React.useEffect(() => {
+    const series = compareSeriesRef.current;
+    if (!series || !compareData) return;
     try {
-      compareSeries.setData(
+      series.setData(
         toSortedSeriesData(
           compareData.data
             .filter((d) => Number.isFinite(d.price))
@@ -567,16 +591,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
     } catch (err) {
       console.error('PriceChart: failed to update compare series, leaving prior chart state in place', err);
     }
-    compareSeriesRef.current = compareSeries;
-
-    return () => {
-      chart.removeSeries(compareSeries);
-      compareSeriesRef.current = null;
-    };
-    // The MA overlay effect above follows this same attach/detach shape, but
-    // omits priceScaleId so it shares the main price scale instead of getting
-    // its own, and its data is computed client-side rather than fetched.
-  }, [compareData, chartVersion, colors.compareColor, colors.border]);
+  }, [compareData, chartVersion]);
 
   const handleResetZoom = () => chartRef.current?.timeScale().fitContent();
 

@@ -195,6 +195,72 @@ describe('PriceChart', () => {
     ])
   })
 
+  // The compare overlay used to be created/destroyed inside the same effect
+  // that pushed its data, keyed on the whole `compareData` object — which is
+  // a fresh object on every parent re-render (e.g. CommodityChart recomputes
+  // it inline). That churned addSeries/removeSeries far more than the data
+  // itself actually changed, which is the same "stale series reference"
+  // pattern already fixed for the MA overlays above. This pins the fix:
+  // same symbol, new data → setData only, no series recreation.
+  it('pushes new data into the existing compare series instead of recreating it when only the data changes', () => {
+    const stableMaData: Array<{ period: number; data: { date: string; value: number }[] }> = []
+    const { rerender } = render(
+      <PriceChart
+        {...baseProps}
+        chartType="line"
+        lineData={[{ date: '2024-01-01T00:00:00.000Z', price: 100 }]}
+        candlestickData={[]}
+        maData={stableMaData}
+        compareData={{ symbol: 'Silver', data: [{ date: '2024-01-01T00:00:00.000Z', price: 20 }] }}
+      />
+    )
+    const addCallsBefore = addSeries.mock.calls.length
+    const removeCallsBefore = mockChart.removeSeries.mock.calls.length
+
+    rerender(
+      <PriceChart
+        {...baseProps}
+        chartType="line"
+        lineData={[{ date: '2024-01-01T00:00:00.000Z', price: 100 }]}
+        candlestickData={[]}
+        maData={stableMaData}
+        compareData={{ symbol: 'Silver', data: [{ date: '2024-01-02T00:00:00.000Z', price: 21 }] }}
+      />
+    )
+
+    expect(addSeries.mock.calls.length).toBe(addCallsBefore)
+    expect(mockChart.removeSeries.mock.calls.length).toBe(removeCallsBefore)
+    expect(setData).toHaveBeenCalledWith([expect.objectContaining({ value: 21 })])
+  })
+
+  it('does recreate the compare series when the compared symbol itself changes', () => {
+    const stableMaData: Array<{ period: number; data: { date: string; value: number }[] }> = []
+    const { rerender } = render(
+      <PriceChart
+        {...baseProps}
+        chartType="line"
+        lineData={[{ date: '2024-01-01T00:00:00.000Z', price: 100 }]}
+        candlestickData={[]}
+        maData={stableMaData}
+        compareData={{ symbol: 'Silver', data: [{ date: '2024-01-01T00:00:00.000Z', price: 20 }] }}
+      />
+    )
+    const removeCallsBefore = mockChart.removeSeries.mock.calls.length
+
+    rerender(
+      <PriceChart
+        {...baseProps}
+        chartType="line"
+        lineData={[{ date: '2024-01-01T00:00:00.000Z', price: 100 }]}
+        candlestickData={[]}
+        maData={stableMaData}
+        compareData={{ symbol: 'Copper', data: [{ date: '2024-01-01T00:00:00.000Z', price: 4 }] }}
+      />
+    )
+
+    expect(mockChart.removeSeries.mock.calls.length).toBeGreaterThan(removeCallsBefore)
+  })
+
   // lightweight-charts' setData() throws (crashing the chart, and with it the
   // page) if input isn't strictly ascending by time with unique timestamps.
   // Wide ranges like 2Y are the most likely to surface a provider quirk that

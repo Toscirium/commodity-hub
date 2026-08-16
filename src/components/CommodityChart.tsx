@@ -172,9 +172,17 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
   const priceChange = trendData.length > 1 ?
     ((trendData[trendData.length - 1].price - trendData[0].price) / trendData[0].price) * 100 : 0;
 
-  const compareData = compareSymbol && compareQueryData?.data?.length
-    ? { symbol: compareSymbol, data: compareQueryData.data }
-    : null;
+  // Memoized so PriceChart's compare-series effect only sees a new object
+  // when the symbol or the underlying data actually changes — not on every
+  // unrelated re-render of this component (e.g. a price tick), which used
+  // to make it look like a fresh compareData prop every time.
+  const compareData = React.useMemo(
+    () =>
+      compareSymbol && compareQueryData?.data?.length
+        ? { symbol: compareSymbol, data: compareQueryData.data }
+        : null,
+    [compareSymbol, compareQueryData?.data],
+  );
 
   // Full-screen overlay — opens automatically on mobile landscape (see the
   // orientation effect above) and manually from the expand button in
