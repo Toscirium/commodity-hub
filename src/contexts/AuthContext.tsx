@@ -6,6 +6,7 @@ import { validateFormData } from '@/utils/validation';
 import { authRateLimiter } from '@/utils/security';
 import { Capacitor } from '@capacitor/core';
 import { tierFromProfile, type Tier } from '@/utils/tiers';
+import { identifyRevenueCatUser, logoutRevenueCatUser } from '@/services/revenueCat';
 
 interface Profile {
   id: string;
@@ -211,10 +212,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // it adds risk of race conditions during OAuth callback handoff.
         if (event === 'SIGNED_OUT') {
           purgeMalformedSupabaseTokens();
+          // RevenueCat is only ever configured once per app process (see
+          // configureRevenueCat's `configured` guard), so without this, a
+          // second person signing into the same device/session would keep
+          // inheriting whichever RevenueCat customer identity was configured
+          // first — logOut() resets it back to an anonymous ID so the next
+          // identifyRevenueCatUser() call starts clean.
+          void logoutRevenueCatUser();
         }
         applySession(session);
-        
+
         if (session?.user) {
+          // Re-associate RevenueCat's customer identity with whoever is
+          // actually signed in now — cheap/idempotent if it's already this
+          // user, and a no-op until configureRevenueCat has run at least
+          // once (e.g. the paywall was opened) this process. Not delayed
+          // like the subscription check below since it doesn't depend on it.
+          void identifyRevenueCatUser(session.user.id);
+
           // Defer profile fetching and subscription check to avoid blocking auth state changes
           setTimeout(() => {
             // Check subscription status on login (with slight delay)
