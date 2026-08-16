@@ -21,9 +21,17 @@ interface TradeCTAProps {
  * only (see src/config/affiliates.ts). Commodity Hub never executes the
  * trade or touches funds — clicking logs a referral event, then opens the
  * partner's own signup flow in a new tab.
+ *
+ * Hidden for Premium/Pro subscribers: the paywall already advertises an
+ * "ad-free experience" as a subscriber perk (see PremiumPaywall.tsx), and
+ * this affiliate CTA — a monetized referral, not app functionality — is the
+ * closest thing to an ad in the product. Someone already paying doesn't need
+ * an upsell to a different revenue stream.
  */
 const TradeCTA: React.FC<TradeCTAProps> = ({ symbol, commodityName, className }) => {
   const auth = useAuth();
+  const tier = auth?.tier ?? 'free';
+  if (tier !== 'free') return null;
 
   const handleClick = (provider: AffiliateProvider) => {
     const url = buildAffiliateUrl(provider, symbol);
