@@ -12,6 +12,7 @@ import { Message, MessageContent, MessageResponse } from '@/components/ai-elemen
 import { PromptInput, PromptInputTextarea, PromptInputFooter, PromptInputSubmit } from '@/components/ai-elements/prompt-input';
 import { Shimmer } from '@/components/ai-elements/shimmer';
 import { toast } from 'sonner';
+import PremiumPaywall from '@/components/PremiumPaywall';
 
 const SUGGESTIONS = [
   'Summarize my portfolio risk',
@@ -19,6 +20,12 @@ const SUGGESTIONS = [
   'Show me my active alerts',
   'Compare gold vs silver this week',
 ];
+
+// Matches the 429 the ai-copilot edge function returns once a user's daily
+// quota (see AI_DAILY_QUOTA there) is exhausted — the one Copilot error
+// worth turning into an upgrade prompt instead of a dead-end message.
+const isQuotaError = (message: string | undefined) =>
+  /daily.*(ai )?(request )?limit|429/i.test(message ?? '');
 
 export default function Copilot() {
   const { threadId } = useParams<{ threadId?: string }>();
@@ -127,6 +134,7 @@ export default function Copilot() {
 function ChatWindow({ threadId, onRefreshThreads }: { threadId: string; onRefreshThreads: () => void }) {
   const [initialMessages, setInitialMessages] = useState<UIMessage[] | null>(null);
   const [input, setInput] = useState('');
+  const [paywallOpen, setPaywallOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -150,7 +158,18 @@ function ChatWindow({ threadId, onRefreshThreads }: { threadId: string; onRefres
     id: threadId,
     messages: initialMessages ?? [],
     transport,
-    onError: (e) => toast.error(e.message ?? 'Copilot error'),
+    onError: (e) => {
+      // The daily-quota 429 is a monetization moment, not just an error —
+      // route it to an upgrade prompt instead of a dead-end toast.
+      if (isQuotaError(e.message)) {
+        toast.error('Daily AI limit reached', {
+          description: "You've used today's Copilot messages. Upgrade for a much higher daily limit.",
+          action: { label: 'Upgrade', onClick: () => setPaywallOpen(true) },
+        });
+      } else {
+        toast.error(e.message ?? 'Copilot error');
+      }
+    },
     onFinish: () => onRefreshThreads(),
   });
 
@@ -227,8 +246,17 @@ function ChatWindow({ threadId, onRefreshThreads }: { threadId: string; onRefres
             </Message>
           )}
           {error && (
-            <div className="text-sm text-destructive p-3 rounded border border-destructive/30 bg-destructive/5">
-              {error.message}
+            <div className="text-sm text-destructive p-3 rounded border border-destructive/30 bg-destructive/5 flex items-center justify-between gap-3">
+              <span>
+                {isQuotaError(error.message)
+                  ? "You've used today's Copilot messages. Upgrade for a much higher daily limit."
+                  : error.message}
+              </span>
+              {isQuotaError(error.message) && (
+                <Button size="sm" onClick={() => setPaywallOpen(true)} className="shrink-0">
+                  Upgrade
+                </Button>
+              )}
             </div>
           )}
         </ConversationContent>
@@ -249,6 +277,8 @@ function ChatWindow({ threadId, onRefreshThreads }: { threadId: string; onRefres
           </PromptInputFooter>
         </PromptInput>
       </div>
+
+      <PremiumPaywall open={paywallOpen} onOpenChange={setPaywallOpen} source="copilot_quota" />
     </>
   );
 }
