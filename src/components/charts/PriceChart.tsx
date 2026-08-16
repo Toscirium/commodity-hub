@@ -157,6 +157,22 @@ const PriceChart: React.FC<PriceChartProps> = ({
         horzLines: { color: colors.grid, style: LineStyle.Dotted },
       },
       crosshair: { mode: CrosshairMode.Normal },
+      // Defaults let a stray drag near the price/time axis edge — or just a
+      // mouse wheel scrolling past the chart on the page — silently squash
+      // or stretch the scale. Panning (drag) and deliberate two-finger pinch
+      // stay on; the accidental-looking ones are off. The reset-zoom button
+      // (top-right) always undoes whatever this leaves in place.
+      handleScroll: {
+        mouseWheel: false,
+        pressedMouseMove: true,
+        horzTouchDrag: true,
+        vertTouchDrag: false,
+      },
+      handleScale: {
+        axisPressedMouseMove: false,
+        mouseWheel: false,
+        pinch: true,
+      },
       timeScale: {
         borderColor: colors.border,
         timeVisible: true,
