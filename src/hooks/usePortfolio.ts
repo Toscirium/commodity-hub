@@ -4,6 +4,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useDelayedData } from '@/hooks/useDelayedData';
 
+export type PositionSide = 'buy' | 'sell';
+export type PositionStatus = 'open' | 'closed';
+export type PositionSource = 'manual' | 'statement_import';
+
 export interface PortfolioPosition {
   id: string;
   user_id: string;
@@ -12,6 +16,14 @@ export interface PortfolioPosition {
   quantity: number;
   entry_price: number;
   entry_date: string;
+  side: PositionSide;
+  leverage: number | null;
+  status: PositionStatus;
+  exit_price: number | null;
+  closed_date: string | null;
+  broker: string | null;
+  source: PositionSource;
+  external_id: string | null;
   notes?: string | null;
   created_at: string;
   updated_at: string;
@@ -58,29 +70,55 @@ export const usePortfolio = (portfolioId?: string | null) => {
 
       if (fetchError) throw fetchError;
 
-      // Fetch current prices for all positions
+      // Fetch current prices for all positions. Closed positions are frozen
+      // at their recorded exit price — no need to hit the price feed for them.
       const positionsWithPrices = await Promise.all(
-        (data || []).map(async (position) => {
+        ((data || []) as PortfolioPosition[]).map(async (position) => {
+          const isShort = position.side === 'sell';
+          const isClosed = position.status === 'closed';
+
+          const computeReturns = (markPrice: number) => {
+            const currentValue = position.quantity * markPrice;
+            // Short P&L is the mirror image of long P&L: profit when price falls.
+            const priceDiff = isShort
+              ? position.entry_price - markPrice
+              : markPrice - position.entry_price;
+            const totalReturn = priceDiff * position.quantity;
+            const returnPercentage = position.entry_price !== 0
+              ? (priceDiff / position.entry_price) * 100
+              : 0;
+            return { currentValue, totalReturn, returnPercentage };
+          };
+
+          if (isClosed && position.exit_price != null) {
+            const { currentValue, totalReturn, returnPercentage } = computeReturns(position.exit_price);
+            return {
+              ...position,
+              current_price: position.exit_price,
+              current_value: currentValue,
+              total_return: totalReturn,
+              return_percentage: returnPercentage,
+              is_positive: totalReturn >= 0,
+            };
+          }
+
           try {
             // Use the Supabase edge function to fetch current prices
             const response = await supabase.functions.invoke('fetch-commodity-prices', {
-              body: { 
+              body: {
                 commodityName: position.commodity_name,
                 isPremium,
                 dataDelay: 'realtime'
               }
             });
             let currentPrice = position.entry_price; // fallback to entry price
-            
+
             if (response.data && !response.error) {
               const priceData = response.data;
               currentPrice = priceData.price?.price || position.entry_price;
             }
 
-            const currentValue = position.quantity * currentPrice;
-            const entryValue = position.quantity * position.entry_price;
-            const totalReturn = currentValue - entryValue;
-            const returnPercentage = ((currentPrice - position.entry_price) / position.entry_price) * 100;
+            const { currentValue, totalReturn, returnPercentage } = computeReturns(currentPrice);
 
             return {
               ...position,
@@ -121,6 +159,12 @@ export const usePortfolio = (portfolioId?: string | null) => {
     entry_date: string;
     notes?: string;
     portfolio_id?: string;
+    side?: PositionSide;
+    leverage?: number | null;
+    status?: PositionStatus;
+    exit_price?: number | null;
+    closed_date?: string | null;
+    broker?: string | null;
   }) => {
     if (!user) throw new Error('User not authenticated');
 

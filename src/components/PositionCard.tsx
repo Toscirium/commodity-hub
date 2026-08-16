@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { MoreVertical, TrendingUp, TrendingDown, Calendar, Hash, Edit, Trash2, FolderInput } from 'lucide-react';
+import { MoreVertical, TrendingUp, TrendingDown, Calendar, Hash, Edit, Trash2, FolderInput, Zap, Building2, Lock } from 'lucide-react';
 import { PositionWithCurrentPrice } from '@/hooks/usePortfolio';
 import { useCurrency } from '@/hooks/useCurrency';
 
@@ -54,7 +54,21 @@ const PositionCard: React.FC<PositionCardProps> = ({ position, onEdit, onDelete,
               <CardTitle className="text-lg font-bold text-foreground">
                 {position.commodity_name}
               </CardTitle>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                <Badge
+                  className={`text-xs ${
+                    position.side === 'sell'
+                      ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400 border-transparent'
+                      : 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400 border-transparent'
+                  }`}
+                >
+                  {position.side === 'sell' ? (
+                    <TrendingDown className="w-3 h-3 mr-1" />
+                  ) : (
+                    <TrendingUp className="w-3 h-3 mr-1" />
+                  )}
+                  {position.side === 'sell' ? 'Short' : 'Long'}
+                </Badge>
                 <Badge variant="outline" className="text-xs">
                   <Hash className="w-3 h-3 mr-1" />
                   {position.quantity}
@@ -63,9 +77,27 @@ const PositionCard: React.FC<PositionCardProps> = ({ position, onEdit, onDelete,
                   <Calendar className="w-3 h-3 mr-1" />
                   {formatDate(position.entry_date)}
                 </Badge>
+                {position.leverage != null && (
+                  <Badge variant="outline" className="text-xs">
+                    <Zap className="w-3 h-3 mr-1" />
+                    {position.leverage}x
+                  </Badge>
+                )}
+                {position.broker && (
+                  <Badge variant="outline" className="text-xs">
+                    <Building2 className="w-3 h-3 mr-1" />
+                    {position.broker}
+                  </Badge>
+                )}
+                {position.status === 'closed' && (
+                  <Badge variant="secondary" className="text-xs">
+                    <Lock className="w-3 h-3 mr-1" />
+                    Closed {position.closed_date ? formatDate(position.closed_date) : ''}
+                  </Badge>
+                )}
               </div>
             </div>
-            
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -114,7 +146,9 @@ const PositionCard: React.FC<PositionCardProps> = ({ position, onEdit, onDelete,
               <p className="text-sm font-semibold">{formatConvertedPrice(position.entry_price)}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Current Price</p>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                {position.status === 'closed' ? 'Exit Price' : 'Current Price'}
+              </p>
               <p className="text-sm font-semibold">{formatConvertedPrice(position.current_price)}</p>
             </div>
           </div>

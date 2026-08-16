@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
-import { TrendingUp, Calendar, ChartCandlestick } from 'lucide-react';
+import { TrendingUp, Calendar, ChartCandlestick, Maximize2 } from 'lucide-react';
 import { TIMEFRAMES } from './chartUtils';
 import CurrencySelector from '@/components/CurrencySelector';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -17,6 +17,8 @@ interface ChartHeaderProps {
   isPositiveTrend: boolean;
   priceChange: number;
   ohlcAvailable?: boolean;
+  /** Opens the immersive full-screen chart view. Omit to hide the control (e.g. already full-screen). */
+  onExpand?: () => void;
 }
 
 const ChartHeader: React.FC<ChartHeaderProps> = ({
@@ -30,6 +32,7 @@ const ChartHeader: React.FC<ChartHeaderProps> = ({
   isPositiveTrend,
   priceChange,
   ohlcAvailable = false,
+  onExpand,
 }) => {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 w-full min-w-0 max-w-full overflow-hidden">
@@ -86,6 +89,29 @@ const ChartHeader: React.FC<ChartHeaderProps> = ({
             </Tooltip>
           </TooltipProvider>
         </div>
+
+        {/* Manual full-screen entry — the immersive view otherwise only ever
+            opened automatically when a mobile device is rotated to
+            landscape, so desktop and portrait-mode users had no way to get
+            the bigger chart at all. */}
+        {onExpand && (
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onExpand}
+                  aria-label="Open full-screen chart"
+                  className="h-8 w-8 p-0"
+                >
+                  <Maximize2 className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Full-screen chart</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
 
         <Calendar className="w-4 h-4 text-muted-foreground" />
         <div className="flex flex-wrap gap-1 sm:gap-2 p-1 bg-muted/50 rounded-lg min-w-0 max-w-full overflow-hidden">
