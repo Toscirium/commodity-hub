@@ -62,6 +62,15 @@ interface PriceChartProps {
   onPendingTrendlineChange?: (pending: boolean) => void;
   /** false for an edge-to-edge chart with no visible frame around it (e.g. bled flush to a card's edges). Defaults to true. */
   bordered?: boolean;
+  /**
+   * false for a chart embedded inline in a scrollable page (e.g. the
+   * dashboard card preview) — disables single-finger touch panning so a
+   * vertical swipe that starts on the chart still scrolls the page instead
+   * of getting captured as a chart pan. Pinch-zoom and desktop click-drag
+   * stay on either way. Defaults to true (full-screen view, where page
+   * scroll is locked anyway, always wants this on).
+   */
+  interactive?: boolean;
 }
 
 type MainSeries = ISeriesApi<'Candlestick'> | ISeriesApi<'Area'>;
@@ -125,6 +134,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
   onTrendlineDelete,
   onPendingTrendlineChange,
   bordered = true,
+  interactive = true,
 }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const chartRef = React.useRef<IChartApi | null>(null);
@@ -162,10 +172,18 @@ const PriceChart: React.FC<PriceChartProps> = ({
       // or stretch the scale. Panning (drag) and deliberate two-finger pinch
       // stay on; the accidental-looking ones are off. The reset-zoom button
       // (top-right) always undoes whatever this leaves in place.
+      //
+      // horzTouchDrag additionally follows `interactive`: when this chart is
+      // embedded inline in a scrollable page (interactive=false), a
+      // single-finger drag that starts on the chart falls through to the
+      // page's own vertical scroll instead of being captured as a chart pan
+      // — that capture was the "fights the page scroll" bug. Full-screen
+      // (interactive=true) has no competing page scroll to fight (body
+      // scroll is locked there), so it keeps touch panning.
       handleScroll: {
         mouseWheel: false,
         pressedMouseMove: true,
-        horzTouchDrag: true,
+        horzTouchDrag: interactive,
         vertTouchDrag: false,
       },
       handleScale: {
@@ -270,7 +288,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
       primitives.clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chartType, isDark]);
+  }, [chartType, isDark, interactive]);
 
   // Keep the area-series color in sync with trend direction without a full chart recreate.
   React.useEffect(() => {
