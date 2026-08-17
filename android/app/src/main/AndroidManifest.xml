@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <application
         android:allowBackup="true"
@@ -64,4 +65,18 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Facebook's SDK (bundled via @capgo/capacitor-social-login, even
+         though Facebook login is never actually used anywhere in this app —
+         see AuthContext.tsx, only Google is called) auto-declares this
+         permission in its own library manifest. Disabling the Facebook
+         provider via SocialLogin.providers instead (capacitor.config.ts)
+         breaks R8 minification — the plugin's Java still references
+         Facebook classes unconditionally, so excluding the dependency
+         leaves unresolvable references. This is the plugin's own
+         documented, R8-safe fix: keep the dependency, strip the resulting
+         permission from the merged manifest directly. Required for the
+         Play Console "does your app use advertising ID?" declaration to
+         actually be true when answered "No". -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
 </manifest>
