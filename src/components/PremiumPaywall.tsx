@@ -78,6 +78,7 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
   const [purchasing, setPurchasing] = React.useState<string | null>(null);
   const tier = auth?.tier ?? 'free';
   const isPaid = tier !== 'free';
+  const revenueCatReady = isRevenueCatAvailable();
 
   React.useEffect(() => {
     if (!open) return;
@@ -300,7 +301,16 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
                 </Button>
               </>
             )}
-            {isNative && (
+            {isNative && !revenueCatReady && (
+              // Native app, but this platform has no RevenueCat key configured
+              // (today: iOS — VITE_REVENUECAT_IOS_KEY is unset). Without this,
+              // both tier cards above render with zero purchase buttons and no
+              // explanation, which reads as broken rather than unavailable.
+              <div className="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                Subscriptions aren't available on this platform yet.
+              </div>
+            )}
+            {isNative && revenueCatReady && (
               <Button variant="ghost" size="sm" className="w-full" onClick={handleRestore}>
                 Restore previous purchase
               </Button>
