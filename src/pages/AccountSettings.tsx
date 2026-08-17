@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, Download, FileText, Shield, Trash2, User } from 'lucide-react';
+import { ArrowLeft, Bell, Download, FileText, Shield, Trash2, User, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -69,6 +69,11 @@ const AccountSettings: React.FC = () => {
         <Card>
           <CardHeader><CardTitle>Data</CardTitle><CardDescription>Download your workspace and manage Pro API access.</CardDescription></CardHeader>
           <CardContent><Button variant="outline" className="justify-start" asChild><Link to="/exports"><Download className="mr-2 h-4 w-4" />Exports & Data API</Link></Button></CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>Team</CardTitle><CardDescription>Invite teammates to share notes and approvals under your Pro plan.</CardDescription></CardHeader>
+          <CardContent><Button variant="outline" className="justify-start" asChild><Link to="/team"><Users className="mr-2 h-4 w-4" />Team Workspace</Link></Button></CardContent>
         </Card>
 
         <Card>

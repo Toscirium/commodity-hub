@@ -58,6 +58,7 @@ const Fundamentals = lazy(() => import('@/pages/Fundamentals'));
 const OptionsChain = lazy(() => import('@/pages/OptionsChain'));
 const ProAnalyticsWorkspace = lazy(() => import('@/pages/ProAnalyticsWorkspace'));
 const DataExports = lazy(() => import('@/pages/DataExports'));
+const TeamWorkspace = lazy(() => import('@/pages/TeamWorkspace'));
 const StressTest = lazy(() => import('@/pages/StressTest'));
 const Messages = lazy(() => import('@/pages/Messages'));
 const Trade = lazy(() => import('@/pages/Trade'));
@@ -120,6 +121,7 @@ const App = () => {
                 <Route path="/delete-account" element={<DeleteAccount />} />
                 <Route path="/account-settings" element={<AccountSettings />} />
                 <Route path="/exports" element={<DataExports />} />
+                <Route path="/team" element={<TeamWorkspace />} />
                 <Route path="/account" element={<AccountSettings />} />
                 <Route path="/settings" element={<AccountSettings />} />
                 <Route path="/billing" element={<AccountSettings />} />

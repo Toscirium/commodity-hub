@@ -253,7 +253,7 @@ const openApiSpec = {
     "/data-api": {
       get: {
         summary: "Query your data-api key's resources",
-        description: "Pro-tier programmatic access. Authenticate with `Authorization: Bearer ch_live_...` (create/revoke keys at /account-settings/data-exports). Choose a resource via the `resource` query param.",
+        description: "Pro-tier programmatic access. Authenticate with `Authorization: Bearer ch_live_...` (create/revoke keys at /exports). Choose a resource via the `resource` query param.",
         tags: ["Data API"],
         security: [{ "apiKeyAuth": [] }],
         parameters: [
@@ -330,7 +330,7 @@ const openApiSpec = {
         type: "http",
         scheme: "bearer",
         bearerFormat: "ch_live_...",
-        description: "Data API key, created at /account-settings/data-exports. Not a user JWT."
+        description: "Data API key, created at /exports. Not a user JWT."
       }
     }
   },
