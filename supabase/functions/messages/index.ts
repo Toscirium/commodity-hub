@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders } from '../_shared/utils.ts';
 import { IpRateLimiter } from '../_shared/rateLimit.ts';
 import { sendFcmToTokens } from '../_shared/fcm.ts';
@@ -6,10 +6,30 @@ import { encryptBody, decryptRow } from '../_shared/messageCrypto.ts';
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-// --- Rate limiting (per user, not per IP — see data-api for the same pattern) ---
-const sendLimiter = new IpRateLimiter({ limit: 20, windowMs: 60_000 });
+// --- Rate limiting ---
+// IpRateLimiter's counter is per-isolate in-memory. That's fine for casual
+// abuse from one client hammering sequentially, but end-to-end testing
+// against the deployed function showed it does NOT hold up: 100 concurrent
+// sends from one user, 0 rate-limited. Supabase's edge runtime spins up
+// separate isolates for concurrent requests, so a burst spammer never
+// accumulates enough hits on any single isolate's counter to trip it.
+// `send` is the real abuse vector (message spam), so it gets a DB-backed
+// check instead — a COUNT query against `messages` is consistent across
+// every isolate because it reads from the one shared Postgres instance.
+// `report_message` gets the same treatment since the table already has
+// what's needed (reporter_id + created_at). `start_conversation` is lower
+// severity (no content sent, just a conversation row) and there's no
+// existing "who created this conversation, when" column to count against
+// without a schema change, so it stays on the in-memory limiter — best
+// effort, not a hard guarantee.
 const startLimiter = new IpRateLimiter({ limit: 10, windowMs: 60_000 });
-const reportLimiter = new IpRateLimiter({ limit: 10, windowMs: 60_000 });
+
+const withinLast = (ms: number) => new Date(Date.now() - ms).toISOString();
+
+const dbRateLimited = async (admin: SupabaseClient, table: string, column: string, userId: string, limit: number, windowMs: number): Promise<boolean> => {
+  const { count } = await admin.from(table).select('id', { count: 'exact', head: true }).eq(column, userId).gt('created_at', withinLast(windowMs));
+  return (count ?? 0) >= limit;
+};
 
 const displayName = (p: { full_name: string | null; email: string } | null | undefined) =>
   p?.full_name || p?.email?.split('@')[0] || 'Unknown';
@@ -141,8 +161,7 @@ Deno.serve(async (req) => {
   }
 
   if (action === 'send') {
-    const limit = sendLimiter.check(user.id);
-    if (!limit.allowed) return json({ error: 'rate_limited', retryAfterSeconds: limit.retryAfterSeconds }, 429);
+    if (await dbRateLimited(admin, 'messages', 'sender_id', user.id, 20, 60_000)) return json({ error: 'rate_limited' }, 429);
     const conversationId = body.conversation_id;
     const text = typeof body.body === 'string' ? body.body.trim() : '';
     if (!text || text.length > 4000) return json({ error: 'invalid_message' }, 400);
@@ -206,8 +225,7 @@ Deno.serve(async (req) => {
   }
 
   if (action === 'report_message') {
-    const limit = reportLimiter.check(user.id);
-    if (!limit.allowed) return json({ error: 'rate_limited', retryAfterSeconds: limit.retryAfterSeconds }, 429);
+    if (await dbRateLimited(admin, 'message_reports', 'reporter_id', user.id, 10, 60_000)) return json({ error: 'rate_limited' }, 429);
     const messageId = body.message_id;
     const reason = typeof body.reason === 'string' ? body.reason.trim() : '';
     if (!reason || reason.length > 500) return json({ error: 'invalid_reason' }, 400);
