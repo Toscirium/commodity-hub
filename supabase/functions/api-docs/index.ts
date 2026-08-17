@@ -249,6 +249,26 @@ const openApiSpec = {
           }
         }
       }
+    },
+    "/data-api": {
+      get: {
+        summary: "Query your data-api key's resources",
+        description: "Pro-tier programmatic access. Authenticate with `Authorization: Bearer ch_live_...` (create/revoke keys at /account-settings/data-exports). Choose a resource via the `resource` query param.",
+        tags: ["Data API"],
+        security: [{ "apiKeyAuth": [] }],
+        parameters: [
+          { name: "resource", in: "query", schema: { type: "string", enum: ["portfolio", "watchlists", "cot", "fundamentals"] }, description: "Defaults to 'portfolio'." },
+          { name: "commodity", in: "query", schema: { type: "string" }, description: "Required when resource=cot, e.g. 'WTI Crude Oil'." },
+          { name: "limit", in: "query", schema: { type: "integer" }, description: "resource=cot only. Weekly reports to return, default 52, max 260." },
+          { name: "series_id", in: "query", schema: { type: "string" }, description: "resource=fundamentals only. Returns one series with its full observation history, e.g. 'PET.WCESTUS1.W'." },
+          { name: "dataset", in: "query", schema: { type: "string" }, description: "resource=fundamentals only, ignored if series_id is set. Filters the series list, e.g. 'petroleum'." }
+        ],
+        responses: {
+          "200": { description: "Successful response", content: { "application/json": { schema: { type: "object", properties: { data: { type: "array", items: {} }, generated_at: { type: "string", format: "date-time" } } } } } },
+          "401": { description: "Missing or invalid API key" },
+          "429": { description: "Rate limit exceeded (60 requests/minute per key)" }
+        }
+      }
     }
   },
   components: {
@@ -305,13 +325,20 @@ const openApiSpec = {
         type: "http",
         scheme: "bearer",
         bearerFormat: "JWT"
+      },
+      apiKeyAuth: {
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "ch_live_...",
+        description: "Data API key, created at /account-settings/data-exports. Not a user JWT."
       }
     }
   },
   tags: [
     { name: "Commodities", description: "Commodity data and pricing" },
     { name: "Trading", description: "Trading instruments and contracts" },
-    { name: "Billing", description: "Subscription and billing management" }
+    { name: "Billing", description: "Subscription and billing management" },
+    { name: "Data API", description: "Pro-tier programmatic access to portfolio, watchlist, COT, and fundamentals data" }
   ]
 };
 
