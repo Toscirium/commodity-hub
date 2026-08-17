@@ -31,9 +31,14 @@ const config: CapacitorConfig = {
     // VITE_GOOGLE_WEB_CLIENT_ID. No static plugin config needed here.
   },
   android: {
-    compileSdkVersion: 35,
-    minSdkVersion: 22,
-    targetSdkVersion: 35,
+    // The real source of truth for the Gradle build is android/variables.gradle
+    // (already 36/23 — these capacitor.config.ts fields don't get synced into
+    // it by `cap sync`, verified directly). Kept in step here so this file
+    // doesn't mislead anyone reading it about what's actually being built —
+    // Google Play requires targeting API 36 (Android 16) from 2026-08-31.
+    compileSdkVersion: 36,
+    minSdkVersion: 23,
+    targetSdkVersion: 36,
     iconDensity: 'mdpi',
     adaptiveIcon: {
       foreground: 'icon.png',
