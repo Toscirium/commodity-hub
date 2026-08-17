@@ -13,15 +13,14 @@ const config: CapacitorConfig = {
   //   },
   // and set allowMixedContent / webContentsDebuggingEnabled back to true below.
   plugins: {
-    SplashScreen: {
-      launchShowDuration: 2000,
-      backgroundColor: "#1e3a5f",
-      androidScaleType: "CENTER_CROP",
-      showSpinner: false,
-      androidSpinnerStyle: "large",
-      iosSpinnerStyle: "small",
-      spinnerColor: "#ffffff"
-    },
+    // NOTE: there is no SplashScreen block here. @capacitor/splash-screen
+    // isn't a dependency of this project (checked: not in package.json,
+    // not in node_modules, and `cap sync` doesn't list it among installed
+    // plugins) — a SplashScreen config here would be silently inert, not
+    // actually control anything. If a real native splash screen is wanted,
+    // that means installing @capacitor/splash-screen properly and calling
+    // SplashScreen.hide() once the app is actually ready, not just
+    // re-adding this config block.
     StatusBar: {
       style: "DARK",
       backgroundColor: "#1e3a5f"
