@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders } from '../_shared/utils.ts';
-import { IpRateLimiter, rateLimitHeaders, tooManyRequestsResponse, logRateLimitBreach } from '../_shared/rateLimit.ts';
+import { rateLimitHeaders, tooManyRequestsResponse, type RateLimitResult } from '../_shared/rateLimit.ts';
 
 const hash = async (value: string) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))).map((v) => v.toString(16).padStart(2, '0')).join('');
 const json = (body: unknown, status = 200, extraHeaders: Record<string, string> = {}) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, ...extraHeaders, 'Content-Type': 'application/json' } });
@@ -8,8 +8,15 @@ const json = (body: unknown, status = 200, extraHeaders: Record<string, string> 
 // Per-key limit, not per-IP: a quant shop hitting this from one server IP
 // should still get the full budget. 60 req/min is generous for polling a
 // data feed while keeping a leaked/shared key from hammering the DB.
-// (Same per-isolate caveat as api-docs' limiter — see rateLimit.ts.)
-const limiter = new IpRateLimiter({ limit: 60, windowMs: 60_000 });
+//
+// DB-backed (an atomic UPSERT-increment via data_api_increment_rate), not
+// the in-memory IpRateLimiter this used to use — that was found not to
+// hold up under concurrent requests (see messages/index.ts's history for
+// the same bug caught by end-to-end testing): Supabase's edge runtime
+// spins up separate isolates per concurrent request, so a per-isolate
+// in-memory counter barely limits anything under a real burst.
+const RATE_LIMIT = 60;
+const RATE_WINDOW_MS = 60_000;
 const MAX_COT_LIMIT = 260; // 5 years of weekly reports
 
 Deno.serve(async (req) => {
@@ -24,10 +31,21 @@ Deno.serve(async (req) => {
   const { data: profile } = await admin.from('profiles').select('subscription_active, subscription_tier').eq('id', key.user_id).maybeSingle();
   if (!profile?.subscription_active || profile.subscription_tier !== 'pro') return json({ error: 'pro_required' }, 403);
 
-  const limit = limiter.check(key.id);
+  const windowStartMs = Math.floor(Date.now() / RATE_WINDOW_MS) * RATE_WINDOW_MS;
+  const { data: requestCount, error: rateErr } = await admin.rpc('data_api_increment_rate', { p_key_id: key.id, p_window_start: new Date(windowStartMs).toISOString() });
+  if (rateErr) console.error(JSON.stringify({ evt: 'rate_limit_check_failed', fn: 'data-api', keyId: key.id, error: rateErr.message })); // fail open — a rate-limit hiccup shouldn't take the API down
+  const count = rateErr ? 0 : (requestCount as number);
+  const resetAt = windowStartMs + RATE_WINDOW_MS;
+  const limit: RateLimitResult = {
+    allowed: count <= RATE_LIMIT,
+    limit: RATE_LIMIT,
+    remaining: Math.max(0, RATE_LIMIT - count),
+    resetAt,
+    retryAfterSeconds: Math.max(1, Math.ceil((resetAt - Date.now()) / 1000)),
+  };
   const rlHeaders = rateLimitHeaders(limit);
   if (!limit.allowed) {
-    await logRateLimitBreach('data-api', key.id, limit, req, limiter);
+    console.warn(JSON.stringify({ evt: 'rate_limit_breach', fn: 'data-api', keyId: key.id, count, limit: RATE_LIMIT, ts: new Date().toISOString() }));
     return tooManyRequestsResponse(limit, corsHeaders);
   }
 
