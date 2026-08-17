@@ -27,7 +27,26 @@ const config: CapacitorConfig = {
     },
     // Native Google Sign-In is configured at runtime via
     // SocialLogin.initialize() in AuthContext (see signInWithGoogle) using
-    // VITE_GOOGLE_WEB_CLIENT_ID. No static plugin config needed here.
+    // VITE_GOOGLE_WEB_CLIENT_ID. Google is the only provider this app
+    // actually calls (grep confirms no facebook/apple/twitter provider
+    // calls anywhere) — the plugin bundles all four by default unless told
+    // otherwise, and per its own README, Facebook's SDK pulls in the
+    // com.google.android.gms.permission.AD_ID permission regardless of
+    // whether Facebook login is ever used. Disabling it here removes that
+    // permission from the merged manifest, which is what makes "No" to
+    // Play Console's advertising ID declaration actually true rather than
+    // just currently-unused. Twitter dropped too since it's also unused
+    // (no bundled deps either way, so no size/manifest impact either way —
+    // disabled for accuracy). Apple stays enabled: system APIs only, zero
+    // cost, and free future-proofing if Apple Sign-In is ever added.
+    SocialLogin: {
+      providers: {
+        google: true,
+        facebook: false,
+        apple: true,
+        twitter: false,
+      },
+    },
   },
   android: {
     // The real source of truth for the Gradle build is android/variables.gradle
