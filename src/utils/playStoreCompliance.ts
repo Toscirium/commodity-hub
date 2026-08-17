@@ -147,46 +147,62 @@ export const validatePlayStoreCompliance = (): {
 };
 
 // Generate Play Store listing metadata
+//
+// Kept in sync with the actual app, not what it looked like at an earlier
+// stage — this drifted badly before (described as a $4.99 one-time
+// purchase with no ads/subs/IAP, when the real app is freemium with
+// Premium/Pro subscriptions). A stale draft here is worse than none: if it
+// ever gets pasted into Play Console, the declared pricing model wouldn't
+// match actual billing behavior. See src/utils/tiers.ts (TIER_PRICING) for
+// the source of truth on pricing if this needs updating again.
 export const generatePlayStoreMetadata = () => {
   return {
-    title: "Commodity Hub - Live Prices & Insights",
-    shortDescription: "One-time purchase. Live commodity prices, charts & insights — no ads, no subs.",
-    // Pricing model: paid app, one-time purchase, no in-app purchases, no ads, no subscriptions.
+    // Play Console's title field caps at 30 chars — the previous draft
+    // (39 chars) would have been truncated or rejected outright.
+    title: "Commodity Hub: Live Prices",
+    // Play Console's short description caps at 80 chars — this is the
+    // highest-ASO-weight field (shown in search results), so front-load
+    // real search terms rather than marketing copy.
+    shortDescription: "Live commodity prices, charts, portfolio tracking & AI market insights",
     pricing: {
-      model: "paid_app" as const,
-      priceEUR: 4.99,
-      priceUSD: 4.99,
-      hasInAppPurchases: false,
+      model: "freemium" as const,
+      hasInAppPurchases: true, // Premium/Pro subscriptions, sold via Play Billing
       hasAds: false,
-      hasSubscriptions: false,
+      hasSubscriptions: true,
+      tiers: {
+        free: { priceUSD: 0 },
+        premium: { priceUSD: 6.99, billingPeriod: "monthly", annualDiscountAvailable: true },
+        pro: { priceUSD: 19.99, billingPeriod: "monthly", annualDiscountAvailable: true },
+      },
     },
     fullDescription: `
-Commodity Hub is the easiest way to follow live commodity prices and market insights — built for everyone from curious beginners to market professionals.
+Commodity Hub is the easiest way to follow live commodity prices, charts, and market insights — free to start, with Premium and Pro tiers for active traders and desks.
 
-One-time purchase. No ads. No subscriptions. No in-app purchases. Buy it once, own it forever.
+🚀 FREE, NO CREDIT CARD REQUIRED:
+• Live prices for 60+ commodities (energy, metals, grains, softs, livestock, industrials)
+• Interactive price charts, price alerts, and a starter watchlist
+• Manual portfolio tracking
+• Market news, economic calendar, and market sentiment tracker
 
-🚀 KEY FEATURES:
-• Live market data for 60+ commodities (energy, metals, grains, softs, livestock, industrials)
-• Interactive charts with multiple timeframes
-• Manual portfolio and customizable watchlists
-• Curated market news and expert insights
-• Price comparison and correlation analysis
-• Economic calendar and market sentiment tracker
+⭐ PREMIUM ($6.99/mo, annual plan available):
+• More active price alerts and portfolios
+• CSV export of positions and alerts
+• Full standard commodity catalog
+• Ad-free experience
 
-📊 EVERYTHING UNLOCKED FROM DAY ONE:
-• Specialty commodities (regional crudes, rare metals, specialty softs)
-• All charting timeframes and tools
-• Full watchlist and portfolio capacity
-• Ad-free, distraction-free experience
-
-⚡ REAL-TIME UPDATES:
-• Live market data refreshed throughout the trading day
-• Breaking news and market analysis
-• Economic indicator releases
+💼 PRO ($19.99/mo, annual plan available):
+• Everything in Premium, plus:
+• Advanced analytics: spread monitor, seasonality, regime scanner
+• Backtest sandbox with portfolio VaR & drawdown
+• COT positioning reports and forward curves
+• AI market copilot with a higher daily quota
+• Team Workspace: share notes and approvals with your desk
+• Programmatic Data API access to your portfolio, COT, and fundamentals data
+• Priority data refresh
 
 🔒 SECURITY & PRIVACY:
-• Encrypted in transit and at rest
-• No advertising IDs collected, no third-party ad SDKs
+• Encrypted in transit; direct message bodies encrypted at rest
+• No ads, no advertising ID, no third-party ad SDKs
 • Account deletion available in-app
 
 Whether you follow crude oil, gold, agricultural products, or specialty metals, Commodity Hub gives you the prices and insights you need at a glance.
@@ -197,15 +213,25 @@ IMPORTANT: Commodity Hub is a market data and information app. It does not provi
       "commodity prices",
       "price tracker",
       "market data",
-      "investment tools",
+      "price alerts",
       "watchlist",
+      "portfolio tracker",
       "commodity analytics",
       "market analysis",
       "financial markets",
       "real-time data",
-      "price charts"
+      "price charts",
+      "COT report",
+      "forward curves"
     ],
     category: "Finance",
+    // Best-effort placeholder, not a submission — the real rating comes
+    // from Play Console's IARC questionnaire. Worth re-running that
+    // questionnaire specifically because of the messaging/community
+    // feature added since this was last set — direct messaging between
+    // users can push a rating up depending on how the questionnaire is
+    // answered (moderation controls in place: block + report, see
+    // src/pages/TeamWorkspace.tsx and the messages edge function).
     contentRating: "Teen",
     website: "https://app.commodity-hub.eu",
     email: "support@commodityhub.com",
