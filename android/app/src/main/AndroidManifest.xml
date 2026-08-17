@@ -49,6 +49,24 @@
                 <data android:scheme="commodityhub" />
             </intent-filter>
 
+            <!-- Android App Links: verified https:// deep links into the web
+                 app's domain, so a tapped link (Google Search results,
+                 another app, etc.) opens straight into this app instead of a
+                 browser when it's installed. autoVerify="true" makes Android
+                 fetch https://app.commodity-hub.eu/.well-known/assetlinks.json
+                 at install time and check it declares this app's package +
+                 signing certificate — that file doesn't exist yet, see
+                 public/.well-known/assetlinks.json for what's needed before
+                 this actually verifies. No path restriction here (matches
+                 every path under the host); useCapacitorAuthDeepLink.ts
+                 handles routing the tapped path once the link opens the app. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="app.commodity-hub.eu" />
+            </intent-filter>
+
         </activity>
 
         <provider
