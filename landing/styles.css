@@ -188,6 +188,10 @@ a { color: inherit; }
 .btn-line { border-color: var(--line); color: var(--text); }
 .btn-line:hover { border-color: var(--brass); }
 
+.store-badge { display: inline-flex; align-items: center; }
+.store-badge img { height: 52px; width: auto; display: block; }
+.store-badge:hover { opacity: 0.85; }
+
 .ledger-facts {
   margin-top: 2.6rem;
   display: grid;
