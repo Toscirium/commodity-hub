@@ -7,16 +7,22 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        // Bumped from 8.9.1 for Play Console's R8/resource-shrinking
-        // optimization request. Deliberately staying within the 8.x line
-        // rather than jumping to 9.0+ — AGP 9.0 is a breaking-change major
-        // version (new DSL, removes applicationVariants) that explicitly
-        // calls out Firebase/RevenueCat/social-login-style plugins as
-        // commonly incompatible, all of which this project uses, and there's
-        // no way to test-build that jump in this environment. 8.13.2 is the
-        // latest 8.x patch and gets android.r8.optimizedResourceShrinking
-        // (see gradle.properties) without that risk.
-        classpath 'com.android.tools.build:gradle:8.13.2'
+        // AGP 9.0.1 (was 8.13.2, before that 8.9.1) — matches Play Console's
+        // literal "upgrade to 9.0+" request. AGP 9.0 is a breaking-change
+        // major version (new android DSL, removes applicationVariants) that
+        // Google's own release notes explicitly call out as commonly
+        // incompatible with apps using Firebase/RevenueCat/social-login-
+        // style plugins (this project uses all three) unless updated or
+        // opted out. android.newDsl=false + android.builtInKotlin=false in
+        // gradle.properties are the documented, temporary compatibility
+        // opt-outs for exactly that — added proactively since there's no
+        // way to test-build this in this environment and iterate on
+        // whatever breaks. Both are slated for removal in AGP 10.0; migrate
+        // off them (and this comment) once every plugin here confirms
+        // compatibility with the new DSL. This is the version that was
+        // deliberately avoided in the previous commit's 8.13.2 bump — see
+        // that commit message for the fuller risk breakdown.
+        classpath 'com.android.tools.build:gradle:9.0.1'
         classpath 'com.google.gms:google-services:4.4.2'
 
         // NOTE: Do not place your application dependencies here; they belong
