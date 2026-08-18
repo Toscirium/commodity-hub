@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlatform } from '@/hooks/usePlatform';
+import { PLAY_STORE_URL } from '@/lib/appLinks';
 import { monitoringService } from '@/services/monitoringService';
 import ManageSubscriptionButton from '@/components/ManageSubscriptionButton';
 import { TIER_PRICING } from '@/utils/tiers';
@@ -47,9 +48,6 @@ const PRO_FEATURES = [
   'Backtest sandbox + portfolio VaR & drawdown',
   'Priority data refresh',
 ];
-
-const PLAY_STORE_URL =
-  'https://play.google.com/store/apps/details?id=com.commodityhub.app';
 
 const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, source = 'unknown' }) => {
   const { toast } = useToast();

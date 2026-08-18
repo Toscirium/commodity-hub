@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { OfflineIndicator } from '@/components/OfflineIndicator';
 import PremiumUpsellCard from '@/components/PremiumUpsellCard';
 import AlertNotificationBell from '@/components/AlertNotificationBell';
+import GetOnGooglePlayButton from '@/components/GetOnGooglePlayButton';
 
 const Dashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -287,24 +288,27 @@ const DashboardContent = ({
             )}
 
             {/* Footer: build/version link */}
-            <div className="mt-8 pt-6 border-t border-border/50 text-center flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-2">
-              <Link
-                to="/version"
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors py-2 px-2 min-h-[44px] flex items-center justify-center"
-              >
-                v{__APP_VERSION__} · Build info
-              </Link>
-              <span className="hidden sm:inline text-xs text-muted-foreground/60">·</span>
-              <span className="text-xs text-muted-foreground/70 py-2">
-                © 2026 Consilair OÜ. All rights reserved.
-              </span>
-              <span className="hidden sm:inline text-xs text-muted-foreground/60">·</span>
-              <Link
-                to="/legal"
-                className="text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline py-2 px-2 min-h-[44px] flex items-center justify-center"
-              >
-                Legal & Imprint
-              </Link>
+            <div className="mt-8 pt-6 border-t border-border/50 flex flex-col items-center justify-center gap-4">
+              <GetOnGooglePlayButton />
+              <div className="text-center flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-2">
+                <Link
+                  to="/version"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors py-2 px-2 min-h-[44px] flex items-center justify-center"
+                >
+                  v{__APP_VERSION__} · Build info
+                </Link>
+                <span className="hidden sm:inline text-xs text-muted-foreground/60">·</span>
+                <span className="text-xs text-muted-foreground/70 py-2">
+                  © 2026 Consilair OÜ. All rights reserved.
+                </span>
+                <span className="hidden sm:inline text-xs text-muted-foreground/60">·</span>
+                <Link
+                  to="/legal"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-2 hover:underline py-2 px-2 min-h-[44px] flex items-center justify-center"
+                >
+                  Legal & Imprint
+                </Link>
+              </div>
             </div>
             {/* Spacer to avoid Android gesture navigation overlap */}
             <div className="h-12 w-full shrink-0" />

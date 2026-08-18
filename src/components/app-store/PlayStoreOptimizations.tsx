@@ -3,6 +3,7 @@ import { useServiceWorker } from '@/hooks/useServiceWorker';
 import { usePerformanceMonitoring } from '@/hooks/usePerformanceMonitoring';
 import { crashReporter } from '@/utils/crashReporting';
 import { networkMonitor, offlineStorage } from '@/utils/offlineOptimization';
+import { PLAY_STORE_URL } from '@/lib/appLinks';
 
 /**
  * Play Store optimizations component that handles:
@@ -141,7 +142,7 @@ export const useAppRatingPrompt = () => {
         if (shouldRate) {
           localStorage.setItem('has_rated', 'true');
           // Open Play Store rating page
-          window.open('https://play.google.com/store/apps/details?id=app.lovable.c8fabd7a96c74aff8d7b001690ec23c7', '_blank');
+          window.open(PLAY_STORE_URL, '_blank');
         }
       }
     };
