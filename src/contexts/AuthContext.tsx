@@ -7,6 +7,15 @@ import { authRateLimiter } from '@/utils/security';
 import { Capacitor } from '@capacitor/core';
 import { tierFromProfile, type Tier } from '@/utils/tiers';
 import { identifyRevenueCatUser, logoutRevenueCatUser } from '@/services/revenueCat';
+import { NATIVE_OAUTH_WEB_BRIDGE_URL } from '@/utils/nativeOAuth';
+
+// On native, window.location.origin is the WebView's internal local origin
+// (e.g. https://localhost), not a real reachable address — an email link
+// pointing there does nothing when tapped from a mail app. Use the same
+// hosted bridge page Google OAuth already relies on to hand the callback
+// back to the installed app (see nativeOAuth.ts / useCapacitorAuthDeepLink).
+const getEmailRedirectBase = () =>
+  Capacitor.isNativePlatform() ? NATIVE_OAUTH_WEB_BRIDGE_URL : `${window.location.origin}/`;
 
 interface Profile {
   id: string;
@@ -321,13 +330,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const passwordValidation = validateFormData.password(password);
       const nameValidation = fullName ? validateFormData.name(fullName) : null;
 
-      const redirectUrl = `${window.location.origin}/`;
-      
       const { error } = await supabase.auth.signUp({
         email: emailValidation,
         password: passwordValidation,
         options: {
-          emailRedirectTo: redirectUrl,
+          emailRedirectTo: getEmailRedirectBase(),
           data: {
             full_name: nameValidation || emailValidation.split('@')[0]
           }
@@ -606,8 +613,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Input validation
       const emailValidation = validateFormData.email(email);
       
+      // Bridge page doesn't care about the path, only the ?native=1 marker +
+      // the auth payload Supabase appends — reuse the same one signUp does.
+      const redirectTo = Capacitor.isNativePlatform()
+        ? NATIVE_OAUTH_WEB_BRIDGE_URL
+        : `${window.location.origin}/reset-password`;
       const { error } = await supabase.auth.resetPasswordForEmail(emailValidation, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo,
       });
 
       if (error) {
