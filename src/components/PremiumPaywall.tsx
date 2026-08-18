@@ -23,6 +23,7 @@ import {
   restorePurchases,
 } from '@/services/revenueCat';
 import type { PurchasesOffering, PurchasesPackage } from '@revenuecat/purchases-capacitor';
+import { PLAY_STORE_URL } from '@/config/playStore';
 
 interface PremiumPaywallProps {
   open: boolean;
@@ -48,11 +49,6 @@ const PRO_FEATURES = [
   'Priority data refresh',
 ];
 
-// Must match android/app/build.gradle's applicationId. This was previously
-// 'com.commodityhub.app' — doesn't match anything real, so every web
-// visitor clicking through was landing on a broken/wrong Play Store page.
-const PLAY_STORE_URL =
-  'https://play.google.com/store/apps/details?id=app.lovable.c8fabd7a96c74aff8d7b001690ec23c7';
 
 /**
  * Annual and monthly packages were rendered as two identical-looking

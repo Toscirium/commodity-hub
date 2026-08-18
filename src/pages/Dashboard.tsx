@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { OfflineIndicator } from '@/components/OfflineIndicator';
 import PremiumUpsellCard from '@/components/PremiumUpsellCard';
 import AlertNotificationBell from '@/components/AlertNotificationBell';
+import GetTheAppButton from '@/components/GetTheAppButton';
 
 const Dashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -207,6 +208,7 @@ const DashboardContent = ({
               </div>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
+              <GetTheAppButton />
               <OfflineIndicator />
               <div
                 className={`w-1.5 h-1.5 rounded-full ${
