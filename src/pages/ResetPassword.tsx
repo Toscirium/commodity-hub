@@ -16,7 +16,14 @@ const ResetPassword = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isResetMode, setIsResetMode] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    return Boolean(params.get('code') || (params.get('type') === 'recovery' && params.get('access_token')));
+    // recovery=1: AuthConfirm.tsx already verified the recovery link (via
+    // verifyOtp, not a code/token this page needs to re-parse) and has an
+    // active session established before navigating here.
+    return Boolean(
+      params.get('recovery') === '1' ||
+      params.get('code') ||
+      (params.get('type') === 'recovery' && params.get('access_token'))
+    );
   });
   const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({

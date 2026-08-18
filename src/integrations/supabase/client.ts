@@ -150,6 +150,19 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
  * builds an implicit-flow provider URL for native sign-in. The returned
  * access/refresh tokens are then persisted with the main `supabase` client via
  * `setSession()` when the app receives the deep link.
+ *
+ * This pattern only works because the *consumer* of the resulting tokens
+ * (setSession(), a direct call) doesn't care about flow type. It would NOT
+ * work for a page-load-style redirect landing on the main app client: that
+ * client auto-detects the URL via detectSessionInUrl, which explicitly
+ * rejects a mismatched flow type (an implicit-style link lands on a
+ * flowType:'pkce' client → AuthPKCEGrantCodeExchangeError, thrown, not
+ * silently ignored — see @supabase/auth-js GoTrueClient._getSessionFromURL).
+ * That's why this can't be reused to fix email-link flows (signUp/
+ * resetPasswordForEmail confirmation links, which land as a normal page
+ * load on the shared PKCE client) — see AuthConfirm.tsx for how those are
+ * actually fixed instead (verifyOtp with a token_hash, which needs no
+ * locally-stored verifier at all).
  */
 export const createNativeImplicitOAuthClient = () => createClient<Database>(
   SUPABASE_URL,

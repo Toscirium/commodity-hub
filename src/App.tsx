@@ -30,6 +30,7 @@ const MarketScreener = lazy(() => import('@/pages/MarketScreener'));
 const MarketSentiment = lazy(() => import('@/pages/MarketSentiment'));
 const NewsSettings = lazy(() => import('@/pages/NewsSettings'));
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
+const AuthConfirm = lazy(() => import('@/pages/AuthConfirm'));
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
 const TermsOfService = lazy(() => import('@/pages/TermsOfService'));
 const Watchlists = lazy(() => import('@/pages/Watchlists'));
@@ -95,6 +96,7 @@ const App = () => {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/auth/confirm" element={<AuthConfirm />} />
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/terms-of-service" element={<TermsOfService />} />
                 
