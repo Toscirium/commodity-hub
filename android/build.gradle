@@ -7,7 +7,16 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.9.1'
+        // Bumped from 8.9.1 for Play Console's R8/resource-shrinking
+        // optimization request. Deliberately staying within the 8.x line
+        // rather than jumping to 9.0+ — AGP 9.0 is a breaking-change major
+        // version (new DSL, removes applicationVariants) that explicitly
+        // calls out Firebase/RevenueCat/social-login-style plugins as
+        // commonly incompatible, all of which this project uses, and there's
+        // no way to test-build that jump in this environment. 8.13.2 is the
+        // latest 8.x patch and gets android.r8.optimizedResourceShrinking
+        // (see gradle.properties) without that risk.
+        classpath 'com.android.tools.build:gradle:8.13.2'
         classpath 'com.google.gms:google-services:4.4.2'
 
         // NOTE: Do not place your application dependencies here; they belong
