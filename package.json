@@ -20,7 +20,8 @@
     "gen:attributions": "node scripts/generate-oss-attributions.mjs",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.48",
@@ -34,7 +35,7 @@
     "@capacitor/haptics": "^7.0.2",
     "@capacitor/ios": "^7.4.0",
     "@capacitor/push-notifications": "^7.0.0",
-    "@capgo/capacitor-social-login": "^7.7.0",
+    "@capgo/capacitor-social-login": "^7.20.0",
     "@fontsource/dm-sans": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@fontsource/space-grotesk": "^5.2.10",
@@ -129,6 +130,7 @@
     "globals": "^15.9.0",
     "jsdom": "^25.0.0",
     "lovable-tagger": "^1.1.7",
+    "patch-package": "^8.0.1",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.11",
     "typescript": "^5.5.3",
