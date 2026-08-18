@@ -2,6 +2,15 @@ import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@/components/ui/sonner';
+// Two independent toast systems are in active use: Sonner (above, used
+// directly by a handful of components) and this Radix-based one, which the
+// `useToast`/`toast` import from '@/hooks/use-toast' feeds — 23 call sites
+// across the app (auth errors, security warnings, Messages, Team Workspace,
+// portfolios, delete-account, etc.). Its <Toaster/> was never mounted, so
+// every one of those calls updated state nothing rendered — silently
+// swallowed, on every platform, not just this deploy. Mounting both here
+// rather than migrating 23 call sites to Sonner.
+import { Toaster as RadixToaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { RealtimeDataProvider } from '@/contexts/RealtimeDataContext';
@@ -165,6 +174,7 @@ const App = () => {
               <MobileBottomNavigation />
               </Suspense>
               <Toaster />
+              <RadixToaster />
             </RealtimeDataProvider>
           </TooltipProvider>
         </BrowserRouter>
