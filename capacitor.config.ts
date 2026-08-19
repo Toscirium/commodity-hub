@@ -66,7 +66,27 @@ const config: CapacitorConfig = {
     // intercepts key events and interferes with Gboard's IME composition,
     // causing visible lag on Backspace inside text inputs.
     captureInput: false,
-    webContentsDebuggingEnabled: false
+    webContentsDebuggingEnabled: false,
+    // Android 15+ (API 35+) enforces edge-to-edge layout for any app
+    // targeting SDK 35+ (we target 36) — the OS no longer lets the app opt
+    // out, so the WebView draws full-bleed under the status bar AND the
+    // system nav bar/gesture pill. Without this flag, our fixed bottom tab
+    // bar (MobileBottomNavigation) renders right where the system nav
+    // buttons/gesture area is, so taps collide with the OS instead of the
+    // app — the "pages interfering with the phone's navigation buttons" bug.
+    // `adjustMarginsForEdgeToEdge: 'auto'` is @capacitor/android's own fix
+    // for exactly this: it applies real WindowInsets as margins on the
+    // WebView, but only on API 35+ and only when the app hasn't explicitly
+    // opted out via the (deprecated) windowOptOutEdgeToEdgeEnforcement theme
+    // attribute — a no-op everywhere else, so this is safe across all
+    // devices/OS versions rather than just the ones currently affected.
+    // Confirmed in node_modules/@capacitor/android's CapConfig.java /
+    // CapacitorWebView.java; @capacitor/cli@8.4.1's shipped TypeScript types
+    // don't know about this android-only runtime key yet (cli and
+    // android/core are on different majors here — 8.x vs 7.x — a pre-existing
+    // mismatch, not something this change fixes), hence the ts-expect-error.
+    // @ts-expect-error -- valid runtime key, not yet in @capacitor/cli's types (see comment above)
+    adjustMarginsForEdgeToEdge: 'auto'
   },
   ios: {
     contentInset: 'automatic',
