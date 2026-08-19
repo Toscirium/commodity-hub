@@ -66,15 +66,7 @@ const config: CapacitorConfig = {
     // intercepts key events and interferes with Gboard's IME composition,
     // causing visible lag on Backspace inside text inputs.
     captureInput: false,
-    // TEMPORARY — flipped true to diagnose a sign-in/sign-up hang on native
-    // that three rounds of adb logcat couldn't see anything of (this flag
-    // suppresses JS console output from reaching logcat at all, not just
-    // remote DevTools access — logcat is fundamentally blind to the WebView's
-    // JS layer with this off). Revert to false once the bug is found: this
-    // exposes the WebView to Chrome DevTools (and its network tab, including
-    // request/response bodies) for anyone with the device connected via USB
-    // debugging — real information exposure, not something to ship.
-    webContentsDebuggingEnabled: true
+    webContentsDebuggingEnabled: false
   },
   ios: {
     contentInset: 'automatic',
