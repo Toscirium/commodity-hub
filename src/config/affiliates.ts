@@ -68,3 +68,72 @@ export function buildAffiliateUrl(provider: AffiliateProvider, symbol: string): 
     return null;
   }
 }
+
+/**
+ * Curated eToro Academy reading, surfaced in the Learning Hub.
+ *
+ * These are LINKS OUT, never embedded: etoro.com serves
+ * `x-frame-options: SAMEORIGIN`, so an iframe is refused by the browser
+ * regardless of our own CSP — and republishing their articles in-app would
+ * put a regulated broker's compliance disclaimers under our brand.
+ *
+ * COMPLIANCE (https://etoropartners.com/compliance-g): the `blurb` fields
+ * below are custom promotional copy, which eToro requires to pre-approve
+ * before publishing. Keep them factual and get sign-off before shipping
+ * changes here. The risk warning next to these links is not optional.
+ */
+export interface AcademyLink {
+  id: string;
+  title: string;
+  blurb: string;
+  path: string;
+}
+
+export const ETORO_ACADEMY_BASE = 'https://www.etoro.com/academy/';
+
+export const ETORO_ACADEMY_LINKS: AcademyLink[] = [
+  {
+    id: 'commodities-intro',
+    title: 'Commodities trading basics',
+    blurb: 'How commodity markets work, and what moves energy, metals, and agricultural prices.',
+    path: 'topic/commodities',
+  },
+  {
+    id: 'cfd-explained',
+    title: 'What is a CFD?',
+    blurb: 'Contracts for difference explained — going long or short without holding the underlying asset.',
+    path: 'topic/cfd',
+  },
+  {
+    id: 'risk-management',
+    title: 'Risk management',
+    blurb: 'Position sizing, stop losses, and managing exposure on leveraged products.',
+    path: 'topic/risk-management',
+  },
+];
+
+/**
+ * Academy deep link carrying our affiliate attribution when the partnership
+ * URL is configured. Falls back to the plain Academy URL otherwise — the
+ * content is publicly readable either way, we just don't get credited.
+ */
+export function buildAcademyUrl(link: AcademyLink): string {
+  const base = AFFILIATE_PROVIDERS.etoro.baseUrl;
+  const target = new URL(link.path, ETORO_ACADEMY_BASE);
+  target.searchParams.set('utm_source', 'commodity-hub');
+  target.searchParams.set('utm_medium', 'affiliate');
+  target.searchParams.set('utm_content', `academy-${link.id}`);
+  if (!base) return target.toString();
+  try {
+    // Route through the partner link so the click is attributed, handing the
+    // Academy destination along as the redirect target.
+    const url = new URL(base);
+    url.searchParams.set('utm_source', 'commodity-hub');
+    url.searchParams.set('utm_medium', 'affiliate');
+    url.searchParams.set('utm_content', `academy-${link.id}`);
+    url.searchParams.set('redirect', target.toString());
+    return url.toString();
+  } catch {
+    return target.toString();
+  }
+}

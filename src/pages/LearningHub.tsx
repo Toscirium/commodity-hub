@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useCommodityCounts } from "@/hooks/useCommodityCounts";
+import AcademyFurtherReading from "@/components/learn/AcademyFurtherReading";
 
 interface TutorialCategory {
   id: string;
@@ -261,6 +262,8 @@ const LearningHub = () => {
                       ))}
                     </div>
                   )}
+
+                  <AcademyFurtherReading />
                 </TabsContent>
 
                 <TabsContent value="glossary" className="space-y-6">
