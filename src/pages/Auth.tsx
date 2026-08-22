@@ -16,6 +16,19 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [signupError, setSignupError] = useState<string | null>(null);
+  const [signinError, setSigninError] = useState<string | null>(null);
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
+  const [isResending, setIsResending] = useState(false);
+  // When set, the card swaps to the "enter the 6-digit code" screen. Codes
+  // are the primary path for confirming signups and starting password
+  // resets — unlike email links they don't depend on the browser → intent →
+  // deep-link → PKCE chain that keeps breaking on native. The emailed links
+  // still work as a fallback for users who prefer tapping them.
+  const [pendingVerification, setPendingVerification] = useState<{
+    email: string;
+    type: 'signup' | 'recovery';
+  } | null>(null);
+  const [otpError, setOtpError] = useState<string | null>(null);
 
   // Uncontrolled inputs (refs) — required on Android WebView so that Gboard's
   // IME composition (keyCode 229) is not interrupted by React re-renders,
@@ -27,13 +40,15 @@ const Auth = () => {
   const signupPasswordRef = useRef<HTMLInputElement>(null);
   const signupConfirmRef = useRef<HTMLInputElement>(null);
   const resetEmailRef = useRef<HTMLInputElement>(null);
+  const otpRef = useRef<HTMLInputElement>(null);
 
   // NOTE: We intentionally do NOT track per-keystroke validity state.
   // On Android WebView, any React re-render during composition causes
   // visible typing lag. Validation happens in the submit handlers, and
   // the native `required` attribute provides the cheap baseline UX.
 
-  const { user, signIn, signUp, signInWithGoogle, resetPassword, loading: authLoading } = useAuth();
+  const { user, signIn, signUp, signInWithGoogle, resetPassword, resendConfirmation, verifyEmailCode, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
 
   // Only redirect if user is authenticated and specifically came to auth page
   // Allow users to browse the app without authentication
@@ -44,9 +59,84 @@ const Auth = () => {
     const password = signinPasswordRef.current?.value ?? '';
     if (!email || !password) return;
 
+    setSigninError(null);
+    setUnconfirmedEmail(null);
     setIsLoading(true);
-    await signIn(email, password);
+    const { error } = await signIn(email, password);
     setIsLoading(false);
+
+    if (error) {
+      const message = error instanceof Error ? error.message : 'We could not sign you in. Please try again.';
+      setSigninError(message);
+      // Supabase's signInWithPassword rejects an unconfirmed account with
+      // this exact message — that's a dead end without a resend option,
+      // since the original confirmation link may have expired, gone to a
+      // stale device, or never arrived at all.
+      if (/email.*not.*confirm/i.test(message)) {
+        setUnconfirmedEmail(email);
+      }
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!unconfirmedEmail) return;
+    setIsResending(true);
+    const { error } = await resendConfirmation(unconfirmedEmail);
+    setIsResending(false);
+    if (!error) {
+      // Fresh email is on its way — take the user straight to the code
+      // entry screen so they can finish without ever leaving the app.
+      setSigninError(null);
+      setPendingVerification({ email: unconfirmedEmail, type: 'signup' });
+      setUnconfirmedEmail(null);
+    }
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pendingVerification) return;
+    const code = otpRef.current?.value.trim() ?? '';
+    if (!code) return;
+
+    setOtpError(null);
+    setIsLoading(true);
+    const { error, session } = await verifyEmailCode(
+      pendingVerification.email,
+      code,
+      pendingVerification.type
+    );
+    setIsLoading(false);
+
+    if (error || !session) {
+      setOtpError(
+        error instanceof Error
+          ? error.message
+          : 'That code was not accepted. Check for a newer email and try again.'
+      );
+      otpRef.current?.select();
+      return;
+    }
+
+    if (pendingVerification.type === 'recovery') {
+      // Session is established — send them to set the new password.
+      // recovery=1 tells ResetPassword not to look for its own code params.
+      navigate('/reset-password?recovery=1', { replace: true });
+      return;
+    }
+    // Signup: the session lands via onAuthStateChange → `user` is set →
+    // the <Navigate to="/" /> below redirects into the app.
+    setPendingVerification(null);
+  };
+
+  const handleResendCode = async () => {
+    if (!pendingVerification) return;
+    setIsResending(true);
+    const { error } =
+      pendingVerification.type === 'signup'
+        ? await resendConfirmation(pendingVerification.email)
+        : await resetPassword(pendingVerification.email);
+    setIsResending(false);
+    if (!error && otpRef.current) otpRef.current.value = '';
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -69,7 +159,13 @@ const Auth = () => {
     setIsLoading(true);
     const { error } = await signUp(email, password, fullName);
     setIsLoading(false);
-    if (error) setSignupError(error instanceof Error ? error.message : 'We could not create your account. Please try again.');
+    if (error) {
+      setSignupError(error instanceof Error ? error.message : 'We could not create your account. Please try again.');
+      return;
+    }
+    // Account created, confirmation email sent — go straight to the code
+    // entry screen so the whole flow finishes inside the app.
+    setPendingVerification({ email, type: 'signup' });
   };
 
   const handleGoogleSignIn = async () => {
@@ -92,7 +188,10 @@ const Auth = () => {
     setIsLoading(false);
 
     if (!error) {
+      // Reset email sent — offer the in-app code path immediately instead
+      // of leaving the user to fight the emailed link on native.
       setShowForgotPassword(false);
+      setPendingVerification({ email, type: 'recovery' });
     }
   };
 
@@ -134,6 +233,85 @@ const Auth = () => {
         </div>
 
         <Card className="p-4 sm:p-6 bg-card border border-border mobile-card">
+          {pendingVerification && (
+            <div className="space-y-4">
+              <div className="text-center space-y-2">
+                <h2 className="text-xl font-semibold">
+                  {pendingVerification.type === 'signup' ? 'Confirm your email' : 'Reset your password'}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  We sent a 6-digit code to{' '}
+                  <span className="font-medium text-foreground">{pendingVerification.email}</span>.
+                  Enter it below{pendingVerification.type === 'recovery' ? ' to choose a new password' : ''}.
+                </p>
+              </div>
+
+              <form onSubmit={handleVerifyCode} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="otp-code">Verification code</Label>
+                  <Input
+                    id="otp-code"
+                    name="code"
+                    type="text"
+                    placeholder="123456"
+                    ref={otpRef}
+                    required
+                    autoComplete="one-time-code"
+                    inputMode="numeric"
+                    maxLength={10}
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    className="mobile-input text-center text-lg tracking-[0.5em]"
+                  />
+                </div>
+
+                {otpError && (
+                  <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert" aria-live="polite">
+                    {otpError}
+                  </p>
+                )}
+
+                <Button type="submit" className="w-full mobile-button-large" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    'Verify'
+                  )}
+                </Button>
+              </form>
+
+              <div className="flex items-center justify-between text-sm">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPendingVerification(null);
+                    setOtpError(null);
+                  }}
+                  className="text-muted-foreground hover:text-primary"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={isResending}
+                  className="text-primary hover:underline disabled:opacity-50"
+                >
+                  {isResending ? 'Sending…' : 'Resend code'}
+                </button>
+              </div>
+
+              <p className="text-xs text-muted-foreground text-center">
+                The email also contains a link you can tap instead.
+              </p>
+            </div>
+          )}
+
+          {!pendingVerification && (
           <Tabs defaultValue="signin" className="space-y-4 sm:space-y-6">
             <TabsList className="grid w-full grid-cols-2 h-12 mobile-touch-target">
               <TabsTrigger value="signin" className="mobile-touch-target">Sign In</TabsTrigger>
@@ -214,8 +392,36 @@ const Auth = () => {
                   </button>
                 </div>
 
+                {signinError && (
+                  <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert" aria-live="polite">
+                    {signinError}
+                  </p>
+                )}
+
+                {unconfirmedEmail && (
+                  <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2">
+                    <p className="text-xs text-muted-foreground">
+                      Didn't get the link, or has it expired?
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={handleResendConfirmation}
+                      disabled={isResending}
+                    >
+                      {isResending ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        'Resend email'
+                      )}
+                    </Button>
+                  </div>
+                )}
+
                 <Button
-                  type="submit" 
+                  type="submit"
                   className="w-full mobile-button-large"
                   disabled={isLoading}
                 >
@@ -409,6 +615,7 @@ const Auth = () => {
               </Button>
             </TabsContent>
           </Tabs>
+          )}
 
           {/* Forgot Password Modal */}
           {showForgotPassword && (

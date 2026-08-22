@@ -7,7 +7,7 @@ import { authRateLimiter } from '@/utils/security';
 import { Capacitor } from '@capacitor/core';
 import { tierFromProfile, type Tier } from '@/utils/tiers';
 import { identifyRevenueCatUser, logoutRevenueCatUser } from '@/services/revenueCat';
-import { NATIVE_OAUTH_WEB_BRIDGE_URL } from '@/utils/nativeOAuth';
+import { NATIVE_OAUTH_WEB_BRIDGE_URL, NATIVE_PASSWORD_RECOVERY_BRIDGE_URL } from '@/utils/nativeOAuth';
 
 // On native, window.location.origin is the WebView's internal local origin
 // (e.g. https://localhost), not a real reachable address — an email link
@@ -49,6 +49,12 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
+  resendConfirmation: (email: string) => Promise<{ error: any }>;
+  verifyEmailCode: (
+    email: string,
+    token: string,
+    type: 'signup' | 'recovery'
+  ) => Promise<{ error: any; session: Session | null }>;
 }
 
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
@@ -350,7 +356,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         toast({
           title: "Check your email",
-          description: "We've sent you a confirmation link to complete your signup.",
+          description: "We've sent you a 6-digit code to complete your signup.",
         });
       }
 
@@ -613,10 +619,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Input validation
       const emailValidation = validateFormData.email(email);
       
-      // Bridge page doesn't care about the path, only the ?native=1 marker +
-      // the auth payload Supabase appends — reuse the same one signUp does.
+      // Native gets its own bridge URL tagged flow=recovery — the generic
+      // one signUp() uses would land the user signed back in with their old
+      // password instead of on the "set new password" screen, since a bare
+      // ?code=... is otherwise indistinguishable from an OAuth/signup code
+      // (see useCapacitorAuthDeepLink.ts's handleOAuthUrl).
       const redirectTo = Capacitor.isNativePlatform()
-        ? NATIVE_OAUTH_WEB_BRIDGE_URL
+        ? NATIVE_PASSWORD_RECOVERY_BRIDGE_URL
         : `${window.location.origin}/reset-password`;
       const { error } = await supabase.auth.resetPasswordForEmail(emailValidation, {
         redirectTo,
@@ -644,6 +653,117 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         variant: "destructive",
       });
       return { error };
+    }
+  };
+
+  // Recovery path for the dead end where signUp()'s confirmation link never
+  // completes (email delayed/lost, link expired, or — on native — the PKCE
+  // code_verifier it depends on no longer matches this install) and signIn()
+  // then permanently rejects the account with "Email not confirmed". Reuses
+  // the same native/web redirect target signUp() does so the resent link
+  // behaves identically to the original one.
+  const resendConfirmation = async (email: string) => {
+    try {
+      const rateCheck = authRateLimiter.check('resend-confirmation');
+      if (!rateCheck.allowed) {
+        const error = new Error('Too many resend attempts. Please wait before trying again.');
+        toast({
+          title: "Rate Limit Exceeded",
+          description: error.message,
+          variant: "destructive",
+        });
+        return { error };
+      }
+
+      const emailValidation = validateFormData.email(email);
+
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: emailValidation,
+        options: {
+          emailRedirectTo: getEmailRedirectBase(),
+        },
+      });
+
+      if (error) {
+        toast({
+          title: "Couldn't resend confirmation",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Confirmation email sent",
+          description: "Check your email for a new confirmation link.",
+        });
+      }
+
+      return { error };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Invalid input provided';
+      toast({
+        title: "Couldn't resend confirmation",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      return { error };
+    }
+  };
+
+  // In-app OTP verification — the robust alternative to email *links*. On
+  // native, a link has to survive mail app → browser → bridge page →
+  // Android intent (App Link verification for this domain is currently
+  // failing in Play Console) → deep-link handler → PKCE verifier match; any
+  // broken link in that chain strands the user. A 6-digit code typed
+  // straight into the app needs none of it: verifyOtp({ email, token }) is
+  // a direct, stateless check against Supabase, identical on native and
+  // web. Requires the dashboard email templates ("Confirm signup", "Reset
+  // Password") to include {{ .Token }} so the emails actually carry a code.
+  const verifyEmailCode = async (
+    email: string,
+    token: string,
+    type: 'signup' | 'recovery'
+  ) => {
+    try {
+      const rateCheck = authRateLimiter.check('verify-otp');
+      if (!rateCheck.allowed) {
+        const error = new Error('Too many verification attempts. Please wait before trying again.');
+        toast({
+          title: "Rate Limit Exceeded",
+          description: error.message,
+          variant: "destructive",
+        });
+        return { error, session: null };
+      }
+
+      const emailValidation = validateFormData.email(email);
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: emailValidation,
+        token: token.trim(),
+        type,
+      });
+
+      if (error) {
+        toast({
+          title: "Invalid code",
+          description: error.message,
+          variant: "destructive",
+        });
+        return { error, session: null };
+      }
+
+      if (type === 'signup') {
+        toast({ title: "Welcome!", description: "Your email is confirmed and you're signed in." });
+      }
+      return { error: null, session: data.session ?? null };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Invalid input provided';
+      toast({
+        title: "Verification failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      return { error, session: null };
     }
   };
 
@@ -698,6 +818,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     signOut,
     refreshProfile,
     resetPassword,
+    resendConfirmation,
+    verifyEmailCode,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
