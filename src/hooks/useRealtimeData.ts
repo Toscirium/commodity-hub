@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { CommodityPrice } from './useCommodityData';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, SUPABASE_FUNCTIONS_WS_URL } from '@/integrations/supabase/client';
 
 interface UseRealtimeDataProps {
   commodities: string[];
@@ -54,7 +54,7 @@ export const useRealtimeData = ({ commodities, enabled = true }: UseRealtimeData
         wsRef.current!.close();
       }
 
-      const wsUrl = new URL('wss://kcxhsmlqqyarhlmcapmj.supabase.co/functions/v1/realtime-commodity-stream');
+      const wsUrl = new URL(`${SUPABASE_FUNCTIONS_WS_URL}/realtime-commodity-stream`);
       wsUrl.searchParams.set('token', session!.access_token);
       wsUrl.searchParams.set('commodities', commodities.join(','));
 

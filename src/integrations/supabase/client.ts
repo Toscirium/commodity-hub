@@ -2,8 +2,31 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-export const SUPABASE_URL = "https://kcxhsmlqqyarhlmcapmj.supabase.co";
+// Single source of truth for the Supabase origin. Everything else in the app
+// (REST, edge functions, realtime WebSockets, the auth health panel) derives
+// from these rather than hardcoding the project ref, so moving to a custom
+// domain — e.g. https://auth.commodity-hub.eu, so users signing in with
+// Google don't see a random-looking *.supabase.co URL and assume it's a scam
+// — is a change to .env, not a hunt through the codebase.
+// See docs/SUPABASE_CUSTOM_DOMAIN.md for the full migration checklist,
+// including the parts that live outside this repo (DB cron jobs, RevenueCat
+// webhook, Google Cloud Console redirect URIs, the static landing pages).
+export const SUPABASE_URL =
+  (import.meta.env.VITE_SUPABASE_URL as string | undefined) ??
+  "https://kcxhsmlqqyarhlmcapmj.supabase.co";
 export const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtjeGhzbWxxcXlhcmhsbWNhcG1qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU3ODM0MDcsImV4cCI6MjA2MTM1OTQwN30.qC25iAjNhbPVotryl7GONMgYkvg0DzEYp8uxioWzkfs";
+
+/** Base URL for edge functions, e.g. `${SUPABASE_FUNCTIONS_URL}/health-check`. */
+export const SUPABASE_FUNCTIONS_URL = `${SUPABASE_URL}/functions/v1`;
+
+/** Same as SUPABASE_FUNCTIONS_URL but over WebSocket, for streaming functions. */
+export const SUPABASE_FUNCTIONS_WS_URL = SUPABASE_FUNCTIONS_URL.replace(/^http/, 'ws');
+
+// NOTE: deliberately NOT derived from SUPABASE_URL. This is the localStorage
+// key holding existing users' sessions — changing it (as would happen if it
+// tracked a new custom domain) silently signs out everyone who is currently
+// logged in. It is tied to the project ref, which a custom domain does not
+// change, so it stays pinned even after the domain moves.
 export const SUPABASE_AUTH_STORAGE_KEY = 'sb-kcxhsmlqqyarhlmcapmj-auth-token';
 
 // Import the supabase client like this:

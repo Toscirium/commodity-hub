@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, AlertCircle, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
-import { inspectSupabaseAuthStorage, purgeMalformedSupabaseTokens, supabase } from '@/integrations/supabase/client';
+import { inspectSupabaseAuthStorage, purgeMalformedSupabaseTokens, supabase, SUPABASE_URL } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 type Status = 'ok' | 'warn' | 'error' | 'idle';
@@ -13,8 +13,6 @@ interface Row {
   value: string;
   status: Status;
 }
-
-const SUPABASE_URL = 'https://kcxhsmlqqyarhlmcapmj.supabase.co';
 
 const StatusDot: React.FC<{ status: Status }> = ({ status }) => {
   const cls =
