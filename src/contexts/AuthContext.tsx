@@ -50,6 +50,11 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   resendConfirmation: (email: string) => Promise<{ error: any }>;
+  verifyEmailCode: (
+    email: string,
+    token: string,
+    type: 'signup' | 'recovery'
+  ) => Promise<{ error: any; session: Session | null }>;
 }
 
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
@@ -351,7 +356,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } else {
         toast({
           title: "Check your email",
-          description: "We've sent you a confirmation link to complete your signup.",
+          description: "We've sent you a 6-digit code to complete your signup.",
         });
       }
 
@@ -705,6 +710,63 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // In-app OTP verification — the robust alternative to email *links*. On
+  // native, a link has to survive mail app → browser → bridge page →
+  // Android intent (App Link verification for this domain is currently
+  // failing in Play Console) → deep-link handler → PKCE verifier match; any
+  // broken link in that chain strands the user. A 6-digit code typed
+  // straight into the app needs none of it: verifyOtp({ email, token }) is
+  // a direct, stateless check against Supabase, identical on native and
+  // web. Requires the dashboard email templates ("Confirm signup", "Reset
+  // Password") to include {{ .Token }} so the emails actually carry a code.
+  const verifyEmailCode = async (
+    email: string,
+    token: string,
+    type: 'signup' | 'recovery'
+  ) => {
+    try {
+      const rateCheck = authRateLimiter.check('verify-otp');
+      if (!rateCheck.allowed) {
+        const error = new Error('Too many verification attempts. Please wait before trying again.');
+        toast({
+          title: "Rate Limit Exceeded",
+          description: error.message,
+          variant: "destructive",
+        });
+        return { error, session: null };
+      }
+
+      const emailValidation = validateFormData.email(email);
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: emailValidation,
+        token: token.trim(),
+        type,
+      });
+
+      if (error) {
+        toast({
+          title: "Invalid code",
+          description: error.message,
+          variant: "destructive",
+        });
+        return { error, session: null };
+      }
+
+      if (type === 'signup') {
+        toast({ title: "Welcome!", description: "Your email is confirmed and you're signed in." });
+      }
+      return { error: null, session: data.session ?? null };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Invalid input provided';
+      toast({
+        title: "Verification failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      return { error, session: null };
+    }
+  };
+
   const isGuest = !user;
   const baseTier: Tier = tierFromProfile(profile?.subscription_active, profile?.subscription_tier);
 
@@ -757,6 +819,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     refreshProfile,
     resetPassword,
     resendConfirmation,
+    verifyEmailCode,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
