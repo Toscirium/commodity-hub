@@ -12,6 +12,17 @@ export const NATIVE_OAUTH_REDIRECT_URL = NATIVE_AUTH_CALLBACK_URL;
 export const NATIVE_OAUTH_WEB_BRIDGE_URL =
   'https://app.commodity-hub.eu/?native=1';
 
+/**
+ * Same bridge, tagged with `flow=recovery` so the deep-link handler can tell
+ * a password-recovery code apart from an OAuth login or signup-confirmation
+ * code — otherwise all three arrive at the app identically as a bare
+ * `?code=...` and there is no way to know a recovery code shouldn't just log
+ * the user back in with their old (forgotten) password. See
+ * useCapacitorAuthDeepLink.ts's handleOAuthUrl for the routing this enables.
+ */
+export const NATIVE_PASSWORD_RECOVERY_BRIDGE_URL =
+  'https://app.commodity-hub.eu/?native=1&flow=recovery';
+
 const ANDROID_PACKAGE_NAME = 'app.lovable.c8fabd7a96c74aff8d7b001690ec23c7';
 const ANDROID_PACKAGE_CANDIDATES = [
   // Current native package in android/app/build.gradle.
@@ -50,6 +61,11 @@ export const buildNativeAuthCallbackUrl = (callbackHref: string) => {
     if (value) searchParams.set(key, value);
   }
 
+  // Not a Supabase param — our own marker (see NATIVE_PASSWORD_RECOVERY_BRIDGE_URL)
+  // — but it must survive the hop into the commodityhub:// intent the same way.
+  const flow = sourceSearchParams.get('flow');
+  if (flow) searchParams.set('flow', flow);
+
   // Supabase implicit OAuth returns tokens in the URL fragment. Android intent
   // URLs use `#Intent` as their own delimiter, so a normal fragment would be
   // swallowed by Chrome instead of delivered to the app. Move callback fragment
@@ -77,27 +93,24 @@ export const buildAndroidIntentCallbackUrl = (callbackHref: string, packageName?
     `S.browser_fallback_url=${fallbackUrl};end`;
 };
 
-export const redirectNativeOAuthCallbackFromWeb = () => {
-  if (typeof window === 'undefined') return false;
-
-  const callbackUrl = new URL(window.location.href);
-  if (callbackUrl.searchParams.get('native') !== '1') return false;
-
-  const hashParams = new URLSearchParams(callbackUrl.hash.replace(/^#/, ''));
-  const hasOAuthPayload =
-    hasAnyParam(callbackUrl.searchParams, OAUTH_SEARCH_KEYS) ||
-    hasAnyParam(hashParams, OAUTH_HASH_KEYS);
-
-  if (!hasOAuthPayload) return false;
-
-  const appCallbackUrl = buildNativeAuthCallbackUrl(callbackUrl.href);
+/**
+ * Drives the WebView-free "Opening Commodity Hub…" hand-off UI and fires the
+ * staggered intent:// attempts that hand `callbackHref`'s auth payload to the
+ * installed app. Shared by redirectNativeOAuthCallbackFromWeb (OAuth/signup/
+ * recovery codes landing at the root bridge) and bridgeVerifiedSessionToNativeApp
+ * (a verifyOtp() session established on /auth/confirm) — both end up needing
+ * the exact same "try every known package name, then let the user tap a
+ * button" fallback chain, so it lives in one place.
+ */
+const bridgeCallbackUrlToNativeApp = (callbackHref: string) => {
+  const appCallbackUrl = buildNativeAuthCallbackUrl(callbackHref);
   const androidIntentUrls = [
     // First let Android resolve the app by scheme. This is more reliable when
     // older installed builds use a different package name than the current
     // source tree. Then try explicit package-targeted intents as fallbacks.
-    buildAndroidIntentCallbackUrl(callbackUrl.href),
+    buildAndroidIntentCallbackUrl(callbackHref),
     ...ANDROID_PACKAGE_CANDIDATES.map((packageName) =>
-      buildAndroidIntentCallbackUrl(callbackUrl.href, packageName)
+      buildAndroidIntentCallbackUrl(callbackHref, packageName)
     ),
     appCallbackUrl,
   ];
@@ -124,5 +137,48 @@ export const redirectNativeOAuthCallbackFromWeb = () => {
   }, 1200);
 
   openInstalledApp();
+};
+
+export const redirectNativeOAuthCallbackFromWeb = () => {
+  if (typeof window === 'undefined') return false;
+
+  const callbackUrl = new URL(window.location.href);
+  if (callbackUrl.searchParams.get('native') !== '1') return false;
+
+  const hashParams = new URLSearchParams(callbackUrl.hash.replace(/^#/, ''));
+  const hasOAuthPayload =
+    hasAnyParam(callbackUrl.searchParams, OAUTH_SEARCH_KEYS) ||
+    hasAnyParam(hashParams, OAUTH_HASH_KEYS);
+
+  if (!hasOAuthPayload) return false;
+
+  bridgeCallbackUrlToNativeApp(callbackUrl.href);
   return true;
+};
+
+/**
+ * For AuthConfirm.tsx's token_hash confirmation page: verifyOtp() there
+ * establishes a session directly in whatever browser opened the email link,
+ * which on native is a regular mobile browser, not the app's WebView (App
+ * Links to this domain aren't reliably verified — see the Play Console
+ * "domain failed validation" issue). Without this, a native user who
+ * confirms their signup would see "Your email is confirmed" in their phone's
+ * browser while the installed app stays signed out. Packages the already-
+ * established session's tokens into a synthetic callback URL and reuses the
+ * same intent:// hand-off OAuth/recovery already rely on — the deep-link
+ * handler's implicit-token branch (`access_token` + `refresh_token`) picks
+ * it up identically to a Google sign-in. `flow` is forwarded through so a
+ * confirmed *recovery* link (if the Reset Password template is ever also
+ * switched to token_hash — it is NOT by default, see AuthConfirm.tsx) still
+ * routes to the set-new-password screen instead of silently signing in.
+ */
+export const bridgeVerifiedSessionToNativeApp = (
+  session: { access_token: string; refresh_token: string },
+  options?: { flow?: 'recovery' }
+) => {
+  const url = new URL(NATIVE_OAUTH_WEB_BRIDGE_URL);
+  url.searchParams.set('access_token', session.access_token);
+  url.searchParams.set('refresh_token', session.refresh_token);
+  if (options?.flow) url.searchParams.set('flow', options.flow);
+  bridgeCallbackUrlToNativeApp(url.href);
 };

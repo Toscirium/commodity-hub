@@ -154,6 +154,18 @@ export function useCapacitorAuthDeepLink() {
               broadcastNativeSession(establishedSession);
             }
 
+            // A password-recovery code looks identical to an OAuth/signup
+            // code at this point (same ?code=... exchange) — flow=recovery
+            // is the only thing telling them apart (see resetPassword() in
+            // AuthContext.tsx). Route to the actual "set new password"
+            // screen instead of silently landing signed-in on the old
+            // password at '/'. If the exchange above failed, fall through to
+            // the normal path below — there's no session to act on either way.
+            if (searchParams.get('flow') === 'recovery' && establishedSession) {
+              window.location.assign('/reset-password?recovery=1');
+              return true;
+            }
+
             window.history.replaceState({}, document.title, '/');
 
             // Notify the AuthProvider directly so the top-right UI updates

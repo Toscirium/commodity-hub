@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { bridgeVerifiedSessionToNativeApp } from '@/utils/nativeOAuth';
 import type { EmailOtpType } from '@supabase/supabase-js';
 
 /**
@@ -23,10 +24,29 @@ import type { EmailOtpType } from '@supabase/supabase-js';
  * verifyOtp() with a token_hash sidesteps this entirely — it's a direct,
  * stateless verification against Supabase, no locally-stored verifier
  * needed, so it works from any device or browser. This requires the
- * Supabase Dashboard's email templates (Confirm signup, Reset Password, at
- * minimum) to be changed to link here with {{ .TokenHash }} and a `type`
- * instead of the default {{ .ConfirmationURL }} — see the project's
- * deployment notes for the exact template text.
+ * Supabase Dashboard's "Confirm signup" email template to be changed to
+ * link here with {{ .TokenHash }}, {{ .Type }} and {{ .RedirectTo }}
+ * instead of the default {{ .ConfirmationURL }}:
+ *
+ *   {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type={{ .Type }}&redirect_to={{ .RedirectTo }}
+ *
+ * Deliberately NOT also done for "Reset Password" — native password
+ * recovery already has its own working fix built around the default
+ * template's PKCE ?code= redirect (see NATIVE_PASSWORD_RECOVERY_BRIDGE_URL
+ * in nativeOAuth.ts and AuthContext.tsx's resetPassword()). Switching that
+ * template to token_hash too would route recovery through this page instead
+ * and silently drop the native bridge below, since verifyOtp() here doesn't
+ * distinguish "recovery, and please open the app" the way that path does
+ * without also re-plumbing this page for it — leave it alone.
+ *
+ * A signup confirmed here on native still needs its own hand-off: this page
+ * runs in whatever regular mobile browser opened the email link (Android
+ * App Link verification for this domain isn't reliable — see the Play
+ * Console "domain failed validation" issue), not the app's WebView. Without
+ * bridging, the browser tab would show "confirmed" while the installed app
+ * stayed signed out. `redirect_to` (threaded through from signUp()'s
+ * emailRedirectTo, via the template above) carries the `native=1` marker
+ * that signals this, mirroring how the OAuth and recovery bridges detect it.
  */
 const AuthConfirm: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -61,6 +81,33 @@ const AuthConfirm: React.FC = () => {
 
       // Recovery credentials must never remain in the URL or browser history.
       window.history.replaceState({}, document.title, '/auth/confirm');
+
+      // Present only when signUp() sent this link (see the module doc above)
+      // — recovery links aren't expected to carry it, but the check is by
+      // the actual marker rather than by `type` so it degrades safely either way.
+      const redirectTo = searchParams.get('redirect_to');
+      const isNative = (() => {
+        if (!redirectTo) return false;
+        try {
+          return new URL(redirectTo).searchParams.get('native') === '1';
+        } catch {
+          return false;
+        }
+      })();
+
+      if (isNative) {
+        // Hands off to the installed app and replaces the page itself —
+        // nothing left to do here, and no further state updates are safe
+        // once that runs.
+        bridgeVerifiedSessionToNativeApp(
+          {
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token,
+          },
+          type === 'recovery' ? { flow: 'recovery' } : undefined
+        );
+        return;
+      }
 
       if (type === 'recovery') {
         // Session is already established — ResetPassword just needs to know

@@ -16,6 +16,9 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [signupError, setSignupError] = useState<string | null>(null);
+  const [signinError, setSigninError] = useState<string | null>(null);
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState<string | null>(null);
+  const [isResending, setIsResending] = useState(false);
 
   // Uncontrolled inputs (refs) — required on Android WebView so that Gboard's
   // IME composition (keyCode 229) is not interrupted by React re-renders,
@@ -33,7 +36,7 @@ const Auth = () => {
   // visible typing lag. Validation happens in the submit handlers, and
   // the native `required` attribute provides the cheap baseline UX.
 
-  const { user, signIn, signUp, signInWithGoogle, resetPassword, loading: authLoading } = useAuth();
+  const { user, signIn, signUp, signInWithGoogle, resetPassword, resendConfirmation, loading: authLoading } = useAuth();
 
   // Only redirect if user is authenticated and specifically came to auth page
   // Allow users to browse the app without authentication
@@ -44,9 +47,34 @@ const Auth = () => {
     const password = signinPasswordRef.current?.value ?? '';
     if (!email || !password) return;
 
+    setSigninError(null);
+    setUnconfirmedEmail(null);
     setIsLoading(true);
-    await signIn(email, password);
+    const { error } = await signIn(email, password);
     setIsLoading(false);
+
+    if (error) {
+      const message = error instanceof Error ? error.message : 'We could not sign you in. Please try again.';
+      setSigninError(message);
+      // Supabase's signInWithPassword rejects an unconfirmed account with
+      // this exact message — that's a dead end without a resend option,
+      // since the original confirmation link may have expired, gone to a
+      // stale device, or never arrived at all.
+      if (/email.*not.*confirm/i.test(message)) {
+        setUnconfirmedEmail(email);
+      }
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!unconfirmedEmail) return;
+    setIsResending(true);
+    const { error } = await resendConfirmation(unconfirmedEmail);
+    setIsResending(false);
+    if (!error) {
+      setSigninError(null);
+      setUnconfirmedEmail(null);
+    }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -214,8 +242,36 @@ const Auth = () => {
                   </button>
                 </div>
 
+                {signinError && (
+                  <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert" aria-live="polite">
+                    {signinError}
+                  </p>
+                )}
+
+                {unconfirmedEmail && (
+                  <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2">
+                    <p className="text-xs text-muted-foreground">
+                      Didn't get the link, or has it expired?
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={handleResendConfirmation}
+                      disabled={isResending}
+                    >
+                      {isResending ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        'Resend email'
+                      )}
+                    </Button>
+                  </div>
+                )}
+
                 <Button
-                  type="submit" 
+                  type="submit"
                   className="w-full mobile-button-large"
                   disabled={isLoading}
                 >
