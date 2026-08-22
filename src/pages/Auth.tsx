@@ -6,6 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { TrendingUp, Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
@@ -306,7 +313,7 @@ const Auth = () => {
               </div>
 
               <p className="text-xs text-muted-foreground text-center">
-                The email also contains a link you can tap instead.
+                The code expires shortly — request a new one if it stops working.
               </p>
             </div>
           )}
@@ -401,7 +408,7 @@ const Auth = () => {
                 {unconfirmedEmail && (
                   <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2">
                     <p className="text-xs text-muted-foreground">
-                      Didn't get the link, or has it expired?
+                      Didn't get the email, or has the code expired?
                     </p>
                     <Button
                       type="button"
@@ -617,72 +624,73 @@ const Auth = () => {
           </Tabs>
           )}
 
-          {/* Forgot Password Modal */}
-          {showForgotPassword && (
-            <div className="fixed inset-0 bg-background/95 z-50 flex items-center justify-center p-4">
-              <Card className="w-full max-w-md p-6 bg-card border border-border">
-                <div className="space-y-4">
-                  <div className="text-center space-y-2">
-                    <h3 className="text-lg font-semibold">Reset Password</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Enter your email address and we'll send you a password reset link.
-                    </p>
-                  </div>
+          {/* Forgot Password dialog. Uses Radix Dialog rather than a
+              hand-rolled `fixed inset-0` overlay: the old one was nested
+              inside this Card, so on Android WebView it inherited the
+              card's stacking/scroll context and jumped around when the
+              soft keyboard opened. Dialog portals to <body>, traps focus,
+              locks background scroll, and closes on Escape/back. */}
+          <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Reset password</DialogTitle>
+                <DialogDescription>
+                  Enter your email address and we'll send you a 6-digit code to reset your password.
+                </DialogDescription>
+              </DialogHeader>
 
-                  <form onSubmit={handleResetPassword} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="reset-email">Email</Label>
-                      <Input
-                        id="reset-email"
-                        name="email"
-                        type="text"
-                        placeholder="your@email.com"
-                        ref={resetEmailRef}
-                        defaultValue={
-                          signinEmailRef.current?.value ||
-                          signupEmailRef.current?.value ||
-                          ''
-                        }
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email">Email</Label>
+                  <Input
+                    id="reset-email"
+                    name="email"
+                    type="email"
+                    placeholder="your@email.com"
+                    ref={resetEmailRef}
+                    defaultValue={
+                      signinEmailRef.current?.value ||
+                      signupEmailRef.current?.value ||
+                      ''
+                    }
 
-                        required
-                        autoComplete="email"
-                        autoCapitalize="off"
-                        autoCorrect="off"
-                        spellCheck={false}
-                        inputMode="email"
-                        className="mobile-input"
-                      />
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button 
-                        type="submit" 
-                        className="flex-1"
-                        disabled={isLoading}
-                      >
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Sending...
-                          </>
-                        ) : (
-                          'Send Reset Link'
-                        )}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setShowForgotPassword(false)}
-                        disabled={isLoading}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </form>
+                    required
+                    autoComplete="email"
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    inputMode="email"
+                    className="mobile-input"
+                  />
                 </div>
-              </Card>
-            </div>
-          )}
+
+                <div className="flex gap-2">
+                  <Button
+                    type="submit"
+                    className="flex-1"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      'Send code'
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowForgotPassword(false)}
+                    disabled={isLoading}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
 
           <div className="mt-6 text-center space-y-2">
               <p className="text-xs text-muted-foreground">
