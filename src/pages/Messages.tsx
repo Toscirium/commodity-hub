@@ -13,6 +13,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
+import { useVirtualKeyboard } from '@/hooks/useVirtualKeyboard';
 
 type Reaction = { emoji: string; count: number; reacted_by_me: boolean };
 type LinkPreview = { url: string; title: string | null; description: string | null; image: string | null; domain: string };
@@ -74,6 +75,7 @@ const Messages = () => {
   const [typingName, setTypingName] = React.useState<string | null>(null);
   const endRef = React.useRef<HTMLDivElement>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const keyboard = useVirtualKeyboard();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const typingChannelRef = React.useRef<ReturnType<typeof supabase.channel> | null>(null);
   const lastTypingSentRef = React.useRef(0);
@@ -138,6 +140,14 @@ const Messages = () => {
   React.useEffect(() => {
     if (isNearBottomRef.current) endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+  // The keyboard opening shortens the transcript's viewport, which would
+  // otherwise leave the newest messages hidden behind it — the user taps the
+  // composer and loses sight of what they were replying to.
+  React.useEffect(() => {
+    if (keyboard.isVisible && isNearBottomRef.current) {
+      endRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [keyboard.isVisible]);
   React.useEffect(() => {
     const term = search.trim();
     if (!user || term.length < 2) { setPeople([]); return; }
@@ -258,12 +268,17 @@ const Messages = () => {
 
   if (!loading && !user) return <div className="min-h-screen bg-background p-6"><div className="mx-auto max-w-md pt-24 text-center"><MessageCircle className="mx-auto h-10 w-10 text-primary" /><h1 className="mt-4 text-2xl font-semibold">Sign in to message traders</h1><p className="mt-2 text-sm text-muted-foreground">Share market tips and strategies privately with the Commodity Hub community.</p><Button className="mt-6" asChild><Link to="/auth">Sign in</Link></Button></div></div>;
 
-  return <div className="min-h-screen bg-background pb-20"><header className="sticky top-0 z-20 border-b bg-background px-4 py-3"><div className="mx-auto flex max-w-6xl items-center gap-3"><Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Go back"><ArrowLeft className="h-4 w-4" /></Button><div><p className="text-xs font-medium uppercase tracking-[0.12em] text-primary">Community</p><h1 className="text-xl font-semibold">Messages</h1></div></div></header>
+  return <div className={`min-h-[100dvh] bg-background ${keyboard.isVisible ? '' : 'pb-20'}`}><header className="sticky top-0 z-20 border-b bg-background px-4 py-3"><div className="mx-auto flex max-w-6xl items-center gap-3"><Button variant="ghost" size="icon" onClick={() => navigate(-1)} aria-label="Go back"><ArrowLeft className="h-4 w-4" /></Button><div><p className="text-xs font-medium uppercase tracking-[0.12em] text-primary">Community</p><h1 className="text-xl font-semibold">Messages</h1></div></div></header>
     <main className="mx-auto grid max-w-6xl gap-4 p-4 md:grid-cols-[320px_1fr]">
-      <Card className={`${active ? 'hidden md:block' : ''} min-h-[calc(100vh-9rem)]`}><CardContent className="p-3"><div className="relative mb-3"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find a member" className="pl-9" /></div>
+      <Card className={`${active ? 'hidden md:block' : ''} min-h-[calc(100dvh-9rem)]`}><CardContent className="p-3"><div className="relative mb-3"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Find a member" className="pl-9" /></div>
         {people.length > 0 && <div className="mb-3 overflow-hidden rounded-lg border"><p className="px-3 py-2 text-xs font-medium text-muted-foreground">Start a conversation</p>{people.map((person) => <button key={person.id} type="button" disabled={starting} onClick={() => void startConversation(person)} className="flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-muted disabled:opacity-50"><Avatar className="h-8 w-8"><AvatarImage src={person.avatar_url ?? undefined} /><AvatarFallback>{initials(person.display_name)}</AvatarFallback></Avatar><span className="flex-1 truncate text-sm font-medium">{person.display_name}</span><Plus className="h-4 w-4 text-muted-foreground" /></button>)}</div>}
         {conversations.length ? <div className="space-y-1">{conversations.map((conversation) => <button key={conversation.conversation_id} type="button" onClick={() => selectConversation(conversation.conversation_id)} className={`flex w-full items-center gap-3 rounded-lg px-2 py-3 text-left ${activeId === conversation.conversation_id ? 'bg-primary/10' : 'hover:bg-muted'}`}><Avatar><AvatarImage src={conversation.participant_avatar_url ?? undefined} /><AvatarFallback>{initials(conversation.participant_name)}</AvatarFallback></Avatar><span className="min-w-0 flex-1"><span className="flex items-center justify-between gap-2"><span className="truncate text-sm font-semibold">{conversation.participant_name}</span><span className="shrink-0 text-[10px] text-muted-foreground">{when(conversation.last_message_at)}</span></span><span className="flex items-center gap-2"><span className="truncate text-xs text-muted-foreground">{conversation.last_message ?? 'Start the conversation'}</span>{conversation.unread_count > 0 && <span className="rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">{conversation.unread_count}</span>}</span></span></button>)}</div> : <div className="px-3 py-12 text-center"><MessageCircle className="mx-auto h-8 w-8 text-muted-foreground" /><p className="mt-3 text-sm font-medium">No conversations yet</p><p className="mt-1 text-xs text-muted-foreground">Search for a member to share an idea.</p></div>}</CardContent></Card>
-      <Card className={`${!active ? 'hidden md:flex' : 'flex'} min-h-[calc(100vh-9rem)] flex-col`}><CardContent className="flex min-h-0 flex-1 flex-col p-0">{active ? <>
+      {/* Fixed height (not min-height) so the composer pins to the bottom of
+          the viewport and the transcript scrolls inside it. With min-height the
+          card could grow past the viewport, pushing the composer off-screen.
+          dvh rather than vh: vh is locked to the largest viewport and never
+          shrinks for the soft keyboard. */}
+      <Card className={`${!active ? 'hidden md:flex' : 'flex'} h-[calc(100dvh-9rem)] flex-col`}><CardContent className="flex min-h-0 flex-1 flex-col p-0">{active ? <>
         <div className="flex items-center gap-3 border-b px-4 py-3">
           <Button className="md:hidden" variant="ghost" size="icon" onClick={() => setActiveId(null)} aria-label="All conversations"><ArrowLeft className="h-4 w-4" /></Button>
           <Avatar><AvatarImage src={active.participant_avatar_url ?? undefined} /><AvatarFallback>{initials(active.participant_name)}</AvatarFallback></Avatar>

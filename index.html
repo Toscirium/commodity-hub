@@ -3,7 +3,13 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- interactive-widget=resizes-content: without it Chrome/Android WebView
+         defaults to resizes-visual, where the soft keyboard shrinks only the
+         VISUAL viewport — the layout viewport, `vh` units, and fixed-position
+         elements all stay put, so a bottom-anchored composer (see Messages)
+         ends up underneath the keyboard. resizes-content shrinks the layout
+         viewport too, so bottom-anchored UI reflows above the keyboard. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <title>Commodity Hub – Live Commodity Prices &amp; Market Insights</title>
     <meta name="description" content="One-time purchase. Live commodity prices, charts and market insights across energy, metals, grains, softs and livestock — no ads, no subscriptions.">
     <meta name="keywords" content="commodity prices, live commodity data, oil price, gold price, market insights, price tracker, commodity charts" />

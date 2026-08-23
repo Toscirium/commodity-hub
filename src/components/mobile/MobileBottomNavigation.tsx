@@ -1,6 +1,7 @@
 import { Bell, CircleUserRound, LayoutDashboard, LineChart, MessageCircle } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useVirtualKeyboard } from '@/hooks/useVirtualKeyboard';
 
 const items = [
   { label: 'Today', path: '/today', icon: LayoutDashboard },
@@ -15,8 +16,13 @@ const MobileBottomNavigation = () => {
   const isMobile = useIsMobile();
   const location = useLocation();
   const navigate = useNavigate();
+  const keyboard = useVirtualKeyboard();
 
-  if (!isMobile || location.pathname === '/auth') return null;
+  // The nav is `position: fixed; bottom: 0; z-index: 70`, so with the soft
+  // keyboard open it lands on top of whatever the user is typing into — most
+  // visibly the Messages composer. Nobody is tapping nav items mid-compose,
+  // so it gets out of the way until the keyboard closes.
+  if (!isMobile || location.pathname === '/auth' || keyboard.isVisible) return null;
 
   return (
     <nav className="mobile-bottom-nav safe-area-bottom" aria-label="Primary navigation">
