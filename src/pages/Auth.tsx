@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,6 +56,11 @@ const Auth = () => {
 
   const { user, signIn, signUp, signInWithGoogle, resetPassword, resendConfirmation, verifyEmailCode, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Where to send the user back to once they're authenticated — e.g. the
+  // paywall sends them here with `from` set to the page they were on, plus
+  // `reopenPaywall` so PremiumPaywall can pop itself back open there.
+  const redirectState = location.state as { from?: string; reopenPaywall?: boolean; paywallSource?: string } | null;
 
   // Only redirect if user is authenticated and specifically came to auth page
   // Allow users to browse the app without authentication
@@ -210,9 +215,11 @@ const Auth = () => {
     );
   }
 
-  // Redirect authenticated users back to the app
+  // Redirect authenticated users back to the app — to wherever they came
+  // from (e.g. the paywall), carrying along any reopen-paywall intent, or
+  // home if they landed on /auth directly.
   if (user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={redirectState?.from ?? '/'} state={redirectState ?? undefined} replace />;
   }
 
   return (

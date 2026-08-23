@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Check, Loader2, Sparkles, Zap } from 'lucide-react';
 import {
   Dialog,
@@ -71,12 +72,15 @@ export const getAnnualSavingsPct = (pkgs: PurchasesPackage[]): number | null => 
 const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, source = 'unknown' }) => {
   const { toast } = useToast();
   const auth = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { isNative } = usePlatform();
   const [offering, setOffering] = React.useState<PurchasesOffering | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [purchasing, setPurchasing] = React.useState<string | null>(null);
   const tier = auth?.tier ?? 'free';
   const isPaid = tier !== 'free';
+  const isSignedIn = Boolean(auth?.user);
   const revenueCatReady = isRevenueCatAvailable();
 
   React.useEffect(() => {
@@ -87,6 +91,18 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
       source,
     });
   }, [open, isNative, tier]);
+
+  // Coming back from the "create account to subscribe" redirect: reopen
+  // this same paywall instead of leaving the user to find their way back
+  // and tap "upgrade" all over again. Clears the flag from history state
+  // right after so it doesn't keep reopening on later visits to this page.
+  React.useEffect(() => {
+    const state = location.state as { reopenPaywall?: boolean } | null;
+    if (!state?.reopenPaywall || !isSignedIn) return;
+    onOpenChange(true);
+    navigate(location.pathname + location.search, { replace: true, state: {} });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state, isSignedIn]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -192,7 +208,7 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
           </li>
         ))}
       </ul>
-      {isNative && pkgs.length > 0 && (() => {
+      {isNative && isSignedIn && pkgs.length > 0 && (() => {
         const savingsPct = getAnnualSavingsPct(pkgs);
         return (
           <div className="space-y-2 pt-1">
@@ -309,7 +325,33 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
                 Subscriptions aren't available on this platform yet.
               </div>
             )}
-            {isNative && revenueCatReady && (
+            {isNative && revenueCatReady && !isSignedIn && (
+              // A purchase made while signed out is tied to RevenueCat's
+              // anonymous device ID, not a Supabase user — the webhook has
+              // no profiles row to attach it to, so the subscription would
+              // never actually unlock anything server-side. Require an
+              // account first rather than let that purchase happen.
+              <div className="space-y-2">
+                <div className="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                  Create a free account first — it's how your subscription gets linked to your data across devices.
+                </div>
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    onOpenChange(false);
+                    navigate('/auth', {
+                      state: {
+                        from: location.pathname + location.search,
+                        reopenPaywall: true,
+                      },
+                    });
+                  }}
+                >
+                  Create account to subscribe
+                </Button>
+              </div>
+            )}
+            {isNative && revenueCatReady && isSignedIn && (
               <Button variant="ghost" size="sm" className="w-full" onClick={handleRestore}>
                 Restore previous purchase
               </Button>
