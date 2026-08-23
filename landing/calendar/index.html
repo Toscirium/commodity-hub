@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Commodity Market Data Calendar — Commodity Hub</title>
+<meta name="description" content="When the reports that move commodity prices actually come out — COT report, EIA petroleum status, EIA natural gas storage, WASDE, and OPEC+ meetings." />
+<meta name="theme-color" content="#0d0d0f" />
+<link rel="canonical" href="https://commodity-hub.eu/calendar" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Commodity Hub" />
+<meta property="og:url" content="https://commodity-hub.eu/calendar" />
+<meta property="og:title" content="Commodity Market Data Calendar — Commodity Hub" />
+<meta property="og:description" content="When the reports that move commodity prices actually come out — COT report, EIA petroleum status, EIA natural gas storage, WASDE, and OPEC+ meetings." />
+<meta property="og:image" content="https://commodity-hub.eu/assets/app-icon.png" />
+<link rel="icon" href="/assets/app-icon.png" />
+<link rel="apple-touch-icon" href="/assets/app-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/styles.css" />
+<style>
+  .cal-item { border: 1px solid var(--line); border-radius: 8px; padding: 14px 18px; margin-bottom: 12px; }
+  .cal-item h3 { margin: 0 0 6px; font-size: 1.05rem; }
+  .cal-next { font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; color: var(--up); }
+  .cal-cadence { font-size: 0.82rem; color: var(--text-dim); margin-bottom: 6px; }
+  .cal-item.irregular .cal-next { color: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="/">
+      <img src="/assets/logo.png" alt="" />
+      <span class="brand-word">Commodity Hub</span>
+    </a>
+    <div class="nav-links">
+      <a href="/#coverage">Coverage</a>
+      <a href="/#toolkit">Toolkit</a>
+      <a href="/#pricing">Pricing</a>
+    </div>
+    <div class="nav-right">
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme">☾/☀</button>
+      <a class="nav-cta" href="https://app.commodity-hub.eu">Open the app</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero hero-doc">
+  <div class="container">
+    <div class="doc">
+      <h1>Commodity Market Data Calendar</h1>
+      <div class="doc-updated">The recurring reports that actually move prices — and when they land</div>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="container">
+    <div class="doc">
+      <section>
+        <p>Most commodity-price volatility clusters around a small set of scheduled releases. Knowing the rhythm — not just reacting after the fact — is most of the edge. All times below are US Eastern, since that's when the issuing agency actually publishes regardless of where you're trading from.</p>
+      </section>
+
+      <section>
+        <div class="cal-item">
+          <h3>CFTC Commitment of Traders (COT) Report</h3>
+          <div class="cal-cadence">Every Friday, ~3:30pm ET — reflects positions as of the prior Tuesday</div>
+          <div class="cal-next">Next: <span id="cotNext">—</span></div>
+          <p>Managed-money and commercial positioning across every futures market CFTC covers. See it live on <a href="/now">Live Positioning</a>, or read <a href="/glossary/cot-report">how to read the COT report</a>.</p>
+        </div>
+
+        <div class="cal-item">
+          <h3>EIA Weekly Petroleum Status Report</h3>
+          <div class="cal-cadence">Every Wednesday, 10:30am ET (Thursday if Monday is a federal holiday)</div>
+          <div class="cal-next">Next: <span id="eiaPetroleumNext">—</span></div>
+          <p>US crude and product inventories, refinery runs, and production. Compares actual builds/draws against the 5-year average and analyst consensus — the single biggest weekly mover for WTI and Brent.</p>
+        </div>
+
+        <div class="cal-item">
+          <h3>EIA Weekly Natural Gas Storage Report</h3>
+          <div class="cal-cadence">Every Thursday, 10:30am ET (Friday if Wednesday is a federal holiday)</div>
+          <div class="cal-next">Next: <span id="eiaGasNext">—</span></div>
+          <p>Weekly injection/withdrawal figures for underground gas storage. Surprises versus the 5-year average and consensus routinely move front-month Henry Hub sharply.</p>
+        </div>
+
+        <div class="cal-item irregular">
+          <h3>USDA WASDE Report</h3>
+          <div class="cal-cadence">Monthly — specific date and time vary; see the <a href="https://www.usda.gov/oce/commodity/wasde/" target="_blank" rel="noopener">official USDA release calendar</a></div>
+          <div class="cal-next">Not on a fixed weekday — check the official calendar for the next date</div>
+          <p>World Agricultural Supply and Demand Estimates. The stocks-to-use ratio and yield revisions move corn, wheat, and soybeans on release.</p>
+        </div>
+
+        <div class="cal-item irregular">
+          <h3>OPEC+ Meetings</h3>
+          <div class="cal-cadence">Ad hoc, no fixed schedule — see the <a href="https://www.opec.org/opec_web/en/press_room/28.htm" target="_blank" rel="noopener">official OPEC press releases</a></div>
+          <div class="cal-next">Irregular — production-quota decisions announced as scheduled by OPEC+</div>
+          <p>Production quota decisions can move crude sharply and don't follow a calendar pattern the way weekly/monthly government reports do.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <a class="brand" href="/">
+        <img src="/assets/logo.png" alt="" />
+        <span class="brand-word">Commodity Hub</span>
+      </a>
+      <div class="footer-links">
+        <a href="/commodities">Commodities</a>
+        <a href="/glossary">Glossary</a>
+        <a href="/learn">Learn</a>
+        <a href="/now">Live Positioning</a>
+        <a href="/terms">Terms of Service</a>
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/about">About</a>
+        <a href="https://app.commodity-hub.eu/delete-account">Delete account</a>
+      </div>
+    </div>
+    <div class="footer-fine">
+      Commodity Hub is an information service providing commodity market prices, news, and analytics. It does not execute trades, hold client funds, or provide investment advice. The "Trade" section of the app links to independent, regulated third parties (Capital.com, eToro, Kalshi); Commodity Hub may earn a referral commission from those links. © <span id="year"></span> Commodity Hub. All rights reserved.
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+  var t = document.getElementById('themeToggle');
+  var root = document.documentElement;
+  t.addEventListener('click', function () {
+    var current = root.getAttribute('data-theme');
+    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var effectiveDark = current ? current === 'dark' : prefersDark;
+    root.setAttribute('data-theme', effectiveDark ? 'light' : 'dark');
+  });
+</script>
+<script src="/calendar/calendar-countdown.js" integrity="sha256-s2bLt0pOG6T0ou1FTblVsv3F26vrJbXByV7Nu34Fkfg=" crossorigin="anonymous" defer></script>
+</body>
+</html>
