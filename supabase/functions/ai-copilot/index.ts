@@ -30,6 +30,7 @@ You have tools to:
 - Read the user's watchlists
 - Read the user's active price alerts
 - Fetch recent commodity news
+- Propose a price alert or a watchlist addition for the user to confirm
 - (Pro users only) Read the latest spread snapshot, seasonality history, market-regime map, and portfolio risk metrics (VaR, drawdown, beta)
 
 Always:
@@ -38,6 +39,13 @@ Always:
 - Explain reasoning briefly (term structure, COT positioning, supply/demand)
 - Never give regulated financial advice; frame ideas as analysis, not recommendations
 - When the user references "my portfolio" / "my alerts", use the appropriate tool first
+
+Proposals (propose_price_alert, propose_watchlist_add):
+- These PREPARE an action for the user to confirm. They do not perform it.
+- Never claim an alert was created or a commodity was added. Say it's ready to
+  confirm, e.g. "I've set up an alert for WTI below $70 — confirm it below."
+- If the user hasn't given a price level, ask for one rather than inventing it.
+- Don't re-propose something the user already has; check existing alerts first.
 
 Format responses in clean markdown with bold for key numbers.`;
 
@@ -176,6 +184,41 @@ Deno.serve(async (req) => {
             .eq("is_active", true);
           return { alerts: data ?? [] };
         },
+      }),
+      // --- Proposal tools -------------------------------------------------
+      // These deliberately DO NOT write. They validate the parameters and hand
+      // back a proposal that the client renders as a confirmation card; the
+      // insert only happens when the user taps Confirm, and it runs there under
+      // the user's own JWT (so RLS applies) rather than via this function's
+      // service-role client. Two reasons: a model should never silently mutate
+      // someone's data on the strength of a parsed sentence, and for anything
+      // trading-adjacent an explicit human assent is the defensible design.
+      propose_price_alert: tool({
+        description:
+          "Propose a price alert for the user to confirm. Use when the user asks to be alerted/notified about a price level. This does NOT create the alert — the user must confirm it in the app. Say you've prepared it for confirmation, never that it's been created.",
+        inputSchema: z.object({
+          commodity_name: z.string().describe("Commodity name e.g. 'Crude Oil', 'Gold'"),
+          commodity_symbol: z.string().optional().describe("Ticker if known e.g. 'WTI'"),
+          condition: z.enum(["above", "below"]),
+          target_price: z.number().positive().describe("Trigger price in USD"),
+          note: z.string().max(200).optional().describe("Short reason for the alert"),
+        }),
+        execute: async (input) => ({
+          proposal: { kind: "price_alert" as const, ...input },
+          status: "awaiting_user_confirmation",
+        }),
+      }),
+      propose_watchlist_add: tool({
+        description:
+          "Propose adding a commodity to the user's watchlist, for the user to confirm. This does NOT add it — the user must confirm in the app.",
+        inputSchema: z.object({
+          commodity_name: z.string().describe("Commodity name e.g. 'Copper'"),
+          commodity_symbol: z.string().optional(),
+        }),
+        execute: async (input) => ({
+          proposal: { kind: "watchlist_add" as const, ...input },
+          status: "awaiting_user_confirmation",
+        }),
       }),
       get_commodity_news: tool({
         description: "Fetch recent news for a specific commodity",

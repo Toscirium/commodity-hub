@@ -13,6 +13,7 @@ import { PromptInput, PromptInputTextarea, PromptInputFooter, PromptInputSubmit 
 import { Shimmer } from '@/components/ai-elements/shimmer';
 import { toast } from 'sonner';
 import PremiumPaywall from '@/components/PremiumPaywall';
+import ProposalCard, { readProposal } from '@/components/copilot/ProposalCard';
 
 const SUGGESTIONS = [
   'Summarize my portfolio risk',
@@ -227,6 +228,14 @@ function ChatWindow({ threadId, onRefreshThreads }: { threadId: string; onRefres
                     return <MessageResponse key={i}>{part.text}</MessageResponse>;
                   }
                   if (part.type?.startsWith?.('tool-')) {
+                    // A propose_* tool returns an action awaiting the user's
+                    // explicit confirmation — render it as a card they can act
+                    // on rather than a "Using…" status line. (AI SDK has moved
+                    // the payload field around across versions; read both.)
+                    const proposal = readProposal(part.output ?? part.result);
+                    if (proposal) {
+                      return <ProposalCard key={i} proposal={proposal} />;
+                    }
                     return (
                       <div key={i} className="text-xs text-muted-foreground italic">
                         Using {String(part.type).replace('tool-', '').replace(/_/g, ' ')}…
