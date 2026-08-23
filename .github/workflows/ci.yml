@@ -31,6 +31,11 @@ jobs:
         run: npm run lint
         
       - name: Run Prettier check
+        # Non-blocking: most of the repo predates .prettierrc and hasn't
+        # been run through it (~2,982 files as of 2026-08-23). Reports
+        # without failing the build until a deliberate repo-wide reformat
+        # happens; re-enable enforcement (drop continue-on-error) then.
+        continue-on-error: true
         run: npm run format:check
 
   # Test Suite

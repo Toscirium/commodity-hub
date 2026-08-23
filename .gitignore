@@ -13,6 +13,8 @@ dist-ssr
 release
 *.local
 .vercel
+*.tsbuildinfo
+coverage
 
 # Supabase CLI local cache
 supabase/.temp
