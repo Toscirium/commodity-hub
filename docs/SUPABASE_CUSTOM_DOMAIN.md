@@ -78,6 +78,7 @@ Easy to forget; each one breaks silently.
       database, not in git. At least two call edge functions by absolute URL:
       - `evaluate-price-alerts` (see `docs/PRICE_ALERTS_SETUP.md`)
       - `audit-premium-freshness`
+      - `refresh-fundamentals-every-2h` (see `docs/FUNDAMENTALS_REFRESH_SETUP.md`)
       Find them with:
       ```sql
       SELECT jobid, jobname, command FROM cron.job;

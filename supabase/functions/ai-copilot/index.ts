@@ -30,6 +30,7 @@ You have tools to:
 - Read the user's watchlists
 - Read the user's active price alerts
 - Fetch recent commodity news
+- Read physical supply/demand fundamentals (EIA stocks, refinery runs, gas storage, USDA crops, rig counts, weather)
 - Propose a price alert or a watchlist addition for the user to confirm
 - (Pro users only) Read the latest spread snapshot, seasonality history, market-regime map, and portfolio risk metrics (VaR, drawdown, beta)
 
@@ -39,6 +40,16 @@ Always:
 - Explain reasoning briefly (term structure, COT positioning, supply/demand)
 - Never give regulated financial advice; frame ideas as analysis, not recommendations
 - When the user references "my portfolio" / "my alerts", use the appropriate tool first
+
+Fundamentals (get_fundamentals):
+- Reach for it on any "why is X moving", "is this bullish/bearish", inventory,
+  storage, refinery, harvest, drilling, or weather-driven question — physical
+  supply/demand is usually the actual answer, not price action alone.
+- Read levels against the 5-year average, not in isolation: a crude build is
+  bearish, but a build that leaves stocks below the 5-year average often isn't.
+- Always date the figure ("crude stocks fell 3.2M bbl in the week to Mar 14").
+  A stale number quoted confidently is worse than saying data isn't available.
+- If the snapshot is empty or old, say so plainly. Never estimate a figure.
 
 Proposals (propose_price_alert, propose_watchlist_add):
 - These PREPARE an action for the user to confirm. They do not perform it.
@@ -183,6 +194,44 @@ Deno.serve(async (req) => {
             .eq("user_id", userId)
             .eq("is_active", true);
           return { alerts: data ?? [] };
+        },
+      }),
+      get_fundamentals: tool({
+        description:
+          "Physical supply/demand fundamentals: EIA weekly petroleum stocks, refinery runs and utilization, natural gas storage, USDA crop data, Baker Hughes rig counts, and weather in producing/consuming regions. Use this for 'why is X moving', inventory draws/builds, or any supply-demand question. Each row carries week-on-week and year-on-year changes plus the 5-year average, which is the standard bullish/bearish reference.",
+        inputSchema: z.object({
+          dataset: z
+            .enum(["petroleum", "natgas_storage", "weather", "usda", "rigs", "all"])
+            .default("all")
+            .describe("Which family of fundamentals to read"),
+        }),
+        execute: async ({ dataset }) => {
+          // Read the cached snapshot table rather than calling fetch-fundamentals:
+          // that function hits EIA/USDA/NOAA upstream, which is far too slow for
+          // a chat turn. The snapshots are refreshed on their own schedule.
+          // `observations` is deliberately NOT selected — 260 weekly points per
+          // series would swamp the context for no analytical gain.
+          let query = admin
+            .from("fundamentals_snapshots")
+            .select(
+              "series_id, dataset, label, unit, latest_value, latest_period, wow_change, yoy_change, five_year_avg, updated_at"
+            )
+            .order("label");
+          if (dataset !== "all") query = query.eq("dataset", dataset);
+          const { data, error } = await query;
+          if (error) return { error: error.message, series: [] };
+          if (!data?.length) {
+            return {
+              series: [],
+              note: "No fundamentals snapshots are cached yet. Say the data isn't available rather than estimating figures.",
+            };
+          }
+          return {
+            series: data,
+            // Surfaced so the assistant can date its claims — a confidently
+            // quoted stale inventory number is worse than no number.
+            note: "latest_period is the observation date, updated_at is when we last refreshed. Cite the observation date when quoting a figure.",
+          };
         },
       }),
       // --- Proposal tools -------------------------------------------------
