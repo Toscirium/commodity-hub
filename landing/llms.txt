@@ -1,0 +1,27 @@
+# Commodity Hub
+
+> Live prices, forward curves, CFTC positioning, and seasonality data for commodity futures — oil, metals, grains, and more, sourced from CME, CBOT, COMEX, and NYMEX. Free tier available; Premium and Pro add deeper analytics.
+
+Commodity Hub is a data and analytics product, not a broker — it does not execute trades or hold funds. Prices and positioning data below are updated on the cadence noted for each section; always check the "updated" timestamp on a page before citing a specific number as current.
+
+## Live data
+
+- [Live Positioning](https://commodity-hub.eu/now): current CFTC Commitment of Traders managed-money positioning per commodity, updated weekly (Fridays, CFTC's own publication schedule)
+- [Commodities](https://commodity-hub.eu/commodities): live price, exchange, ticker, and contract specs per commodity
+
+## Reference
+
+- [Glossary](https://commodity-hub.eu/glossary): short, precise definitions of futures-market concepts — contango/backwardation, COT report, crack spread, seasonality
+- [Learn](https://commodity-hub.eu/learn): longer guides on reading curves, positioning, and seasonal patterns
+- [Market Data Calendar](https://commodity-hub.eu/calendar): when the recurring reports that move commodity prices (COT, EIA petroleum, EIA natural gas storage, WASDE, OPEC+) are actually released
+
+## Tools
+
+- [Roll Yield Calculator](https://commodity-hub.eu/tools/roll-yield-calculator): computes the roll cost or benefit of holding a futures position through contango or backwardation, from two user-entered prices
+- [Embeddable Price Widget](https://commodity-hub.eu/embed): free live price widget publishers can embed on their own sites
+
+## About
+
+- [About](https://commodity-hub.eu/about)
+- [Pricing](https://commodity-hub.eu/#pricing): Free / Premium / Pro tiers
+- [Terms](https://commodity-hub.eu/terms) / [Privacy](https://commodity-hub.eu/privacy)

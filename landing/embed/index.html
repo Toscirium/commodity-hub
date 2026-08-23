@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Free Embeddable Price Widget — Commodity Hub</title>
+<meta name="description" content="Drop a free, live commodity price widget on your site or newsletter. No account, no API key — copy two lines of HTML." />
+<meta name="theme-color" content="#0d0d0f" />
+<link rel="canonical" href="https://commodity-hub.eu/embed" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Commodity Hub" />
+<meta property="og:url" content="https://commodity-hub.eu/embed" />
+<meta property="og:title" content="Free Embeddable Price Widget — Commodity Hub" />
+<meta property="og:description" content="Drop a free, live commodity price widget on your site or newsletter. No account, no API key — copy two lines of HTML." />
+<meta property="og:image" content="https://commodity-hub.eu/assets/app-icon.png" />
+<link rel="icon" href="/assets/app-icon.png" />
+<link rel="apple-touch-icon" href="/assets/app-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="/">
+      <img src="/assets/logo.png" alt="" />
+      <span class="brand-word">Commodity Hub</span>
+    </a>
+    <div class="nav-links">
+      <a href="/#coverage">Coverage</a>
+      <a href="/#toolkit">Toolkit</a>
+      <a href="/#pricing">Pricing</a>
+    </div>
+    <div class="nav-right">
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme">☾/☀</button>
+      <a class="nav-cta" href="https://app.commodity-hub.eu">Open the app</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero hero-doc">
+  <div class="container">
+    <div class="doc">
+      <h1>Free Embeddable Price Widget</h1>
+      <div class="doc-updated">No account · no API key · two lines of HTML</div>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="container">
+    <div class="doc">
+      <section>
+        <p>If you write about commodities — a newsletter, a blog, a trading-education site — this widget shows a live, auto-updating price with zero setup. It's free because it's useful to us too: every embed is a small, permanent link back to Commodity Hub.</p>
+      </section>
+
+      <section>
+        <h2>Live example</h2>
+        <p>This is the actual widget, running on this page right now:</p>
+        <div data-commodity-hub-widget="wti-crude-oil" style="margin: 14px 0;"></div>
+        <div data-commodity-hub-widget="gold" style="margin: 14px 0;"></div>
+      </section>
+
+      <section>
+        <h2>Add it to your site</h2>
+        <p>Paste this wherever you want a price to appear, and load the script once per page (anywhere, order doesn't matter):</p>
+        <pre style="background:var(--surface,#151517); border:1px solid var(--line,#2a2a2e); border-radius:8px; padding:14px 16px; overflow-x:auto; font-size:13px; line-height:1.6;"><code>&lt;div data-commodity-hub-widget="wti-crude-oil"&gt;&lt;/div&gt;
+&lt;script src="https://commodity-hub.eu/embed/widget.js" defer&gt;&lt;/script&gt;</code></pre>
+        <p>Swap <code>wti-crude-oil</code> for any supported slug. You can place multiple widgets on one page — one script load covers all of them.</p>
+      </section>
+
+      <section>
+        <h2>Supported commodities</h2>
+        <ul>
+          <li><code>wti-crude-oil</code>, <code>brent-crude-oil</code>, <code>natural-gas</code></li>
+          <li><code>gold</code>, <code>silver</code>, <code>copper</code></li>
+          <li><code>corn</code>, <code>wheat</code></li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>The fine print</h2>
+        <p>Free, no rate limit enforced today, and the credit link stays on the widget — please don't strip it. Prices come from the same feed <a href="/commodities">Commodity Hub's own pages</a> use. This is a convenience for publishers, not a data license for building a competing product on top of it.</p>
+      </section>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <a class="brand" href="/">
+        <img src="/assets/logo.png" alt="" />
+        <span class="brand-word">Commodity Hub</span>
+      </a>
+      <div class="footer-links">
+        <a href="/commodities">Commodities</a>
+        <a href="/glossary">Glossary</a>
+        <a href="/learn">Learn</a>
+        <a href="/now">Live Positioning</a>
+        <a href="/terms">Terms of Service</a>
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/about">About</a>
+        <a href="https://app.commodity-hub.eu/delete-account">Delete account</a>
+      </div>
+    </div>
+    <div class="footer-fine">
+      Commodity Hub is an information service providing commodity market prices, news, and analytics. It does not execute trades, hold client funds, or provide investment advice. The "Trade" section of the app links to independent, regulated third parties (Capital.com, eToro, Kalshi); Commodity Hub may earn a referral commission from those links. © <span id="year"></span> Commodity Hub. All rights reserved.
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+  var t = document.getElementById('themeToggle');
+  var root = document.documentElement;
+  t.addEventListener('click', function () {
+    var current = root.getAttribute('data-theme');
+    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var effectiveDark = current ? current === 'dark' : prefersDark;
+    root.setAttribute('data-theme', effectiveDark ? 'light' : 'dark');
+  });
+</script>
+<script src="/embed/widget.js" integrity="sha256-oCfSTP71AvQmSaVKaX9QwLfNZQouJhORvw4gZlwo0D0=" crossorigin="anonymous" defer></script>
+</body>
+</html>

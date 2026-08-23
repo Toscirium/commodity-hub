@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Roll Yield Calculator — Commodity Hub</title>
+<meta name="description" content="Calculate how much a futures position gains or loses on each roll from contango or backwardation — enter two prices, get the annualized cost or benefit." />
+<meta name="theme-color" content="#0d0d0f" />
+<link rel="canonical" href="https://commodity-hub.eu/tools/roll-yield-calculator" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Commodity Hub" />
+<meta property="og:url" content="https://commodity-hub.eu/tools/roll-yield-calculator" />
+<meta property="og:title" content="Roll Yield Calculator — Commodity Hub" />
+<meta property="og:description" content="Calculate how much a futures position gains or loses on each roll from contango or backwardation — enter two prices, get the annualized cost or benefit." />
+<meta property="og:image" content="https://commodity-hub.eu/assets/app-icon.png" />
+<link rel="icon" href="/assets/app-icon.png" />
+<link rel="apple-touch-icon" href="/assets/app-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/styles.css" />
+<style>
+  .ryc-form { display: grid; gap: 12px; max-width: 360px; margin: 16px 0; }
+  .ryc-field label { display: block; font-size: 0.82rem; color: var(--text-dim); margin-bottom: 4px; }
+  .ryc-field input { width: 100%; font-family: 'IBM Plex Mono', monospace; font-size: 15px; padding: 8px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--text); }
+  #rycCalc { align-self: start; font-family: 'IBM Plex Sans', sans-serif; font-weight: 600; padding: 9px 18px; border-radius: 6px; border: none; background: var(--text); color: var(--ground); cursor: pointer; }
+  .ryc-card { border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; margin: 16px 0 10px; max-width: 420px; }
+  .ryc-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 14.5px; }
+  .ryc-row:last-child { border-bottom: none; }
+  .ryc-row strong { font-family: 'IBM Plex Mono', monospace; text-transform: capitalize; }
+  .ryc-explain { max-width: 60ch; color: var(--text-dim); font-size: 14.5px; }
+  .ryc-hint { color: var(--text-dim); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="/">
+      <img src="/assets/logo.png" alt="" />
+      <span class="brand-word">Commodity Hub</span>
+    </a>
+    <div class="nav-links">
+      <a href="/#coverage">Coverage</a>
+      <a href="/#toolkit">Toolkit</a>
+      <a href="/#pricing">Pricing</a>
+    </div>
+    <div class="nav-right">
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme">☾/☀</button>
+      <a class="nav-cta" href="https://app.commodity-hub.eu">Open the app</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero hero-doc">
+  <div class="container">
+    <div class="doc">
+      <h1>Roll Yield Calculator</h1>
+      <div class="doc-updated">How much is your futures position bleeding — or earning — on each roll?</div>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="container">
+    <div class="doc">
+      <section>
+        <p>ETFs and futures positions don't hold one contract forever — they sell the expiring one and buy the next, over and over. If the curve is in contango, that roll quietly costs money every cycle, even when the spot price is flat. This calculator makes that cost (or benefit, in backwardation) concrete.</p>
+      </section>
+
+      <section>
+        <h2>Enter two prices</h2>
+        <div class="ryc-form">
+          <div class="ryc-field">
+            <label for="rycFront">Front-month price</label>
+            <input type="number" id="rycFront" step="any" placeholder="e.g. 71.40" />
+          </div>
+          <div class="ryc-field">
+            <label for="rycDeferred">Deferred-month price</label>
+            <input type="number" id="rycDeferred" step="any" placeholder="e.g. 73.10" />
+          </div>
+          <div class="ryc-field">
+            <label for="rycMonths">Months between the two contracts</label>
+            <input type="number" id="rycMonths" step="any" value="6" />
+          </div>
+          <button type="button" id="rycCalc">Calculate</button>
+        </div>
+        <div id="rycResult"><p class="ryc-hint">Enter a front-month price, a deferred-month price, and the number of months between them.</p></div>
+      </section>
+
+      <section>
+        <h2>Where to get the two prices</h2>
+        <p>Use the front-month and any deferred-month settlement from a commodity's page on Commodity Hub, or your broker's futures chain. Six months out (the default above) is a reasonable general-purpose spread to check; for a precise view, compare front-month to whichever contract you'd actually roll into.</p>
+        <p>For the full method — checking the whole curve, not just one spread — see <a href="/learn/crude-oil-contango-backwardation-now">reading the futures curve step by step</a> and <a href="/glossary/contango-vs-backwardation">contango vs. backwardation, explained</a>.</p>
+      </section>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <a class="brand" href="/">
+        <img src="/assets/logo.png" alt="" />
+        <span class="brand-word">Commodity Hub</span>
+      </a>
+      <div class="footer-links">
+        <a href="/commodities">Commodities</a>
+        <a href="/glossary">Glossary</a>
+        <a href="/learn">Learn</a>
+        <a href="/now">Live Positioning</a>
+        <a href="/terms">Terms of Service</a>
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/about">About</a>
+        <a href="https://app.commodity-hub.eu/delete-account">Delete account</a>
+      </div>
+    </div>
+    <div class="footer-fine">
+      Commodity Hub is an information service providing commodity market prices, news, and analytics. It does not execute trades, hold client funds, or provide investment advice. The "Trade" section of the app links to independent, regulated third parties (Capital.com, eToro, Kalshi); Commodity Hub may earn a referral commission from those links. © <span id="year"></span> Commodity Hub. All rights reserved.
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+  var t = document.getElementById('themeToggle');
+  var root = document.documentElement;
+  t.addEventListener('click', function () {
+    var current = root.getAttribute('data-theme');
+    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var effectiveDark = current ? current === 'dark' : prefersDark;
+    root.setAttribute('data-theme', effectiveDark ? 'light' : 'dark');
+  });
+</script>
+<script src="/tools/roll-yield-calculator.js" integrity="sha256-aFhljsQQbi/bi7f0wehmtbKmaRF1qRgtV9e3UhjK6H4=" crossorigin="anonymous" defer></script>
+</body>
+</html>
