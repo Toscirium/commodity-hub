@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Learn — Commodity Hub</title>
+<meta name="description" content="Guides on reading futures curves, seasonality, positioning reports, and spreads — for traders using Commodity Hub's live data." />
+<meta name="theme-color" content="#0d0d0f" />
+<link rel="canonical" href="https://commodity-hub.eu/learn" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Commodity Hub" />
+<meta property="og:url" content="https://commodity-hub.eu/learn" />
+<meta property="og:title" content="Learn — Commodity Hub" />
+<meta property="og:description" content="Guides on reading futures curves, seasonality, positioning reports, and spreads — for traders using Commodity Hub's live data." />
+<meta property="og:image" content="https://commodity-hub.eu/assets/app-icon.png" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Learn — Commodity Hub" />
+<meta name="twitter:description" content="Guides on reading futures curves, seasonality, positioning reports, and spreads — for traders using Commodity Hub's live data." />
+<meta name="twitter:image" content="https://commodity-hub.eu/assets/app-icon.png" />
+<link rel="icon" href="/assets/app-icon.png" />
+<link rel="apple-touch-icon" href="/assets/app-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="/">
+      <img src="/assets/logo.png" alt="" />
+      <span class="brand-word">Commodity Hub</span>
+    </a>
+    <div class="nav-links">
+      <a href="/#coverage">Coverage</a>
+      <a href="/#toolkit">Toolkit</a>
+      <a href="/#pricing">Pricing</a>
+    </div>
+    <div class="nav-right">
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme">☾/☀</button>
+      <a class="nav-cta" href="https://app.commodity-hub.eu">Open the app</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero hero-doc">
+  <div class="container">
+    <div class="doc">
+      <h1>Learn</h1>
+      <div class="doc-updated">Guides for trading with the toolkit</div>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="container">
+    <div class="doc">
+            <section>
+        <h2><a href="/learn/crude-oil-contango-backwardation-now">Is Crude Oil in Contango or Backwardation Right Now?</a></h2>
+        <p>Learn how to check whether crude oil is in contango or backwardation right now by reading WTI and Brent futures spreads month-by-month.</p>
+      </section>
+      <section>
+        <h2><a href="/learn/natural-gas-seasonality-chart">Natural Gas Seasonality Chart: A Month-by-Month Guide</a></h2>
+        <p>How to read a natural gas seasonality chart: injection vs withdrawal season, shoulder months, and the widow-maker March/April spread explained.</p>
+      </section>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <a class="brand" href="/">
+        <img src="/assets/logo.png" alt="" />
+        <span class="brand-word">Commodity Hub</span>
+      </a>
+      <div class="footer-links">
+        <a href="/commodities">Commodities</a>
+        <a href="/glossary">Glossary</a>
+        <a href="/learn">Learn</a>
+        <a href="/terms">Terms of Service</a>
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/about">About</a>
+        <a href="https://app.commodity-hub.eu/delete-account">Delete account</a>
+      </div>
+    </div>
+    <div class="footer-fine">
+      Commodity Hub is an information service providing commodity market prices, news, and analytics. It does not execute trades, hold client funds, or provide investment advice. The "Trade" section of the app links to independent, regulated third parties (Capital.com, eToro, Kalshi); Commodity Hub may earn a referral commission from those links. © <span id="year"></span> Commodity Hub. All rights reserved.
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+  var t = document.getElementById('themeToggle');
+  var root = document.documentElement;
+  t.addEventListener('click', function () {
+    var current = root.getAttribute('data-theme');
+    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var effectiveDark = current ? current === 'dark' : prefersDark;
+    root.setAttribute('data-theme', effectiveDark ? 'light' : 'dark');
+  });
+</script>
+</body>
+</html>
