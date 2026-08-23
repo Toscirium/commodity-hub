@@ -4,7 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { ETORO_ACADEMY_LINKS, buildAcademyUrl, type AcademyLink } from '@/config/affiliates';
+import { useVisitorCountry } from '@/hooks/useVisitorCountry';
+import {
+  ETORO_ACADEMY_LINKS,
+  buildAcademyUrl,
+  isProviderAvailableInCountry,
+  type AcademyLink,
+} from '@/config/affiliates';
 
 /**
  * Curated eToro Academy reading in the Learning Hub.
@@ -18,11 +24,16 @@ import { ETORO_ACADEMY_LINKS, buildAcademyUrl, type AcademyLink } from '@/config
  * Hidden for Premium/Pro subscribers for the same reason TradeCTA is: the
  * paywall sells an "ad-free experience", and an affiliate-attributed
  * outbound link is the closest thing to an ad in the product.
+ *
+ * Also hidden by country per eToro's compliance restrictions (excludes
+ * US/AU/ES) — see isProviderAvailableInCountry() in src/config/affiliates.ts.
  */
 const AcademyFurtherReading: React.FC = () => {
   const auth = useAuth();
   const tier = auth?.tier ?? 'free';
+  const { country, isLoading: countryLoading } = useVisitorCountry({ enabled: tier === 'free' });
   if (tier !== 'free') return null;
+  if (countryLoading || !isProviderAvailableInCountry('etoro', country)) return null;
 
   const handleClick = (link: AcademyLink) => {
     void supabase.from('affiliate_referral_clicks').insert({

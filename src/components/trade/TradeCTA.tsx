@@ -3,10 +3,12 @@ import { ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useVisitorCountry } from '@/hooks/useVisitorCountry';
 import {
   AFFILIATE_PROVIDERS,
   buildAffiliateUrl,
   isProviderAvailableFor,
+  isProviderAvailableInCountry,
   type AffiliateProvider,
 } from '@/config/affiliates';
 
@@ -27,10 +29,15 @@ interface TradeCTAProps {
  * this affiliate CTA — a monetized referral, not app functionality — is the
  * closest thing to an ad in the product. Someone already paying doesn't need
  * an upsell to a different revenue stream.
+ *
+ * Also hidden by country per each provider's own compliance restrictions
+ * (e.g. eToro's CFD guidelines exclude US/AU/ES) — see
+ * isProviderAvailableInCountry() in src/config/affiliates.ts.
  */
 const TradeCTA: React.FC<TradeCTAProps> = ({ symbol, commodityName, className }) => {
   const auth = useAuth();
   const tier = auth?.tier ?? 'free';
+  const { country, isLoading: countryLoading } = useVisitorCountry({ enabled: tier === 'free' });
   if (tier !== 'free') return null;
 
   const handleClick = (provider: AffiliateProvider) => {
@@ -44,9 +51,13 @@ const TradeCTA: React.FC<TradeCTAProps> = ({ symbol, commodityName, className })
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  const providers = (Object.values(AFFILIATE_PROVIDERS) as (typeof AFFILIATE_PROVIDERS)[AffiliateProvider][]).filter(
-    (p) => isProviderAvailableFor(p.id, symbol),
-  );
+  const providers = countryLoading
+    ? []
+    : (Object.values(AFFILIATE_PROVIDERS) as (typeof AFFILIATE_PROVIDERS)[AffiliateProvider][]).filter(
+        (p) => isProviderAvailableFor(p.id, symbol) && isProviderAvailableInCountry(p.id, country),
+      );
+
+  if (providers.length === 0) return null;
 
   return (
     <div className={className}>

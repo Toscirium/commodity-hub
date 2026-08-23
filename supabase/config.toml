@@ -47,6 +47,9 @@ verify_jwt = true
 [functions.fetch-commodity-prices]
 verify_jwt = false
 
+[functions.geo-country]
+verify_jwt = false
+
 [functions.fetch-commodity-data]
 verify_jwt = false
 

@@ -7,8 +7,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useAvailableCommodities } from '@/hooks/useCommodityData';
 import TradeCTA from '@/components/trade/TradeCTA';
-import { AFFILIATE_PROVIDERS } from '@/config/affiliates';
+import { AFFILIATE_PROVIDERS, isProviderAvailableInCountry } from '@/config/affiliates';
 import { useAuth } from '@/contexts/AuthContext';
+import { useVisitorCountry } from '@/hooks/useVisitorCountry';
 
 const CATEGORY_LABELS: Record<string, string> = {
   energy: 'Energy',
@@ -25,6 +26,13 @@ const Trade: React.FC = () => {
   const isPaidTier = (auth?.tier ?? 'free') !== 'free';
   const { data: commodities = [], isLoading } = useAvailableCommodities({ lightweight: true });
   const [search, setSearch] = useState('');
+  const { country, isLoading: countryLoading } = useVisitorCountry({ enabled: !isPaidTier });
+  // Promotional tagline per provider, gated by that provider's own
+  // compliance restrictions (see TradeCTA.tsx / affiliates.ts) — the generic
+  // risk-of-loss copy above still applies regardless.
+  const availableProviders = countryLoading
+    ? []
+    : Object.values(AFFILIATE_PROVIDERS).filter((p) => isProviderAvailableInCountry(p.id, country));
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -87,7 +95,7 @@ const Trade: React.FC = () => {
                   licensed third party, and Commodity Hub may earn a referral commission if you sign up.
                 </p>
                 <div className="flex flex-wrap gap-x-6 gap-y-1 pt-1 text-foreground/80">
-                  {Object.values(AFFILIATE_PROVIDERS).map((p) => (
+                  {availableProviders.map((p) => (
                     <span key={p.id}>
                       <strong className="text-foreground">{p.name}</strong> — {p.tagline}.{' '}
                       {p.regionNote}.
