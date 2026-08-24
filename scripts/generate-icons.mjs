@@ -112,6 +112,10 @@ async function main() {
     path.join(ROOT, 'icon.png'),
     path.join(ROOT, 'public', 'icons', 'icon-512-playstore.png'),
     path.join(ROOT, 'landing', 'assets', 'app-icon.png'),
+    // The landing site's <nav> brand mark (.brand img, 26x26 via CSS) — this
+    // got missed when the icon was redesigned in 0d138aa, so commodity-hub.eu
+    // was still showing the old generic trending-up-arrow placeholder.
+    path.join(ROOT, 'landing', 'assets', 'logo.png'),
   ]) { ensure(p); fs.writeFileSync(p, icon512); emit(p); }
 
   const icon1024 = await opaque(render(full, 1024)).toBuffer();
