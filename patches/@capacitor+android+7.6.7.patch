@@ -1,0 +1,27 @@
+diff --git a/node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/CapacitorWebView.java b/node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/CapacitorWebView.java
+index 07c9ec9..02f5f96 100644
+--- a/node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/CapacitorWebView.java
++++ b/node_modules/@capacitor/android/capacitor/src/main/java/com/getcapacitor/CapacitorWebView.java
+@@ -73,7 +73,21 @@ public class CapacitorWebView extends WebView {
+ 
+         if (forceMargins || autoMargins) {
+             ViewCompat.setOnApplyWindowInsetsListener(this, (v, windowInsets) -> {
+-                Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
++                // ime() is included alongside the system bars so the WebView
++                // shrinks above the soft keyboard. Android 15 (API 35+)
++                // enforces edge-to-edge, and under it the framework no longer
++                // pads the window's root views for the IME — so
++                // android:windowSoftInputMode="adjustResize" in the manifest
++                // is a no-op there and the keyboard just draws over the page
++                // (bottom-anchored UI like the Messages composer ends up
++                // underneath it). Since this listener returns CONSUMED, the
++                // IME inset reaches nothing else either unless it's handled
++                // right here. getInsets() returns the per-side max across the
++                // requested types, so the bottom is the nav bar while the
++                // keyboard is closed and the (taller) keyboard while it's open.
++                Insets insets = windowInsets.getInsets(
++                    WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout() | WindowInsetsCompat.Type.ime()
++                );
+                 MarginLayoutParams mlp = (MarginLayoutParams) v.getLayoutParams();
+                 mlp.leftMargin = insets.left;
+                 mlp.bottomMargin = insets.bottom;
