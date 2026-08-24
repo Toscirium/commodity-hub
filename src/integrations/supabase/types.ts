@@ -728,6 +728,7 @@ export type Database = {
           id: string
           subscription_active: boolean | null
           subscription_end: string | null
+          subscription_store: string | null
           subscription_tier: string | null
           updated_at: string
         }
@@ -741,6 +742,7 @@ export type Database = {
           id: string
           subscription_active?: boolean | null
           subscription_end?: string | null
+          subscription_store?: string | null
           subscription_tier?: string | null
           updated_at?: string
         }
@@ -754,6 +756,7 @@ export type Database = {
           id?: string
           subscription_active?: boolean | null
           subscription_end?: string | null
+          subscription_store?: string | null
           subscription_tier?: string | null
           updated_at?: string
         }

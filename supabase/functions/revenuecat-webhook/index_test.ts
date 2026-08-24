@@ -43,7 +43,7 @@ async function readProfile(id: string) {
   const sb = adminClient();
   const { data, error } = await sb
     .from('profiles')
-    .select('subscription_active, subscription_tier, billing_state, grace_period_expires_at')
+    .select('subscription_active, subscription_tier, billing_state, grace_period_expires_at, subscription_store')
     .eq('id', id)
     .single();
   if (error) throw new Error(error.message);
@@ -141,6 +141,45 @@ Deno.test({
     assertEquals(p.subscription_tier, 'premium');
     assertEquals(p.billing_state, 'active');
     assertEquals(p.grace_period_expires_at, null);
+  } finally {
+    await deleteProfile(uid);
+  }
+  },
+});
+
+Deno.test({
+  name: 'INITIAL_PURCHASE records event.store on subscription_store',
+  ignore: !DB_TESTS_ENABLED,
+  fn: async () => {
+  const uid = newTestUserId();
+  await seedProfile(uid);
+  try {
+    const res = await post(eventFor('INITIAL_PURCHASE', uid, { store: 'RC_BILLING' }));
+    assertEquals(res.status, 200);
+    await res.text();
+    const p = await readProfile(uid);
+    assertEquals(p.subscription_store, 'RC_BILLING');
+  } finally {
+    await deleteProfile(uid);
+  }
+  },
+});
+
+Deno.test({
+  name: 'a later event with no store field does not clobber a previously-known one',
+  ignore: !DB_TESTS_ENABLED,
+  fn: async () => {
+  const uid = newTestUserId();
+  await seedProfile(uid);
+  try {
+    await post(eventFor('INITIAL_PURCHASE', uid, { store: 'PLAY_STORE' })).then((r) => r.text());
+    // RENEWAL here deliberately omits `store` — some event types/older
+    // payloads may not include it.
+    const res = await post(eventFor('RENEWAL', uid));
+    assertEquals(res.status, 200);
+    await res.text();
+    const p = await readProfile(uid);
+    assertEquals(p.subscription_store, 'PLAY_STORE');
   } finally {
     await deleteProfile(uid);
   }

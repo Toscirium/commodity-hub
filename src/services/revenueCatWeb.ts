@@ -1,20 +1,27 @@
 // RevenueCat Web Billing (browser) client — the counterpart to revenueCat.ts,
 // which only ever runs inside the native app (see isRevenueCatAvailable()
-// there gating on Capacitor.isNativePlatform()). This file is the web-only
-// path: same entitlements ('premium'/'pro'), same Supabase-backed webhook
-// (supabase/functions/revenuecat-webhook — RC's event schema is provider-
-// agnostic, so Web Billing purchases land on the exact same handler with no
-// backend changes), different SDK because RC ships a dedicated browser SDK
-// (@revenuecat/purchases-js) with its own types — Package/Product here are
-// NOT the same shapes as @revenuecat/purchases-capacitor's.
+// there gating on Capacitor.isNativePlatform()). This file is mostly the
+// web-only purchase path: same entitlements ('premium'/'pro'), same
+// Supabase-backed webhook (supabase/functions/revenuecat-webhook — RC's
+// event schema is provider-agnostic, so Web Billing purchases land on the
+// exact same handler with no backend changes), different SDK because RC
+// ships a dedicated browser SDK (@revenuecat/purchases-js) with its own
+// types — Package/Product here are NOT the same shapes as
+// @revenuecat/purchases-capacitor's.
+//
+// One deliberate exception: configureRevenueCatWeb()/getWebManagementUrl()
+// are reachable from native too (see ManageSubscriptionButton.tsx) — a
+// user who subscribed via web still needs their Stripe portal link when
+// opening "Manage subscription" from the Android app. Only *starting a new
+// purchase* stays native-excluded (isRevenueCatWebAvailable()), since that
+// has to go through Google Play Billing on Android, not Stripe.
 //
 // @revenuecat/purchases-js bundles its own checkout UI and is large (it
 // roughly quadrupled the main app chunk when imported statically — verified
 // with a real build). Every function below dynamically imports it instead,
-// so it's only ever fetched when actually invoked. Since isRevenueCatWebAvailable()
-// gates all of them on !Capacitor.isNativePlatform(), the native Android/iOS
-// app — which statically imports this file via PremiumPaywall.tsx and
-// ManageSubscriptionButton.tsx — never fetches this dependency at all.
+// so it's only fetched when actually invoked — on native, that means only
+// on the (rare) path above, not on every load of PremiumPaywall.tsx /
+// ManageSubscriptionButton.tsx, which both statically import this file.
 import { Capacitor } from '@capacitor/core';
 import type { Purchases, Offering, Package, CustomerInfo } from '@revenuecat/purchases-js';
 import { logger } from '@/utils/logger';
@@ -43,8 +50,24 @@ const trackPurchaseEvent = (event: string, props: Record<string, unknown>) => {
   }
 };
 
+/**
+ * Whether a new Web Billing *purchase* can be started here. Deliberately
+ * native-excluded: checkout has to go through Google Play Billing on
+ * Android, not Stripe, and RC's checkout UI isn't meant to render inside a
+ * Capacitor WebView. Gates PremiumPaywall's web purchase flow.
+ */
 export const isRevenueCatWebAvailable = (): boolean =>
   !Capacitor.isNativePlatform() && Boolean(REVENUECAT_WEB_KEY);
+
+/**
+ * Whether the Web Billing SDK can be configured at all — just checks the
+ * key exists, on any platform. Read-only lookups (getCustomerInfo() for
+ * "Manage subscription") are harmless from inside the native app: a user
+ * who subscribed on web still needs their Stripe portal link even when
+ * they're now opening this from the Android app. Only *purchasing* needs
+ * the stricter isRevenueCatWebAvailable() above.
+ */
+export const isRevenueCatWebKeyConfigured = (): boolean => Boolean(REVENUECAT_WEB_KEY);
 
 /**
  * Configures (or re-targets) the Web Billing SDK for the given signed-in
@@ -53,7 +76,7 @@ export const isRevenueCatWebAvailable = (): boolean =>
  * changed (sign-out/sign-in in the same tab, no page reload).
  */
 export const configureRevenueCatWeb = async (appUserId: string): Promise<boolean> => {
-  if (!isRevenueCatWebAvailable()) return false;
+  if (!isRevenueCatWebKeyConfigured()) return false;
   if (configuredFor === appUserId && instance) return true;
   try {
     const { Purchases, LogLevel } = await import('@revenuecat/purchases-js');

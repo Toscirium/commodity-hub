@@ -25,6 +25,8 @@ interface Profile {
   subscription_tier: string | null;
   subscription_active: boolean | null;
   subscription_end: string | null;
+  /** Which store the active subscription lives on — see revenuecat-webhook. */
+  subscription_store: string | null;
   billing_state: string | null;
   grace_period_expires_at: string | null;
   created_at: string;
@@ -139,6 +141,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       subscription_tier: 'free',
       subscription_active: false,
       subscription_end: null,
+      subscription_store: null,
       billing_state: null,
       grace_period_expires_at: null,
       created_at: authUser.created_at ?? now,

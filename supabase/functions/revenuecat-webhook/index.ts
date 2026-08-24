@@ -19,6 +19,14 @@ interface RCEvent {
   expiration_at_ms?: number | null;
   environment?: string;
   event_timestamp_ms?: number;
+  // Which store the purchase actually happened on — PLAY_STORE, APP_STORE,
+  // RC_BILLING (RevenueCat's own Stripe-backed Web Billing), STRIPE, etc.
+  // Stored on profiles.subscription_store so "Manage subscription" can route
+  // there regardless of which platform/device it's clicked from — a web
+  // purchase opened from the Android app should still go to the Stripe
+  // portal, not the Play Store. See PRODUCTION_SETUP.md and
+  // ManageSubscriptionButton.tsx.
+  store?: string | null;
 }
 
 interface RCPayload {
@@ -115,6 +123,11 @@ Deno.serve(async (req) => {
     ? new Date(event.expiration_at_ms).toISOString()
     : null;
 
+  // event.store isn't sent on every event type historically, so only
+  // overwrite the column when this event actually says which store it's
+  // from — never clobber a previously-known value with an absent one.
+  const store = event.store ?? undefined;
+
   let update: Record<string, unknown> | null = null;
   if (ACTIVATING.has(event.type)) {
     update = {
@@ -123,6 +136,7 @@ Deno.serve(async (req) => {
       subscription_end: subscriptionEnd,
       billing_state: 'active',
       grace_period_expires_at: null,
+      ...(store !== undefined && { subscription_store: store }),
       updated_at: new Date().toISOString(),
     };
   } else if (event.type === CANCELLATION) {
@@ -132,6 +146,7 @@ Deno.serve(async (req) => {
       subscription_end: subscriptionEnd,
       billing_state: 'canceled',
       grace_period_expires_at: null,
+      ...(store !== undefined && { subscription_store: store }),
       updated_at: new Date().toISOString(),
     };
   } else if (DEACTIVATING.has(event.type)) {
@@ -141,6 +156,7 @@ Deno.serve(async (req) => {
       subscription_end: subscriptionEnd,
       billing_state: 'canceled',
       grace_period_expires_at: null,
+      ...(store !== undefined && { subscription_store: store }),
       updated_at: new Date().toISOString(),
     };
   } else if (event.type === BILLING_ISSUE) {
@@ -151,6 +167,7 @@ Deno.serve(async (req) => {
       subscription_end: subscriptionEnd,
       billing_state: 'grace',
       grace_period_expires_at: subscriptionEnd,
+      ...(store !== undefined && { subscription_store: store }),
       updated_at: new Date().toISOString(),
     };
   } else if (event.type === SUBSCRIPTION_PAUSED) {
@@ -160,6 +177,7 @@ Deno.serve(async (req) => {
       subscription_end: subscriptionEnd,
       billing_state: 'on_hold',
       grace_period_expires_at: null,
+      ...(store !== undefined && { subscription_store: store }),
       updated_at: new Date().toISOString(),
     };
   }
