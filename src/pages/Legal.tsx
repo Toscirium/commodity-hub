@@ -51,7 +51,7 @@ const Legal: React.FC = () => {
                   <p className="font-medium text-foreground">Consilair OÜ</p>
                   <p className="text-muted-foreground">Estonia (European Union)</p>
                   <p className="text-muted-foreground">
-                    Registered in the Estonian Business Register
+                    Registered in the Estonian Business Register, registry code 17074907
                   </p>
                 </div>
               </section>
