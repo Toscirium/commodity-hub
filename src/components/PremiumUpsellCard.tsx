@@ -83,8 +83,7 @@ const PremiumUpsellCard: React.FC<PremiumUpsellCardProps> = ({ onUpgrade, varian
                 <CardDescription className="mt-0.5 text-xs">
                   {description}
                   <span className="block text-foreground/70">
-                    All premium benchmarks, <strong>LIVE</strong>/<strong>EOD</strong>/<strong>REF</strong> labeled · from{' '}
-                    <strong className="text-foreground">$6.99/mo</strong>
+                    All premium benchmarks, <strong>LIVE</strong>/<strong>EOD</strong>/<strong>REF</strong> labeled
                   </span>
                 </CardDescription>
               </div>
