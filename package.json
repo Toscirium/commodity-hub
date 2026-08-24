@@ -24,6 +24,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "gen:attributions": "node scripts/generate-oss-attributions.mjs",
+    "gen:icons": "node scripts/generate-icons.mjs",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",

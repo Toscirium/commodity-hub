@@ -1,0 +1,76 @@
+<!--
+  Commodity Hub app icon — SINGLE SOURCE OF TRUTH.
+
+  Every raster icon in the repo (Android mipmaps, iOS AppIcon, Tauri desktop
+  icons, favicon, PWA icons, Play Store listing, landing pages) is generated
+  from this file by `npm run gen:icons`. Do not hand-edit the PNGs.
+
+  Palette: white linework on an indigo plate (#2E1D6B -> #1B1140).
+  The three objects carry flat tonal shading with the light source at the
+  upper left; the fills are what make each object occlude the one behind it,
+  so they must stay opaque.
+
+  Layout: the artwork is drawn in comfortable coordinates (a ~360x330 box
+  around x=276, y=247) and then centred and scaled by 0.855 so that every
+  stroke stays inside the maskable safe zone — a circle of radius 40% of the
+  width — which public/manifest.json claims for these icons.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2E1D6B"/>
+      <stop offset="1" stop-color="#1B1140"/>
+    </linearGradient>
+    <path id="kernel" d="M0,0 C24,-10 40,-36 40,-68 C14,-55 1,-30 0,0 Z"/>
+    <path id="drumBody" d="M105,150 L105,376 A90,25 0 0 0 285,376 L285,150 Z"/>
+    <clipPath id="drumClip"><use href="#drumBody"/></clipPath>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)"/>
+
+  <g transform="translate(256,256) scale(0.855) translate(-276,-247.5)"
+     stroke="#FFFFFF" stroke-width="17" stroke-linecap="round" stroke-linejoin="round">
+
+    <!-- ground shadow, anchoring the objects -->
+    <ellipse cx="275" cy="405" rx="158" ry="19" fill="#000000" opacity="0.30" stroke="none"/>
+
+    <!-- ===== wheat stalk — back layer, base tucked behind the ingot ===== -->
+    <g transform="translate(340,392) rotate(18)" fill="#6B57C9" stroke-width="11">
+      <path d="M0,0 L0,-272" fill="none"/>
+      <use href="#kernel" x="0" y="-95"/>
+      <use href="#kernel" x="0" y="-160"/>
+      <use href="#kernel" x="0" y="-225"/>
+      <g transform="scale(-1,1)">
+        <use href="#kernel" x="0" y="-95"/>
+        <use href="#kernel" x="0" y="-160"/>
+        <use href="#kernel" x="0" y="-225"/>
+      </g>
+      <g transform="translate(0,-268) rotate(-25)"><use href="#kernel"/></g>
+    </g>
+
+    <!-- ===== oil drum — mid layer ===== -->
+    <g>
+      <use href="#drumBody" fill="#4B3A9E" stroke="none"/>
+      <g clip-path="url(#drumClip)" stroke="none">
+        <rect x="232" y="125" width="70" height="300" fill="#2F2470"/>  <!-- shade, right -->
+        <rect x="118" y="125" width="24" height="300" fill="#6B57C9"/>  <!-- highlight, left -->
+      </g>
+      <use href="#drumBody" fill="none"/>
+      <ellipse cx="195" cy="150" rx="90" ry="25" fill="#6B57C9"/>
+      <path d="M105,225 A90,25 0 0 0 285,225" fill="none"/>
+      <path d="M105,301 A90,25 0 0 0 285,301" fill="none"/>
+      <!-- oil droplet badge, seated inside the middle band -->
+      <path d="M187,254 C196,270 208,280 208,294 A21,21 0 1 1 166,294 C166,280 178,270 187,254 Z"
+            fill="#2F2470" stroke-width="12"/>
+    </g>
+
+    <!-- ===== metal ingot — front layer, hides the stalk's base ===== -->
+    <g>
+      <path d="M292,340 L432,340 L414,312 L310,312 Z" fill="#6B57C9"/>
+      <path d="M292,340 L432,340 L448,404 L276,404 Z" fill="#40318C"/>
+      <path d="M408,340 L432,340 L448,404 L420,404 Z" fill="#2F2470" stroke="none"/>
+      <path d="M292,340 L432,340 L448,404 L276,404 Z" fill="none"/>
+    </g>
+
+  </g>
+</svg>
