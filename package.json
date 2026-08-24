@@ -25,6 +25,7 @@
     "preview": "vite preview",
     "gen:attributions": "node scripts/generate-oss-attributions.mjs",
     "gen:icons": "node scripts/generate-icons.mjs",
+    "gen:feature-graphic": "node scripts/generate-feature-graphic.mjs",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
