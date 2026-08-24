@@ -51,10 +51,14 @@ const ManageSubscriptionButton: React.FC<ManageSubscriptionButtonProps> = ({
           return;
         }
       }
+      // Not an error — this button renders for every signed-in user
+      // regardless of tier (see UserProfile/AccountSettings), and most
+      // people clicking it simply aren't subscribed yet. Native side has a
+      // generic Play Store subscriptions page to fall back to in this same
+      // situation; there's no web equivalent, so this is the fallback.
       toast({
-        title: 'No active subscription found',
-        description: "We couldn't find a subscription to manage for this account.",
-        variant: 'destructive',
+        title: "You're not subscribed yet",
+        description: 'Open the upgrade dialog to see Premium and Pro plans.',
       });
     } finally {
       setBusy(false);
