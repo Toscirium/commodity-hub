@@ -24,7 +24,23 @@ import {
   restorePurchases,
 } from '@/services/revenueCat';
 import type { PurchasesOffering, PurchasesPackage } from '@revenuecat/purchases-capacitor';
+import {
+  configureRevenueCatWeb,
+  getWebOfferings,
+  isRevenueCatWebAvailable,
+  purchaseWebPackage,
+} from '@/services/revenueCatWeb';
+// Type-only import — @revenuecat/purchases-js itself is dynamically
+// imported inside revenueCatWeb.ts (it bundles its own checkout UI and is
+// large), so nothing here should pull the real module into this static
+// import graph. WEB_PACKAGE_TYPE below mirrors its PackageType enum's
+// string values without importing the enum itself.
+import type { Offering as WebOffering, Package as WebPackage } from '@revenuecat/purchases-js';
 import { PLAY_STORE_URL } from '@/config/playStore';
+
+// Matches @revenuecat/purchases-js's PackageType.Monthly / .Annual values —
+// see the comment above for why these are inlined instead of imported.
+const WEB_PACKAGE_TYPE = { Monthly: '$rc_monthly', Annual: '$rc_annual' } as const;
 
 interface PremiumPaywallProps {
   open: boolean;
@@ -69,6 +85,80 @@ export const getAnnualSavingsPct = (pkgs: PurchasesPackage[]): number | null => 
   return pct > 0 ? Math.round(pct) : null;
 };
 
+/**
+ * Normalized shape a plan button renders from, so renderTierCard doesn't
+ * need to know whether it's looking at a native RevenueCat package
+ * (@revenuecat/purchases-capacitor) or a Web Billing one
+ * (@revenuecat/purchases-js) — genuinely different SDKs/types, since the
+ * mobile plugin wraps native store billing and the web SDK drives RC's own
+ * Stripe-backed checkout.
+ */
+interface PlanChoice {
+  id: string;
+  isAnnual: boolean;
+  priceString: string;
+  perMonthString: string | null;
+  savingsPct: number | null;
+  purchasing: boolean;
+  disabled: boolean;
+  onSelect: () => void;
+}
+
+export const buildNativePlanChoices = (
+  pkgs: PurchasesPackage[],
+  purchasingId: string | null,
+  onSelect: (pkg: PurchasesPackage) => void,
+): PlanChoice[] => {
+  const savingsPct = getAnnualSavingsPct(pkgs);
+  return orderWithAnnualFirst(pkgs).map((pkg) => {
+    const isAnnual = pkg.packageType === 'ANNUAL';
+    return {
+      id: pkg.identifier,
+      isAnnual,
+      priceString: pkg.product.priceString,
+      perMonthString: isAnnual ? (pkg.product.pricePerMonthString ?? null) : null,
+      savingsPct: isAnnual ? savingsPct : null,
+      purchasing: purchasingId === pkg.identifier,
+      disabled: purchasingId !== null,
+      onSelect: () => onSelect(pkg),
+    };
+  });
+};
+
+export const buildWebPlanChoices = (
+  pkgs: WebPackage[],
+  purchasingId: string | null,
+  onSelect: (pkg: WebPackage) => void,
+): PlanChoice[] => {
+  const monthly = pkgs.find((p) => p.packageType === WEB_PACKAGE_TYPE.Monthly);
+  const annual = pkgs.find((p) => p.packageType === WEB_PACKAGE_TYPE.Annual);
+  const monthlyMicros = monthly?.webBillingProduct.price.amountMicros;
+  const annualPerMonthMicros = annual?.webBillingProduct.defaultSubscriptionOption?.base.pricePerMonth?.amountMicros;
+  let savingsPct: number | null = null;
+  if (monthlyMicros && annualPerMonthMicros) {
+    const pct = (1 - annualPerMonthMicros / monthlyMicros) * 100;
+    savingsPct = pct > 0 ? Math.round(pct) : null;
+  }
+  const ordered = [...pkgs].sort((a, b) =>
+    a.packageType === WEB_PACKAGE_TYPE.Annual ? -1 : b.packageType === WEB_PACKAGE_TYPE.Annual ? 1 : 0,
+  );
+  return ordered.map((pkg) => {
+    const isAnnual = pkg.packageType === WEB_PACKAGE_TYPE.Annual;
+    return {
+      id: pkg.identifier,
+      isAnnual,
+      priceString: pkg.webBillingProduct.price.formattedPrice,
+      perMonthString: isAnnual
+        ? (pkg.webBillingProduct.defaultSubscriptionOption?.base.pricePerMonth?.formattedPrice ?? null)
+        : null,
+      savingsPct: isAnnual ? savingsPct : null,
+      purchasing: purchasingId === pkg.identifier,
+      disabled: purchasingId !== null,
+      onSelect: () => onSelect(pkg),
+    };
+  });
+};
+
 const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, source = 'unknown' }) => {
   const { toast } = useToast();
   const auth = useAuth();
@@ -76,12 +166,15 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
   const location = useLocation();
   const { isNative } = usePlatform();
   const [offering, setOffering] = React.useState<PurchasesOffering | null>(null);
+  const [webOffering, setWebOffering] = React.useState<WebOffering | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [purchasing, setPurchasing] = React.useState<string | null>(null);
+  const [webPurchasing, setWebPurchasing] = React.useState<string | null>(null);
   const tier = auth?.tier ?? 'free';
   const isPaid = tier !== 'free';
   const isSignedIn = Boolean(auth?.user);
   const revenueCatReady = isRevenueCatAvailable();
+  const webBillingReady = isRevenueCatWebAvailable();
 
   React.useEffect(() => {
     if (!open) return;
@@ -122,10 +215,59 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
     })();
   }, [open, auth?.user?.id]);
 
+  // Web Billing counterpart of the effect above. Unlike native, this only
+  // configures once signed in — the web SDK requires a real appUserId (no
+  // built-in anonymous-browsing config the way the native plugin has), and
+  // purchasing already requires an account anyway (see the "create account
+  // to subscribe" gate below), so there's nothing to gain from configuring
+  // for a signed-out visitor here.
+  React.useEffect(() => {
+    if (!open || isNative || !auth?.user?.id) return;
+    if (!isRevenueCatWebAvailable()) return;
+
+    (async () => {
+      setLoading(true);
+      await configureRevenueCatWeb(auth.user!.id);
+      const current = await getWebOfferings();
+      setWebOffering(current);
+      monitoringService.trackUserEvent('paywall_offering_loaded', {
+        source,
+        platform: 'web',
+        premium_packages: current?.availablePackages.filter((pkg) => pkg.webBillingProduct.identifier.startsWith('premium_lite')).length ?? 0,
+        pro_packages: current?.availablePackages.filter((pkg) => !pkg.webBillingProduct.identifier.startsWith('premium_lite')).length ?? 0,
+      });
+      setLoading(false);
+    })();
+  }, [open, isNative, auth?.user?.id]);
+
   const handlePurchase = async (pkg: PurchasesPackage) => {
     setPurchasing(pkg.identifier);
     const result = await purchasePackage(pkg, { paywall_source: source, tier_target: pkg.product.identifier.startsWith('premium_lite') ? 'premium' : 'pro' });
     setPurchasing(null);
+
+    if (result.success) {
+      toast({
+        title: 'Subscription active!',
+        description: 'Your new tier is now unlocked.',
+      });
+      await auth?.refreshProfile();
+      onOpenChange(false);
+    } else if (result.error && result.error !== 'cancelled') {
+      toast({
+        title: 'Purchase failed',
+        description: result.error,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleWebPurchase = async (pkg: WebPackage) => {
+    setWebPurchasing(pkg.identifier);
+    const result = await purchaseWebPackage(pkg, {
+      paywall_source: source,
+      tier_target: pkg.webBillingProduct.identifier.startsWith('premium_lite') ? 'premium' : 'pro',
+    });
+    setWebPurchasing(null);
 
     if (result.success) {
       toast({
@@ -160,11 +302,11 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
   };
 
   // Group packages by which tier they belong to so we can render two cards.
-  const packagesByTier = React.useMemo(() => {
-    const byTier: { premium: PurchasesPackage[]; pro: PurchasesPackage[] } = {
-      premium: [],
-      pro: [],
-    };
+  // Native and Web Billing are grouped separately since they're never both
+  // active at once (one is native-platform-only, the other web-only) but
+  // carry different package types.
+  const nativePackagesByTier = React.useMemo(() => {
+    const byTier: { premium: PurchasesPackage[]; pro: PurchasesPackage[] } = { premium: [], pro: [] };
     offering?.availablePackages.forEach((pkg) => {
       const id = pkg.product.identifier;
       if (id.startsWith('premium_lite')) byTier.premium.push(pkg);
@@ -173,18 +315,31 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
     return byTier;
   }, [offering]);
 
+  // Requires the Web Billing product identifiers configured in the
+  // RevenueCat dashboard to follow the same premium_lite_* / premium_*
+  // convention as the Play Store products (see TIER_PRICING in tiers.ts) —
+  // that's what this split matches on.
+  const webPackagesByTier = React.useMemo(() => {
+    const byTier: { premium: WebPackage[]; pro: WebPackage[] } = { premium: [], pro: [] };
+    webOffering?.availablePackages.forEach((pkg) => {
+      const id = pkg.webBillingProduct.identifier;
+      if (id.startsWith('premium_lite')) byTier.premium.push(pkg);
+      else byTier.pro.push(pkg);
+    });
+    return byTier;
+  }, [webOffering]);
+
   const renderTierCard = (
-    tierKey: 'premium' | 'pro',
     accent: 'default' | 'pro',
     title: string,
     features: string[],
-    pkgs: PurchasesPackage[],
+    planChoices: PlanChoice[],
   ) => {
     // Real, region-correct price from RevenueCat when we have it — never a
     // hardcoded USD figure, since store prices vary by country/currency.
-    // Nothing is shown when we don't have live package data (web, or a
-    // platform without RevenueCat configured).
-    const monthlyPkg = pkgs.find((p) => p.packageType === 'MONTHLY');
+    // Nothing is shown when we don't have live package data (a platform
+    // without RevenueCat/Web Billing configured).
+    const monthlyChoice = planChoices.find((c) => !c.isAnnual);
     return (
       <div
         className={`rounded-lg border p-4 space-y-3 ${
@@ -203,8 +358,8 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
               <Badge variant="default" className="text-[10px]">BEST VALUE</Badge>
             )}
           </div>
-          {monthlyPkg && (
-            <span className="text-sm font-semibold">{monthlyPkg.product.priceString}/mo</span>
+          {monthlyChoice && (
+            <span className="text-sm font-semibold">{monthlyChoice.priceString}/mo</span>
           )}
         </div>
         <ul className="space-y-1.5">
@@ -215,49 +370,39 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
             </li>
           ))}
         </ul>
-        {isNative && isSignedIn && pkgs.length > 0 && (() => {
-          const savingsPct = getAnnualSavingsPct(pkgs);
-          return (
-            <div className="space-y-2 pt-1">
-              {orderWithAnnualFirst(pkgs).map((pkg) => {
-                const isAnnual = pkg.packageType === 'ANNUAL';
-                return (
-                  <div key={pkg.identifier} className="space-y-1">
-                    <Button
-                      onClick={() => handlePurchase(pkg)}
-                      disabled={purchasing !== null}
-                      className="w-full justify-between"
-                      // Annual is always the visually primary choice when it's
-                      // an option — Monthly steps back to outline, regardless
-                      // of the card's own Premium/Pro accent.
-                      variant={isAnnual ? 'default' : 'outline'}
-                      size="sm"
-                    >
-                      <span className="flex items-center gap-1.5">
-                        {isAnnual ? 'Annual' : 'Monthly'}
-                        {isAnnual && savingsPct && (
-                          <Badge variant="secondary" className="text-[10px]">Save {savingsPct}%</Badge>
-                        )}
-                      </span>
-                      <span>
-                        {purchasing === pkg.identifier ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          pkg.product.priceString
-                        )}
-                      </span>
-                    </Button>
-                    {isAnnual && pkg.product.pricePerMonthString && (
-                      <p className="text-[10px] text-muted-foreground text-right pr-1">
-                        just {pkg.product.pricePerMonthString}/mo, billed annually
-                      </p>
+        {isSignedIn && planChoices.length > 0 && (
+          <div className="space-y-2 pt-1">
+            {planChoices.map((choice) => (
+              <div key={choice.id} className="space-y-1">
+                <Button
+                  onClick={choice.onSelect}
+                  disabled={choice.disabled}
+                  className="w-full justify-between"
+                  // Annual is always the visually primary choice when it's
+                  // an option — Monthly steps back to outline, regardless
+                  // of the card's own Premium/Pro accent.
+                  variant={choice.isAnnual ? 'default' : 'outline'}
+                  size="sm"
+                >
+                  <span className="flex items-center gap-1.5">
+                    {choice.isAnnual ? 'Annual' : 'Monthly'}
+                    {choice.isAnnual && choice.savingsPct && (
+                      <Badge variant="secondary" className="text-[10px]">Save {choice.savingsPct}%</Badge>
                     )}
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })()}
+                  </span>
+                  <span>
+                    {choice.purchasing ? <Loader2 className="w-4 h-4 animate-spin" /> : choice.priceString}
+                  </span>
+                </Button>
+                {choice.isAnnual && choice.perMonthString && (
+                  <p className="text-[10px] text-muted-foreground text-right pr-1">
+                    just {choice.perMonthString}/mo, billed annually
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   };
@@ -284,7 +429,7 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
             </div>
             <ManageSubscriptionButton className="w-full" variant="default" size="default" />
           </div>
-        ) : loading && isNative ? (
+        ) : loading && (isNative || webBillingReady) ? (
           <div className="flex items-center justify-center py-6">
             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
           </div>
@@ -292,21 +437,26 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
           <div className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {renderTierCard(
-                'premium',
                 'default',
                 TIER_PRICING.premium.label,
                 PREMIUM_FEATURES,
-                packagesByTier.premium,
+                isNative
+                  ? buildNativePlanChoices(nativePackagesByTier.premium, purchasing, handlePurchase)
+                  : buildWebPlanChoices(webPackagesByTier.premium, webPurchasing, handleWebPurchase),
               )}
               {renderTierCard(
                 'pro',
-                'pro',
                 TIER_PRICING.pro.label,
                 PRO_FEATURES,
-                packagesByTier.pro,
+                isNative
+                  ? buildNativePlanChoices(nativePackagesByTier.pro, purchasing, handlePurchase)
+                  : buildWebPlanChoices(webPackagesByTier.pro, webPurchasing, handleWebPurchase),
               )}
             </div>
-            {!isNative && (
+            {!isNative && !webBillingReady && (
+              // Web, but Web Billing isn't configured (VITE_REVENUECAT_WEB_KEY
+              // unset) — fall back to pointing people at the Android app
+              // rather than showing tier cards with zero purchase buttons.
               <>
                 <div className="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
                   Subscriptions are currently only available in the Android app.
@@ -331,10 +481,11 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
                 Subscriptions aren't available on this platform yet.
               </div>
             )}
-            {isNative && revenueCatReady && !isSignedIn && (
+            {((isNative && revenueCatReady) || (!isNative && webBillingReady)) && !isSignedIn && (
               // A purchase made while signed out is tied to RevenueCat's
-              // anonymous device ID, not a Supabase user — the webhook has
-              // no profiles row to attach it to, so the subscription would
+              // anonymous device ID (native) or has nowhere to configure
+              // against (web) — not a Supabase user — so the webhook has no
+              // profiles row to attach it to and the subscription would
               // never actually unlock anything server-side. Require an
               // account first rather than let that purchase happen.
               <div className="space-y-2">
@@ -358,6 +509,10 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
               </div>
             )}
             {isNative && revenueCatReady && isSignedIn && (
+              // Web Billing has no client-side "restore" concept — a signed-in
+              // user's entitlements are already resolved straight from their
+              // appUserId via getCustomerInfo(), there's no on-device receipt
+              // to restore the way native store purchases have.
               <Button variant="ghost" size="sm" className="w-full" onClick={handleRestore}>
                 Restore previous purchase
               </Button>

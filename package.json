@@ -76,6 +76,7 @@
     "@radix-ui/react-toggle-group": "^1.1.0",
     "@radix-ui/react-tooltip": "^1.2.9",
     "@revenuecat/purchases-capacitor": "^11.3.2",
+    "@revenuecat/purchases-js": "^1.53.1",
     "@streamdown/cjk": "^1.0.3",
     "@streamdown/code": "^1.1.1",
     "@streamdown/math": "^1.0.2",

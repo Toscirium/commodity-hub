@@ -199,3 +199,40 @@ After the test purchase, in Supabase confirm the `profiles` row for that user:
 ### F. Sign-off
 - [ ] Bump version (`npm run android:bump`), regenerate AAB, re-upload to Internal track, smoke-test once more.
 - [ ] Record results in `mem://launch/production-readiness` and promote AAB from Internal → Production.
+
+## RevenueCat Web Billing (app.commodity-hub.eu)
+
+Code side is done: `src/services/revenueCatWeb.ts`, `PremiumPaywall.tsx`, and
+`ManageSubscriptionButton.tsx` all branch on `!Capacitor.isNativePlatform()` to
+use `@revenuecat/purchases-js` instead of the mobile plugin. It's the same
+entitlements (`premium`/`pro`) and the same `revenuecat-webhook` edge function
+as Android — RevenueCat's webhook event schema doesn't distinguish which store
+a purchase came from, so no backend change was needed for this. What's left is
+dashboard config, same shape as section A above but for the Web Billing app:
+
+- [ ] Stripe account connected to the RevenueCat project (done).
+- [ ] RC project is on the **Pro plan** (required for Web Billing — free until
+      $2,500 MTR, then 1% of MTR: Project settings → Plan).
+- [ ] A **Web Billing app** added to the project (Project → Apps → Add app → Web Billing).
+- [ ] **Products** created for the Web Billing app with identifiers following
+      the *same* `premium_lite_monthly` / `premium_lite_annual` / `premium_monthly`
+      / `premium_annual` convention as the Android products (`TIER_PRICING` in
+      `src/utils/tiers.ts`) — the client splits packages into the Premium/Pro
+      cards by checking `identifier.startsWith('premium_lite')`, so a different
+      naming convention here will put everything in the Pro card.
+- [ ] Those products attached to the existing `premium`/`pro` entitlements —
+      same attachment as the Android products (`premium_lite_*` → `premium`
+      only; `premium_*` → both `premium` and `pro`).
+- [ ] Web Billing packages added to the same offering used by Android (or a
+      dedicated one), and the offering stays marked **Current**.
+- [ ] Web Billing **public API key** (Project settings → API keys → the Web
+      Billing app's key, starts `rcb_`) set as `VITE_REVENUECAT_WEB_KEY` — in
+      the root `.env` for local dev, and as an environment variable on the
+      `commodity-hub` Vercel project (not `landing` — that's the separate
+      marketing site) for production, since it's read at build time via
+      `import.meta.env`.
+- [ ] Webhook: nothing to add — the existing `revenuecat-webhook` URL/secret
+      (section A) already covers Web Billing events from this same project.
+- [ ] Test purchase with a Stripe test card, same verification as section D:
+      confirm the `profiles` row updates and the paywall shows "already a
+      subscriber" on reload.
