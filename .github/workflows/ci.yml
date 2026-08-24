@@ -62,11 +62,17 @@ jobs:
       - name: Run coverage
         run: npm run test:coverage
         
+      # Coverage reporting is informational — it must not gate the pipeline.
+      # Tokenless uploads share a global rate limit and were returning HTTP 429,
+      # which failed this job (and skipped every job depending on it) for reasons
+      # that had nothing to do with the code under test. Add a CODECOV_TOKEN repo
+      # secret to get reliable uploads; until then this step degrades quietly.
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
-          file: ./coverage/coverage-final.json
-          fail_ci_if_error: true
+          files: ./coverage/coverage-final.json
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
 
   # E2E Testing
   e2e:

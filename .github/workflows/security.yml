@@ -29,13 +29,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run npm audit (high/critical only)
+      # Report-only. `npm audit` has no concept of an accepted risk, so gating on
+      # it means the scan is red forever the moment any dependency has an
+      # unfixable advisory — which tells you nothing. audit-ci below is the real
+      # gate: it honours the documented allowlist in audit-ci.json, so a red run
+      # means a NEW or unaccepted vulnerability appeared.
+      - name: Run npm audit (report only)
         id: npm_audit
         run: |
           mkdir -p reports
-          npm audit --audit-level=high --json > reports/npm-audit.json || AUDIT_EXIT=$?
+          npm audit --audit-level=high --json > reports/npm-audit.json || true
           npm audit --audit-level=high > reports/npm-audit.txt || true
-          exit ${AUDIT_EXIT:-0}
         continue-on-error: false
 
       - name: Run audit-ci (uses repo allowlist)
@@ -101,6 +105,10 @@ jobs:
     permissions:
       security-events: write
       contents: read
+      # Required on PRIVATE repos: codeql-action/analyze reads the workflow run
+      # via the Actions API to build its result context. Without this it fails
+      # with "Resource not accessible by integration".
+      actions: read
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

@@ -177,82 +177,90 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
     tierKey: 'premium' | 'pro',
     accent: 'default' | 'pro',
     title: string,
-    priceLabel: string,
     features: string[],
     pkgs: PurchasesPackage[],
-  ) => (
-    <div
-      className={`rounded-lg border p-4 space-y-3 ${
-        accent === 'pro' ? 'border-primary bg-primary/5' : 'border-border'
-      }`}
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {accent === 'pro' ? (
-            <Zap className="w-4 h-4 text-primary" />
-          ) : (
-            <Sparkles className="w-4 h-4 text-primary" />
-          )}
-          <span className="font-semibold">{title}</span>
-          {accent === 'pro' && (
-            <Badge variant="default" className="text-[10px]">BEST VALUE</Badge>
+  ) => {
+    // Real, region-correct price from RevenueCat when we have it — never a
+    // hardcoded USD figure, since store prices vary by country/currency.
+    // Nothing is shown when we don't have live package data (web, or a
+    // platform without RevenueCat configured).
+    const monthlyPkg = pkgs.find((p) => p.packageType === 'MONTHLY');
+    return (
+      <div
+        className={`rounded-lg border p-4 space-y-3 ${
+          accent === 'pro' ? 'border-primary bg-primary/5' : 'border-border'
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {accent === 'pro' ? (
+              <Zap className="w-4 h-4 text-primary" />
+            ) : (
+              <Sparkles className="w-4 h-4 text-primary" />
+            )}
+            <span className="font-semibold">{title}</span>
+            {accent === 'pro' && (
+              <Badge variant="default" className="text-[10px]">BEST VALUE</Badge>
+            )}
+          </div>
+          {monthlyPkg && (
+            <span className="text-sm font-semibold">{monthlyPkg.product.priceString}/mo</span>
           )}
         </div>
-        <span className="text-sm font-semibold">{priceLabel}</span>
+        <ul className="space-y-1.5">
+          {features.map((f) => (
+            <li key={f} className="flex items-start gap-2 text-xs">
+              <Check className="w-3.5 h-3.5 text-primary mt-0.5 flex-shrink-0" />
+              <span className="text-muted-foreground">{f}</span>
+            </li>
+          ))}
+        </ul>
+        {isNative && isSignedIn && pkgs.length > 0 && (() => {
+          const savingsPct = getAnnualSavingsPct(pkgs);
+          return (
+            <div className="space-y-2 pt-1">
+              {orderWithAnnualFirst(pkgs).map((pkg) => {
+                const isAnnual = pkg.packageType === 'ANNUAL';
+                return (
+                  <div key={pkg.identifier} className="space-y-1">
+                    <Button
+                      onClick={() => handlePurchase(pkg)}
+                      disabled={purchasing !== null}
+                      className="w-full justify-between"
+                      // Annual is always the visually primary choice when it's
+                      // an option — Monthly steps back to outline, regardless
+                      // of the card's own Premium/Pro accent.
+                      variant={isAnnual ? 'default' : 'outline'}
+                      size="sm"
+                    >
+                      <span className="flex items-center gap-1.5">
+                        {isAnnual ? 'Annual' : 'Monthly'}
+                        {isAnnual && savingsPct && (
+                          <Badge variant="secondary" className="text-[10px]">Save {savingsPct}%</Badge>
+                        )}
+                      </span>
+                      <span>
+                        {purchasing === pkg.identifier ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          pkg.product.priceString
+                        )}
+                      </span>
+                    </Button>
+                    {isAnnual && pkg.product.pricePerMonthString && (
+                      <p className="text-[10px] text-muted-foreground text-right pr-1">
+                        just {pkg.product.pricePerMonthString}/mo, billed annually
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
-      <ul className="space-y-1.5">
-        {features.map((f) => (
-          <li key={f} className="flex items-start gap-2 text-xs">
-            <Check className="w-3.5 h-3.5 text-primary mt-0.5 flex-shrink-0" />
-            <span className="text-muted-foreground">{f}</span>
-          </li>
-        ))}
-      </ul>
-      {isNative && isSignedIn && pkgs.length > 0 && (() => {
-        const savingsPct = getAnnualSavingsPct(pkgs);
-        return (
-          <div className="space-y-2 pt-1">
-            {orderWithAnnualFirst(pkgs).map((pkg) => {
-              const isAnnual = pkg.packageType === 'ANNUAL';
-              return (
-                <div key={pkg.identifier} className="space-y-1">
-                  <Button
-                    onClick={() => handlePurchase(pkg)}
-                    disabled={purchasing !== null}
-                    className="w-full justify-between"
-                    // Annual is always the visually primary choice when it's
-                    // an option — Monthly steps back to outline, regardless
-                    // of the card's own Premium/Pro accent.
-                    variant={isAnnual ? 'default' : 'outline'}
-                    size="sm"
-                  >
-                    <span className="flex items-center gap-1.5">
-                      {isAnnual ? 'Annual' : 'Monthly'}
-                      {isAnnual && savingsPct && (
-                        <Badge variant="secondary" className="text-[10px]">Save {savingsPct}%</Badge>
-                      )}
-                    </span>
-                    <span>
-                      {purchasing === pkg.identifier ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        pkg.product.priceString
-                      )}
-                    </span>
-                  </Button>
-                  {isAnnual && pkg.product.pricePerMonthString && (
-                    <p className="text-[10px] text-muted-foreground text-right pr-1">
-                      just {pkg.product.pricePerMonthString}/mo, billed annually
-                    </p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        );
-      })()}
-    </div>
-  );
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -265,7 +273,7 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
             <DialogTitle>Upgrade Commodity Hub</DialogTitle>
           </div>
           <DialogDescription>
-            Start with Premium at $6.99/month for more alerts, exports, and portfolios. Move to Pro when you need advanced analytics.
+            Start with Premium for more alerts, exports, and portfolios. Move to Pro when you need advanced analytics.
           </DialogDescription>
         </DialogHeader>
 
@@ -287,7 +295,6 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
                 'premium',
                 'default',
                 TIER_PRICING.premium.label,
-                `$${TIER_PRICING.premium.monthly.toFixed(2)}/mo`,
                 PREMIUM_FEATURES,
                 packagesByTier.premium,
               )}
@@ -295,7 +302,6 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
                 'pro',
                 'pro',
                 TIER_PRICING.pro.label,
-                `$${TIER_PRICING.pro.monthly.toFixed(2)}/mo`,
                 PRO_FEATURES,
                 packagesByTier.pro,
               )}
