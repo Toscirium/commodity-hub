@@ -155,7 +155,9 @@ const captureScreenshot = async (): Promise<File | null> => {
 
     const timestamp = new Date()
       .toISOString()
-      .replaceAll(/[:.]/g, "-")
+      // .replace with a global regex is identical to .replaceAll here, and
+      // stays inside the ES2020 lib this project targets (tsconfig.app.json).
+      .replace(/[:.]/g, "-")
       .replace("T", "_")
       .replace("Z", "");
 

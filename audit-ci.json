@@ -1,8 +1,34 @@
 {
+  "$comment": [
+    "audit-ci is the authoritative dependency-vulnerability gate for this repo.",
+    "The plain `npm audit` step in .github/workflows/security.yml is report-only,",
+    "because it has no way to record an accepted risk and so goes red forever.",
+    "",
+    "Every entry below is an accepted risk with a stated reason and a fix path.",
+    "Do NOT add an advisory here without both. If an advisory becomes reachable in",
+    "production, remove it from this list and fix the dependency instead.",
+    "Anything not listed here fails the build — that is the point: the scan is",
+    "meant to catch NEW vulnerabilities, not to be permanently red."
+  ],
   "moderate": true,
   "high": true,
   "critical": true,
-  "allowlist": [],
+  "allowlist": [
+    "GHSA-fx2h-pf6j-xcff",
+    "GHSA-4w7w-66w2-5vf9",
+    "GHSA-v6wh-96g9-6wx3",
+    "GHSA-67mh-4wv8-2f99",
+    "GHSA-wrjc-x8rr-h8h6",
+    "GHSA-337j-9hxr-rhxg"
+  ],
+  "$allowlist-rationale": {
+    "GHSA-fx2h-pf6j-xcff": "vite: server.fs.deny bypass on Windows alternate paths. Dev server only; production ships static files built by vite and never runs the dev server. Fix: vite@8 (major).",
+    "GHSA-4w7w-66w2-5vf9": "vite: path traversal in optimized-deps .map handling. Dev server only, same reasoning. Fix: vite@8 (major).",
+    "GHSA-v6wh-96g9-6wx3": "launch-editor (via vite): NTLMv2 hash disclosure over UNC paths on Windows. Dev-only tooling, Windows-specific. Fix: vite@8 (major).",
+    "GHSA-67mh-4wv8-2f99": "esbuild: dev server accepts cross-origin requests. Dev server only. Fix: vite@8 (major), which pulls a patched esbuild.",
+    "GHSA-wrjc-x8rr-h8h6": "react-router: open redirect via backslash in <Link>/useNavigate. Accepted for now: no route in this app builds a destination from untrusted input. Revisit if that changes. Fix: react-router-dom@7 (major).",
+    "GHSA-337j-9hxr-rhxg": "react-router: arbitrary constructor injection in deserializeErrors() during SSR hydration. Not applicable — this is a client-rendered SPA with no SSR. Fix: react-router-dom@7 (major)."
+  },
   "report-type": "summary",
   "output-format": "text"
 }
