@@ -3,7 +3,12 @@ import { ExternalLink } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Button, type ButtonProps } from '@/components/ui/button';
 import { getActiveProductId, isRevenueCatAvailable } from '@/services/revenueCat';
-import { configureRevenueCatWeb, getWebManagementUrl, isRevenueCatWebKeyConfigured } from '@/services/revenueCatWeb';
+import {
+  configureRevenueCatWeb,
+  getAuthenticatedWebManagementUrl,
+  getWebManagementUrl,
+  isRevenueCatWebKeyConfigured,
+} from '@/services/revenueCatWeb';
 import { buildPlayStoreManageSubscriptionUrl } from '@/config/playStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -48,6 +53,15 @@ const ManageSubscriptionButton: React.FC<ManageSubscriptionButtonProps> = ({
       const isPaid = (auth?.tier ?? 'free') !== 'free';
 
       if (store === 'RC_BILLING' || store === 'STRIPE') {
+        // Prefer the pre-authenticated link (no "check your email" step —
+        // see revenuecat-manage-subscription) and only fall back to the
+        // SDK's own managementURL, which does require that extra step, if
+        // the edge function is unavailable for any reason.
+        const authedUrl = await getAuthenticatedWebManagementUrl();
+        if (authedUrl) {
+          await openUrl(authedUrl);
+          return;
+        }
         if (isRevenueCatWebKeyConfigured() && auth?.user?.id) {
           await configureRevenueCatWeb(auth.user.id);
           const url = await getWebManagementUrl();

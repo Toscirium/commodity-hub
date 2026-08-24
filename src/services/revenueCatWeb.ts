@@ -27,6 +27,7 @@ import type { Purchases, Offering, Package, CustomerInfo } from '@revenuecat/pur
 import { logger } from '@/utils/logger';
 import { monitoringService } from '@/services/monitoringService';
 import { PREMIUM_ENTITLEMENT, PRO_ENTITLEMENT } from '@/services/revenueCat';
+import { supabase } from '@/integrations/supabase/client';
 
 // Public Web Billing API key from the RevenueCat dashboard (Project settings
 // → API keys → Web Billing app). Public/publishable by design — same
@@ -166,6 +167,35 @@ export const getWebManagementUrl = async (): Promise<string | null> => {
     const info = await instance.getCustomerInfo();
     return info.managementURL;
   } catch {
+    return null;
+  }
+};
+
+/**
+ * Same destination as getWebManagementUrl(), but pre-authenticated — skips
+ * the "check your email for a login link" step the SDK's own managementURL
+ * always requires, since revenuecat-manage-subscription (the edge function
+ * behind this) already verified the caller via their Supabase session. Only
+ * needs a signed-in user, not a configured Web Billing SDK instance — so
+ * unlike everything else in this file, this can be called before
+ * configureRevenueCatWeb() has run.
+ *
+ * Falls back to null (not an exception) on any failure — callers should
+ * fall back to getWebManagementUrl() so an outage here is "one extra step,"
+ * not "broken."
+ */
+export const getAuthenticatedWebManagementUrl = async (): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase.functions.invoke<{ management_url: string | null }>(
+      'revenuecat-manage-subscription',
+    );
+    if (error) {
+      logger.warn('revenuecat-manage-subscription failed', error);
+      return null;
+    }
+    return data?.management_url ?? null;
+  } catch (err) {
+    logger.warn('revenuecat-manage-subscription failed', err);
     return null;
   }
 };
