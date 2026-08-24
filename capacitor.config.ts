@@ -59,7 +59,11 @@ const config: CapacitorConfig = {
     iconDensity: 'mdpi',
     adaptiveIcon: {
       foreground: 'icon.png',
-      background: '#1e3a5f'
+      // Midpoint of the icon plate's gradient (#2E1D6B -> #1B1140) so the
+      // adaptive foreground sits on a matching field. Kept in step with
+      // android/app/src/main/res/values/ic_launcher_background.xml, which is
+      // what Android actually composites against.
+      background: '#251756'
     },
     allowMixedContent: false,
     // captureInput must stay false on Android — when true, the WebView

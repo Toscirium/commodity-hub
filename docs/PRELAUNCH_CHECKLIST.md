@@ -74,7 +74,7 @@ Last refreshed: 2026-07-18. Tick each item before promoting a build to Google Pl
 - [ ] Offline mode renders cached data + `OfflineIndicator`
 - [ ] Push notifications registered (FCM token visible in `device_tokens`)
 - [ ] Background fetch / price-alert evaluator scheduled
-- [ ] App icons + splash regenerated (`scripts/generate-android-icons.py`, `…-splash.py`)
+- [ ] App icons + splash regenerated (`npm run gen:icons`; desktop via `npx tauri icon`)
 - [ ] Bundle size budget respected (`vite build` report)
 
 ---

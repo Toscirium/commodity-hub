@@ -47,8 +47,8 @@ export const preloadCriticalResources = () => {
     // Preload critical fonts (if using custom fonts)
     // preloadFont('/fonts/inter-var.woff2');
     
-    // Preload app icon
-    preloadImage('/icon-192.png');
+    // Preload app icon (must match a file that actually ships in public/)
+    preloadImage('/icons/icon-192.webp');
     
   } catch (error) {
     console.warn('Failed to preload some resources:', error);

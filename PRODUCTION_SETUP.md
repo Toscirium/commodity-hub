@@ -85,7 +85,7 @@ ALERT_WEBHOOK_URL=your_monitoring_webhook
 1. ✅ Database migrated and optimized
 2. ✅ Capacitor switched to production mode (no `server.url`, mixed-content + webview-debug disabled)
 3. ✅ PWA manifest + index.html brand colors aligned to `#1e3a5f`
-4. ✅ Launcher icons + splash screens regenerated from `public/icon.png`
+4. ✅ Launcher icons + splash screens regenerated from `assets/brand/app-icon.svg`
 5. ✅ Account-deletion flow live at `/delete-account` (Play Data Safety)
 6. ✅ Privacy Policy + Terms of Service pages reachable
 7. ✅ Production API keys configured in Supabase Edge Functions secrets
@@ -107,48 +107,53 @@ node scripts/bump-android-version.mjs --code-only # only versionCode + 1
 ```
 
 The script edits `android/app/build.gradle` in-place. Commit the change, then generate the signed AAB in Android Studio.
-## Updating the launcher icon
+## Updating the app icon
 
-The single source of truth for the app icon is `public/icon.png` (512×512 RGBA).
-This same file is used for the Play Store listing (`public/icons/icon-512-playstore.png` is a byte-identical copy) and as the input for every Android mipmap density.
-
-To regenerate every Android launcher icon (mdpi → xxxhdpi, square + round + adaptive foreground):
+The single source of truth is **`assets/brand/app-icon.svg`** (512×512, full-bleed).
+Every raster icon in the repo is generated from it — do not hand-edit the PNGs.
 
 ```bash
-python scripts/generate-android-icons.py
+npm run gen:icons
+npx tauri icon assets/brand/app-icon.svg   # desktop icons only, see below
 npx cap sync android
 ```
 
-The script writes to `android/app/src/main/res/mipmap-*/`:
-- `ic_launcher.png` — square legacy icon on brand background `#1e3a5f`
-- `ic_launcher_round.png` — circular legacy icon
-- `ic_launcher_foreground.png` — adaptive-icon foreground (logo in inner 66% safe-zone, transparent bleed; composed by Android over `@color/ic_launcher_background` via `mipmap-anydpi-v26/ic_launcher.xml`)
+`npm run gen:icons` writes 41 files:
 
-After regenerating: in Android Studio do **Build → Clean Project → Rebuild**, uninstall the previous APK from the device (Android caches launcher icons aggressively), then install the new build.
+| Target | Files |
+| --- | --- |
+| Web / PWA | `public/icon.png`, `icon.png`, `public/favicon.ico`, `public/icons/icon-*.webp` |
+| Play Store | `public/icons/icon-512-playstore.png`, `src/assets/play-app-icon-512.png` (1024²) |
+| iOS | `ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png` (1024²) |
+| Landing site | `landing/assets/app-icon.png` |
+| Android launcher | `android/app/src/main/res/mipmap-*/ic_launcher{,_round,_foreground}.png` |
+| Android splash | `android/app/src/main/res/drawable-{port,land}-*/splash.png`, `drawable/splash.png` |
 
-## Updating the Android splash screen
+Notes on how the generator handles the tricky targets:
 
-The native Android splash uses the same `public/icon.png` source over the brand
-background `#1e3a5f` (matching `@color/ic_launcher_background` and the
-Capacitor `SplashScreen.backgroundColor` in `capacitor.config.ts`).
+- **Store icons carry no alpha channel** (App Store and Play both reject alpha), so
+  they are flattened. Everything else keeps transparency.
+- **`ic_launcher_foreground.png`** is the artwork *with the plate stripped* and scaled
+  to `ADAPTIVE_SCALE` (0.60), because Android composites it over
+  `@color/ic_launcher_background` and only guarantees the inner 72dp of the 108dp
+  canvas is visible. The script asserts the rendered foreground fits inside that
+  circle and fails loudly if it ever stops fitting — the artwork's true radius
+  includes the ground shadow, which is wider than the objects themselves.
+- **The icon plate is a gradient** (`#2E1D6B` → `#1B1140`), so
+  `@color/ic_launcher_background` is set to its midpoint `#251756`. Keep
+  `android/app/src/main/res/values/ic_launcher_background.xml` and the
+  `adaptiveIcon.background` in `capacitor.config.ts` in step with each other.
+- **The splash** composites the plate-less artwork over the legacy brand navy
+  `#1e3a5f`. It must not use the full-bleed icon: that would paint a visible
+  indigo square floating on the navy splash background.
+- **Desktop (Tauri)** icons are *not* produced by this script — run
+  `npx tauri icon assets/brand/app-icon.svg`. That command also emits
+  `src-tauri/icons/{android,ios}/` directories which this project does not use
+  (`tauri.conf.json` references only the desktop sizes); delete them afterwards.
 
-To regenerate every density (mdpi → xxxhdpi) for both portrait and landscape,
-plus the legacy default `drawable/splash.png`:
-
-```bash
-python scripts/generate-android-splash.py
-npx cap sync android
-```
-
-The script writes to `android/app/src/main/res/drawable-port-*/splash.png`,
-`drawable-land-*/splash.png`, and `drawable/splash.png`. It preserves the
-canonical Capacitor pixel dimensions per density (e.g. xxxhdpi portrait =
-1280×1920, landscape = 1920×1280) and centers the logo at 40% of the
-shorter side so it never clips on tall or wide devices.
-
-After regenerating, do **Build → Clean Project → Rebuild** in Android Studio
-and reinstall — the splash drawable is cached aggressively just like the
-launcher icon.
+After regenerating: in Android Studio do **Build → Clean Project → Rebuild**, uninstall
+the previous APK from the device (Android caches launcher icons and splash drawables
+aggressively), then install the new build.
 
 ## RevenueCat + Play Console launch checklist
 
