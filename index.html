@@ -63,7 +63,25 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
-    
+    <!-- AdSense site-ownership verification, restricted to the real website.
+         Capacitor bundles this same index.html into the Android/iOS app
+         (capacitor.config.ts, webDir: 'dist'), and that WebView never loads
+         from app.commodity-hub.eu — so the hostname check below keeps
+         AdSense out of the native app entirely. That's required both by
+         AdSense's own program policy (AdSense is for websites; in-app ads
+         go through AdMob instead) and by this app's Play Store Data Safety
+         declaration (advertising: false — see playStoreCompliance.ts). -->
+    <script>
+      if (location.hostname === 'app.commodity-hub.eu') {
+        var adsenseScript = document.createElement('script');
+        adsenseScript.async = true;
+        adsenseScript.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8597609154479605';
+        adsenseScript.crossOrigin = 'anonymous';
+        document.head.appendChild(adsenseScript);
+      }
+    </script>
+
+
   
   
   
