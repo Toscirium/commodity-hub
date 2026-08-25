@@ -1,8 +1,15 @@
 // Service Worker for offline caching and performance
-const CACHE_NAME = 'commodity-hub-v2';
-const STATIC_CACHE = 'static-v2';
-const DYNAMIC_CACHE = 'dynamic-v2';
-const API_CACHE = 'api-v2';
+//
+// Bump these v-suffixes on any change to this file's caching logic (not just
+// asset lists) — it's how existing installs actually pick up the fix: the
+// browser only re-installs a service worker when sw.js's own bytes change,
+// and the activate handler below only purges caches whose NAME doesn't match
+// the current version, so an unchanged version string leaves old, possibly-
+// poisoned cache entries in place indefinitely even after a "new" install.
+const CACHE_NAME = 'commodity-hub-v3';
+const STATIC_CACHE = 'static-v3';
+const DYNAMIC_CACHE = 'dynamic-v3';
+const API_CACHE = 'api-v3';
 
 // Critical assets to cache immediately for faster app startup
 const CRITICAL_ASSETS = [
@@ -39,7 +46,7 @@ const CACHE_STRATEGIES = {
 
 // Install event - cache critical assets immediately
 self.addEventListener('install', event => {
-  console.log('SW: Installing service worker v2');
+  console.log('SW: Installing service worker v3');
   
   event.waitUntil(
     Promise.all([
@@ -98,7 +105,20 @@ self.addEventListener('fetch', event => {
   }
 
   // Handle different types of requests
-  if (isStaticAsset(url)) {
+  //
+  // Navigation requests (the HTML shell) MUST NOT be cache-first: it's the
+  // one file that references every other hashed asset URL. A stale cached
+  // copy points at JS/CSS chunk hashes from whenever it was FIRST cached and
+  // never gets re-fetched from cacheFirst — a real, confirmed bug (two
+  // separate "the fix isn't showing up" incidents traced back to this: RC
+  // Web Billing's manage-subscription pre-auth link, and the Premium->Pro
+  // upgrade paywall). Content-hashed JS/CSS/fonts/images are still safe to
+  // cache-first below — a given hash's content never changes, so aggressive
+  // caching there is correct, not the bug.
+  const isNavigation = request.mode === 'navigate' || url.pathname === '/' || url.pathname === '/index.html';
+  if (isNavigation) {
+    event.respondWith(networkFirst(request, STATIC_CACHE));
+  } else if (isStaticAsset(url)) {
     event.respondWith(cacheFirst(request, STATIC_CACHE));
   } else if (isAPIRequest(url)) {
     event.respondWith(networkFirst(request, API_CACHE));
@@ -180,9 +200,10 @@ async function staleWhileRevalidate(request, cacheName) {
 
 // Helper functions
 function isStaticAsset(url) {
-  return url.pathname.match(/\.(js|css|woff2?|png|jpg|jpeg|gif|svg|ico)$/) ||
-         url.pathname === '/' ||
-         url.pathname === '/index.html';
+  // '/' and '/index.html' are handled earlier as navigation requests (see
+  // the fetch handler) — deliberately not matched here, since this feeds
+  // cacheFirst() and the HTML shell must never be served cache-first.
+  return Boolean(url.pathname.match(/\.(js|css|woff2?|png|jpg|jpeg|gif|svg|ico)$/));
 }
 
 function isAPIRequest(url) {
