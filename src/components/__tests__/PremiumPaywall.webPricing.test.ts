@@ -185,4 +185,44 @@ describe('buildWebPlanChoices — packageType misconfigured in the RC dashboard'
     const choices = buildWebPlanChoices([trulyUnknown], null, vi.fn());
     expect(choices[0].isAnnual).toBe(false);
   });
+
+  it('falls back to price ratio when BOTH packageType and period fail to resolve', () => {
+    // Mirrors the native-side test of the same name: packageType is neither
+    // Monthly nor Annual for either package, AND the subscription option's
+    // period is unavailable for either — the "both signals absent" case the
+    // price-ratio last resort exists for. Real observed prices: €20.99 vs
+    // €154.99, a >1.5x ratio.
+    const cheaper = webPkg({
+      identifier: 'pro_m',
+      packageType: 'custom',
+      amountMicros: 20_990_000,
+      formattedPrice: '€20.99',
+    });
+    const pricier = webPkg({
+      identifier: 'pro_a',
+      packageType: 'custom',
+      amountMicros: 154_990_000,
+      formattedPrice: '€154.99',
+    });
+
+    const choices = buildWebPlanChoices([cheaper, pricier], null, vi.fn());
+    expect(choices.map((c) => c.id)).toEqual(['pro_a', 'pro_m']);
+    expect(choices.find((c) => c.id === 'pro_a')!.isAnnual).toBe(true);
+    expect(choices.find((c) => c.id === 'pro_m')!.isAnnual).toBe(false);
+  });
+
+  it('does not guess from price alone when the two packages are close in price', () => {
+    const a = webPkg({ identifier: 'a', packageType: 'custom', amountMicros: 20_990_000, formattedPrice: '€20.99' });
+    const b = webPkg({ identifier: 'b', packageType: 'custom', amountMicros: 24_990_000, formattedPrice: '€24.99' });
+    const choices = buildWebPlanChoices([a, b], null, vi.fn());
+    expect(choices.every((c) => !c.isAnnual)).toBe(true);
+  });
+
+  it('does not apply the price-ratio fallback to 3+ packages', () => {
+    const a = webPkg({ identifier: 'a', packageType: 'custom', amountMicros: 6_990_000, formattedPrice: '$6.99' });
+    const b = webPkg({ identifier: 'b', packageType: 'custom', amountMicros: 59_990_000, formattedPrice: '$59.99' });
+    const c = webPkg({ identifier: 'c', packageType: 'custom', amountMicros: 199_990_000, formattedPrice: '$199.99' });
+    const choices = buildWebPlanChoices([a, b, c], null, vi.fn());
+    expect(choices.every((choice) => !choice.isAnnual)).toBe(true);
+  });
 });

@@ -67,20 +67,65 @@ const PRO_FEATURES = [
 ];
 
 
+/** Rough ISO 8601 duration -> total months. Good enough to tell "~a month"
+ *  (≈1) from "~a year" (≈12) apart regardless of which equivalent form a
+ *  store expresses it in (P1Y vs P12M vs P52W). Returns null on anything
+ *  that doesn't parse (including the all-empty "P" match — a period with no
+ *  Y/M/W/D component isn't a real duration). */
+const durationInMonths = (iso: string | null | undefined): number | null => {
+  if (!iso) return null;
+  const m = /^P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?$/.exec(iso);
+  if (!m || !(m[1] || m[2] || m[3] || m[4])) return null;
+  const [, y, mo, w, d] = m;
+  return Number(y ?? 0) * 12 + Number(mo ?? 0) + (Number(w ?? 0) * 7) / 30 + Number(d ?? 0) / 30;
+};
+
 /**
- * pkg.packageType is only reliable when the package was added to the RC
- * offering using RC's reserved $rc_annual/$rc_monthly identifier — found
- * live on the Pro (Annual) package that it wasn't: packageType came back
- * as something other than 'ANNUAL', so both Pro options rendered labeled
- * "Monthly" (one at the monthly price, one at the annual price) with no
- * "Save X%" badge on either, on a real purchase screen showing real
- * regional prices. product.subscriptionPeriod is a better ground truth —
- * it's the ISO 8601 duration ("P1Y", "P1M") straight from Play Console's
- * actual product config, independent of how the package itself was typed
- * when added to the offering.
+ * Which packages in a monthly+annual pair are "annual" — layers signals in
+ * order of trust, since RC/Play metadata for this has repeatedly proven
+ * unreliable in practice (found live: an actual Pro (Annual) package showed
+ * up mislabeled "Monthly" — twice, across two different fix attempts):
+ *
+ *  1. packageType === 'ANNUAL' — correct when the package was added to the
+ *     RC offering using RC's reserved $rc_annual identifier. It wasn't,
+ *     here — that's the root misconfiguration, still not fixed dashboard-
+ *     side, so this signal alone isn't enough.
+ *  2. product.subscriptionPeriod parsed as ~a year — the store's own real
+ *     billing cadence, independent of RC's package typing. Didn't fully
+ *     cover it either: this field is documented as sometimes unavailable,
+ *     and a first attempt at this fix (exact-matching "P1Y") still showed
+ *     the bug live, so it's parsed as a duration now rather than string-
+ *     matched, and treated as unreliable rather than authoritative.
+ *  3. Last resort, only when pkgs.length === 2 and neither signal above
+ *     resolved BOTH packages: the one priced meaningfully higher (>1.5x)
+ *     is the annual one. This is true for any real subscription pricing —
+ *     it doesn't depend on ANY RC/store metadata being correct at all,
+ *     which is exactly why it's here: the first two signals have now each
+ *     individually failed against real dashboard data once.
  */
-const isAnnualNativePackage = (pkg: PurchasesPackage): boolean =>
-  pkg.packageType === 'ANNUAL' || (pkg.packageType !== 'MONTHLY' && pkg.product.subscriptionPeriod === 'P1Y');
+const annualPackageIds = (pkgs: PurchasesPackage[]): Set<string> => {
+  const bySignal = (pkg: PurchasesPackage): boolean | null => {
+    if (pkg.packageType === 'ANNUAL') return true;
+    if (pkg.packageType === 'MONTHLY') return false;
+    const months = durationInMonths(pkg.product.subscriptionPeriod);
+    return months == null ? null : months >= 11;
+  };
+  const resolved = pkgs.map((p) => [p, bySignal(p)] as const);
+  if (resolved.every(([, v]) => v !== null)) {
+    return new Set(resolved.filter(([, v]) => v).map(([p]) => p.identifier));
+  }
+  if (pkgs.length === 2) {
+    const [a, b] = pkgs;
+    const [lower, higher] = a.product.price <= b.product.price ? [a, b] : [b, a];
+    if (lower.product.price > 0 && higher.product.price >= lower.product.price * 1.5) {
+      return new Set([higher.identifier]);
+    }
+  }
+  // Can't confidently tell — fall back to whatever signals did resolve,
+  // treating unresolved (null) as "not annual" rather than guessing further
+  // on 3+ packages or a suspiciously-close price pair.
+  return new Set(resolved.filter(([, v]) => v).map(([p]) => p.identifier));
+};
 
 /**
  * Annual and monthly packages were rendered as two identical-looking
@@ -89,12 +134,17 @@ const isAnnualNativePackage = (pkg: PurchasesPackage): boolean =>
  * opportunities). This orders Annual first when both exist and returns the
  * % saved vs. paying monthly all year, so the UI can call it out.
  */
-export const orderWithAnnualFirst = (pkgs: PurchasesPackage[]): PurchasesPackage[] =>
-  [...pkgs].sort((a, b) => (isAnnualNativePackage(a) ? -1 : isAnnualNativePackage(b) ? 1 : 0));
+export const orderWithAnnualFirst = (pkgs: PurchasesPackage[]): PurchasesPackage[] => {
+  const annualIds = annualPackageIds(pkgs);
+  return [...pkgs].sort((a, b) =>
+    annualIds.has(a.identifier) ? -1 : annualIds.has(b.identifier) ? 1 : 0,
+  );
+};
 
 export const getAnnualSavingsPct = (pkgs: PurchasesPackage[]): number | null => {
-  const monthly = pkgs.find((p) => !isAnnualNativePackage(p));
-  const annual = pkgs.find((p) => isAnnualNativePackage(p));
+  const annualIds = annualPackageIds(pkgs);
+  const monthly = pkgs.find((p) => !annualIds.has(p.identifier));
+  const annual = pkgs.find((p) => annualIds.has(p.identifier));
   if (!monthly || !annual || !annual.product.pricePerMonth) return null;
   const pct = (1 - annual.product.pricePerMonth / monthly.product.price) * 100;
   return pct > 0 ? Math.round(pct) : null;
@@ -125,8 +175,9 @@ export const buildNativePlanChoices = (
   onSelect: (pkg: PurchasesPackage) => void,
 ): PlanChoice[] => {
   const savingsPct = getAnnualSavingsPct(pkgs);
+  const annualIds = annualPackageIds(pkgs);
   return orderWithAnnualFirst(pkgs).map((pkg) => {
-    const isAnnual = isAnnualNativePackage(pkg);
+    const isAnnual = annualIds.has(pkg.identifier);
     return {
       id: pkg.identifier,
       isAnnual,
@@ -140,26 +191,47 @@ export const buildNativePlanChoices = (
   });
 };
 
-// Same fallback reasoning as isAnnualNativePackage above — a Web Billing
-// package's packageType is only reliable when it was added to the RC
-// offering using the reserved $rc_annual/$rc_monthly identifier. The
-// subscription option's own base.period (real billing cadence, from
-// Stripe's actual price config) is the more trustworthy signal when it
-// wasn't. 'year' is PeriodUnit.Year's literal value — inlined rather than
-// imported for the same reason WEB_PACKAGE_TYPE above is: importing the
-// real enum would pull in the whole (dynamically-loaded-on-purpose) SDK.
-const isAnnualWebPackage = (pkg: WebPackage): boolean =>
-  pkg.packageType === WEB_PACKAGE_TYPE.Annual ||
-  (pkg.packageType !== WEB_PACKAGE_TYPE.Monthly &&
-    pkg.webBillingProduct.defaultSubscriptionOption?.base.period?.unit === 'year');
+// Same layered reasoning as annualPackageIds above, same signal order —
+// see that comment for why a price-based last resort exists at all: the
+// $rc_annual-identifier signal and the store's-own-period signal have each
+// individually failed against real dashboard data on the native side, so
+// this doesn't lean on either alone here either. 'year' is PeriodUnit.Year's
+// literal value — inlined rather than imported for the same reason
+// WEB_PACKAGE_TYPE above is: importing the real enum would pull in the
+// whole (dynamically-loaded-on-purpose) SDK.
+const annualWebPackageIds = (pkgs: WebPackage[]): Set<string> => {
+  const bySignal = (pkg: WebPackage): boolean | null => {
+    if (pkg.packageType === WEB_PACKAGE_TYPE.Annual) return true;
+    if (pkg.packageType === WEB_PACKAGE_TYPE.Monthly) return false;
+    const unit = pkg.webBillingProduct.defaultSubscriptionOption?.base.period?.unit;
+    return unit == null ? null : unit === 'year';
+  };
+  const resolved = pkgs.map((p) => [p, bySignal(p)] as const);
+  if (resolved.every(([, v]) => v !== null)) {
+    return new Set(resolved.filter(([, v]) => v).map(([p]) => p.identifier));
+  }
+  if (pkgs.length === 2) {
+    const [a, b] = pkgs;
+    const priceA = a.webBillingProduct.price.amountMicros;
+    const priceB = b.webBillingProduct.price.amountMicros;
+    const [lower, higher] = priceA <= priceB ? [a, b] : [b, a];
+    const lowerMicros = lower.webBillingProduct.price.amountMicros;
+    const higherMicros = higher.webBillingProduct.price.amountMicros;
+    if (lowerMicros > 0 && higherMicros >= lowerMicros * 1.5) {
+      return new Set([higher.identifier]);
+    }
+  }
+  return new Set(resolved.filter(([, v]) => v).map(([p]) => p.identifier));
+};
 
 export const buildWebPlanChoices = (
   pkgs: WebPackage[],
   purchasingId: string | null,
   onSelect: (pkg: WebPackage) => void,
 ): PlanChoice[] => {
-  const monthly = pkgs.find((p) => !isAnnualWebPackage(p));
-  const annual = pkgs.find((p) => isAnnualWebPackage(p));
+  const annualIds = annualWebPackageIds(pkgs);
+  const monthly = pkgs.find((p) => !annualIds.has(p.identifier));
+  const annual = pkgs.find((p) => annualIds.has(p.identifier));
   const monthlyMicros = monthly?.webBillingProduct.price.amountMicros;
   const annualPerMonthMicros = annual?.webBillingProduct.defaultSubscriptionOption?.base.pricePerMonth?.amountMicros;
   let savingsPct: number | null = null;
@@ -168,10 +240,10 @@ export const buildWebPlanChoices = (
     savingsPct = pct > 0 ? Math.round(pct) : null;
   }
   const ordered = [...pkgs].sort((a, b) =>
-    isAnnualWebPackage(a) ? -1 : isAnnualWebPackage(b) ? 1 : 0,
+    annualIds.has(a.identifier) ? -1 : annualIds.has(b.identifier) ? 1 : 0,
   );
   return ordered.map((pkg) => {
-    const isAnnual = isAnnualWebPackage(pkg);
+    const isAnnual = annualIds.has(pkg.identifier);
     return {
       id: pkg.identifier,
       isAnnual,

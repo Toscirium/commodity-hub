@@ -107,6 +107,64 @@ describe('packageType misconfigured in the RC dashboard (found live)', () => {
     const choices = buildNativePlanChoices([trulyUnknown], null, vi.fn());
     expect(choices[0].isAnnual).toBe(false);
   });
+
+  it('parses P12M/P52W equivalent-year forms, not just literal P1Y', () => {
+    // A first fix attempt string-matched subscriptionPeriod === 'P1Y' exactly
+    // and still failed live, because Play can express "one year" in an
+    // equivalent ISO form. durationInMonths must treat these the same.
+    const monthly = pkg({ identifier: 'm', packageType: 'MONTHLY', price: 20.99, subscriptionPeriod: 'P1M' });
+    const annual12m = pkg({
+      identifier: 'a',
+      packageType: 'CUSTOM',
+      price: 154.99,
+      pricePerMonth: 12.92,
+      subscriptionPeriod: 'P12M',
+    });
+    expect(orderWithAnnualFirst([monthly, annual12m]).map((p) => p.identifier)).toEqual(['a', 'm']);
+    expect(buildNativePlanChoices([monthly, annual12m], null, vi.fn()).find((c) => c.id === 'a')!.isAnnual).toBe(
+      true,
+    );
+  });
+
+  it('falls back to price ratio when BOTH packageType and subscriptionPeriod fail to resolve', () => {
+    // The scenario neither of the first two fix attempts covered: packageType
+    // is neither MONTHLY nor ANNUAL for either package (dashboard
+    // misconfiguration), AND subscriptionPeriod is unavailable for either
+    // (SDK hasn't resolved it, or the store never sent it) — exactly the
+    // "both signals absent" case this last-resort exists for. Real observed
+    // prices: €20.99 vs €154.99, a >1.5x ratio.
+    const cheaper = pkg({ identifier: 'pro_m', packageType: 'CUSTOM', price: 20.99, subscriptionPeriod: null });
+    const pricier = pkg({ identifier: 'pro_a', packageType: 'CUSTOM', price: 154.99, subscriptionPeriod: null });
+
+    const annualIds = orderWithAnnualFirst([cheaper, pricier]);
+    expect(annualIds.map((p) => p.identifier)).toEqual(['pro_a', 'pro_m']);
+
+    const choices = buildNativePlanChoices([cheaper, pricier], null, vi.fn());
+    expect(choices.find((c) => c.id === 'pro_a')!.isAnnual).toBe(true);
+    expect(choices.find((c) => c.id === 'pro_m')!.isAnnual).toBe(false);
+  });
+
+  it('does not guess from price alone when the two packages are close in price', () => {
+    // Guard against the price-ratio fallback being too eager: two packages
+    // priced close together (< 1.5x apart) with no resolving metadata at all
+    // give no confident signal either way, so neither should be labeled
+    // annual rather than picking one arbitrarily.
+    const a = pkg({ identifier: 'a', packageType: 'CUSTOM', price: 20.99, subscriptionPeriod: null });
+    const b = pkg({ identifier: 'b', packageType: 'CUSTOM', price: 24.99, subscriptionPeriod: null });
+    const choices = buildNativePlanChoices([a, b], null, vi.fn());
+    expect(choices.every((c) => !c.isAnnual)).toBe(true);
+  });
+
+  it('does not apply the price-ratio fallback to 3+ packages', () => {
+    // The fallback is only well-defined for a monthly/annual pair — with 3+
+    // packages "priced highest" doesn't reliably mean annual (e.g. lifetime,
+    // or multiple tiers mixed into one list), so it should decline to guess.
+    const a = pkg({ identifier: 'a', packageType: 'CUSTOM', price: 6.99, subscriptionPeriod: null });
+    const b = pkg({ identifier: 'b', packageType: 'CUSTOM', price: 59.99, subscriptionPeriod: null });
+    const c = pkg({ identifier: 'c', packageType: 'CUSTOM', price: 199.99, subscriptionPeriod: null });
+    const choices = buildNativePlanChoices([a, b, c], null, vi.fn());
+    expect(choices.every((choice) => !choice.isAnnual)).toBe(true);
+  });
 });
 
 describe('orderWithAnnualFirst', () => {
