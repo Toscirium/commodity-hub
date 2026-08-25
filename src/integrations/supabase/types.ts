@@ -304,6 +304,24 @@ export type Database = {
         }
         Relationships: []
       }
+      elite_waitlist: {
+        Row: {
+          created_at: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          source?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          source?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       expert_insights: {
         Row: {
           bullish_bearish: string | null

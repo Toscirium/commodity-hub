@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOptionsChain, type OptionsProduct, type OptionsChainRow } from '@/hooks/useOptionsChain';
 import { MarketDataProvenance } from '@/components/MarketDataProvenance';
 import PremiumPaywall from '@/components/PremiumPaywall';
+import EliteWaitlistCard from '@/components/EliteWaitlistCard';
 import { downloadCsv } from '@/utils/csvExport';
 import { impliedVol, daysToT } from '@/utils/blackScholes';
 
@@ -232,6 +233,8 @@ const OptionsChain: React.FC = () => {
           </Card>
         ) : (
           <>
+            <EliteWaitlistCard source="options_chain" className="mb-4" />
+
             <Card className="mb-4">
               <CardContent className="pt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div className="flex flex-wrap gap-2">
