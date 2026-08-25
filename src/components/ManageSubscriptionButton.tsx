@@ -12,6 +12,7 @@ import {
 import { buildPlayStoreManageSubscriptionUrl } from '@/config/playStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { openExternalUrl } from '@/utils/openExternalUrl';
 
 const IOS_MANAGE_URL = 'itms-apps://apps.apple.com/account/subscriptions';
 const APPLE_ACCOUNT_WEB_URL = 'https://apps.apple.com/account/subscriptions';
@@ -30,15 +31,6 @@ const ManageSubscriptionButton: React.FC<ManageSubscriptionButtonProps> = ({
   const [busy, setBusy] = React.useState(false);
   const auth = useAuth();
   const { toast } = useToast();
-
-  const openUrl = async (url: string) => {
-    if (Capacitor.isNativePlatform()) {
-      const { Browser } = await import('@capacitor/browser');
-      await Browser.open({ url });
-    } else {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
-  };
 
   const handleClick = async () => {
     setBusy(true);
@@ -59,21 +51,21 @@ const ManageSubscriptionButton: React.FC<ManageSubscriptionButtonProps> = ({
         // the edge function is unavailable for any reason.
         const authedUrl = await getAuthenticatedWebManagementUrl();
         if (authedUrl) {
-          await openUrl(authedUrl);
+          await openExternalUrl(authedUrl);
           return;
         }
         if (isRevenueCatWebKeyConfigured() && auth?.user?.id) {
           await configureRevenueCatWeb(auth.user.id);
           const url = await getWebManagementUrl();
           if (url) {
-            await openUrl(url);
+            await openExternalUrl(url);
             return;
           }
         }
       } else if (store === 'APP_STORE' || store === 'MAC_APP_STORE') {
         // itms-apps:// only resolves on an actual iOS device; anywhere else
         // (Android, web/desktop), fall back to Apple's own web account page.
-        await openUrl(Capacitor.getPlatform() === 'ios' ? IOS_MANAGE_URL : APPLE_ACCOUNT_WEB_URL);
+        await openExternalUrl(Capacitor.getPlatform() === 'ios' ? IOS_MANAGE_URL : APPLE_ACCOUNT_WEB_URL);
         return;
       } else if (isPaid) {
         // store === 'PLAY_STORE', or a legacy row from before this column
@@ -81,7 +73,7 @@ const ManageSubscriptionButton: React.FC<ManageSubscriptionButtonProps> = ({
         // Store's generic subscriptions page (always valid, even with no
         // product-specific SKU) is a safe default for a paying customer.
         const productId = isRevenueCatAvailable() ? await getActiveProductId() : null;
-        await openUrl(buildPlayStoreManageSubscriptionUrl(productId));
+        await openExternalUrl(buildPlayStoreManageSubscriptionUrl(productId));
         return;
       }
 

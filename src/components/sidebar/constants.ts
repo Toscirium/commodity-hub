@@ -1,4 +1,4 @@
-import { Zap, Coins, Wheat, Beef, Milk, Briefcase, BarChart3, Star, Filter, Calendar, Lightbulb, GraduationCap, Users, Activity, Factory, Calculator, Bell, TrendingUp, GitCompare, ArrowUpDown, Gauge, Layers, Layers3, Bot, CalendarRange, GitCompareArrows, Sparkles, Radar, PieChart, FlaskConical, Droplets, MessageCircle, Landmark } from "lucide-react";
+import { Zap, Coins, Wheat, Beef, Milk, Briefcase, BarChart3, Star, Filter, Calendar, Lightbulb, GraduationCap, Users, Activity, Factory, Calculator, Bell, TrendingUp, GitCompare, ArrowUpDown, Gauge, Layers, Layers3, Bot, CalendarRange, GitCompareArrows, Sparkles, Radar, PieChart, FlaskConical, Droplets, MessageCircle, Landmark, Newspaper } from "lucide-react";
 import { CommodityGroup, MarketTool } from "./types";
 
 export const COMMODITY_GROUPS: CommodityGroup[] = [
@@ -21,6 +21,7 @@ export const MARKET_TOOLS: MarketTool[] = [
   { id: "screener", label: "Screener", icon: Filter, color: "text-foreground", path: "/screener" },
   { id: "calendar", label: "Calendar", icon: Calendar, color: "text-foreground", path: "/calendar" },
   { id: "position-calculator", label: "Position Size Calculator", icon: Calculator, color: "text-foreground", path: "/position-calculator" },
+  { id: "market-news", label: "Market News", icon: Newspaper, color: "text-foreground", path: "/market-news" },
 ];
 
 export const PRO_TOOLS: MarketTool[] = [

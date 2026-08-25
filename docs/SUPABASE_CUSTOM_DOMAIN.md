@@ -79,6 +79,7 @@ Easy to forget; each one breaks silently.
       - `evaluate-price-alerts` (see `docs/PRICE_ALERTS_SETUP.md`)
       - `audit-premium-freshness`
       - `refresh-fundamentals-every-2h` (see `docs/FUNDAMENTALS_REFRESH_SETUP.md`)
+      - `refresh-commodity-news-feed-every-30min` (see `docs/NEWS_FEED_REFRESH_SETUP.md`)
       Find them with:
       ```sql
       SELECT jobid, jobname, command FROM cron.job;

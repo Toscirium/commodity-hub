@@ -83,6 +83,9 @@ verify_jwt = false
 [functions.evaluate-price-alerts]
 verify_jwt = false
 
+[functions.refresh-commodity-news-feed]
+verify_jwt = false
+
 [functions.register-device-token]
 verify_jwt = false
 

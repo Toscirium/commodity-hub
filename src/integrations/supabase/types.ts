@@ -214,6 +214,42 @@ export type Database = {
         }
         Relationships: []
       }
+      commodity_news_feed: {
+        Row: {
+          category: string
+          description: string
+          fetched_at: string
+          guid: string
+          id: string
+          published_at: string
+          source_name: string
+          title: string
+          url: string
+        }
+        Insert: {
+          category?: string
+          description?: string
+          fetched_at?: string
+          guid: string
+          id?: string
+          published_at: string
+          source_name: string
+          title: string
+          url: string
+        }
+        Update: {
+          category?: string
+          description?: string
+          fetched_at?: string
+          guid?: string
+          id?: string
+          published_at?: string
+          source_name?: string
+          title?: string
+          url?: string
+        }
+        Relationships: []
+      }
       commodity_price_snapshots: {
         Row: {
           commodity_name: string

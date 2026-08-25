@@ -72,6 +72,7 @@ const TeamWorkspace = lazy(() => import('@/pages/TeamWorkspace'));
 const StressTest = lazy(() => import('@/pages/StressTest'));
 const Messages = lazy(() => import('@/pages/Messages'));
 const Trade = lazy(() => import('@/pages/Trade'));
+const CommodityNewsFeed = lazy(() => import('@/pages/CommodityNewsFeed'));
 
 const RouteFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -125,6 +126,7 @@ const App = () => {
                 <Route path="/learning" element={<LearningHub />} />
                 <Route path="/calendar" element={<EconomicCalendar />} />
                 <Route path="/news-settings" element={<NewsSettings />} />
+                <Route path="/market-news" element={<CommodityNewsFeed />} />
                 
                 <Route path="/portfolio" element={<Portfolio />} />
                 
