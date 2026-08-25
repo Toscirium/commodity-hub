@@ -2,11 +2,14 @@ import { Capacitor } from '@capacitor/core';
 import {
   Purchases,
   LOG_LEVEL,
+  PRORATION_MODE,
+  type GoogleProductChangeInfo,
   type PurchasesOffering,
   type CustomerInfo,
 } from '@revenuecat/purchases-capacitor';
 import { logger } from '@/utils/logger';
 import { monitoringService } from '@/services/monitoringService';
+import { tierForProductId } from '@/utils/tiers';
 
 // Public Android SDK key from RevenueCat dashboard. Safe to ship in client.
 // Android key: prefer the dedicated VITE_REVENUECAT_ANDROID_KEY, fall back to
@@ -87,6 +90,55 @@ export const getOfferings = async (): Promise<PurchasesOffering | null> => {
   }
 };
 
+/**
+ * Play Store product ids sometimes arrive as `subId:basePlanId`. Google's
+ * upgrade/downgrade flow wants the bare subscription id — passing the
+ * combined form silently fails to match the existing purchase.
+ */
+const bareProductId = (id: string): string => id.split(':')[0];
+
+/**
+ * Tells Google Play that this purchase REPLACES the caller's current
+ * subscription instead of being an additional one.
+ *
+ * Premium and Pro are separate subscription products here (each with its own
+ * base plan), not two base plans of one product — and Play has no iOS-style
+ * subscription groups to infer a swap from. So without an explicit old
+ * product id, buying Pro while subscribed to Premium opens a SECOND
+ * subscription and bills for both.
+ *
+ * Android-only: googleProductChangeInfo is ignored on other platforms, and
+ * on web RC's Billing portal handles plan changes instead (there's no
+ * product-change equivalent in the web SDK — see PremiumPaywall, which sends
+ * web subscribers to the portal rather than into a fresh checkout).
+ */
+const buildProductChangeInfo = async (
+  nextProductId: string,
+): Promise<GoogleProductChangeInfo | null> => {
+  if (Capacitor.getPlatform() !== 'android') return null;
+
+  const currentRaw = await getActiveProductId();
+  if (!currentRaw) return null; // no existing subscription — ordinary purchase
+
+  const current = bareProductId(currentRaw);
+  const next = bareProductId(nextProductId);
+  if (current === next) return null; // same product (e.g. re-purchase): not a change
+
+  // Charging the prorated difference immediately is only valid for an
+  // upgrade; for anything else (downgrade, or a duration switch within the
+  // same tier) credit the unused time instead, which Play accepts in both
+  // directions.
+  const isUpgrade =
+    tierForProductId(current) === 'premium' && tierForProductId(next) === 'pro';
+
+  return {
+    oldProductIdentifier: current,
+    prorationMode: isUpgrade
+      ? PRORATION_MODE.IMMEDIATE_AND_CHARGE_PRORATED_PRICE
+      : PRORATION_MODE.IMMEDIATE_WITH_TIME_PRORATION,
+  };
+};
+
 export const purchasePackage = async (
   pkg: PurchasesOffering['availablePackages'][number],
   context: Record<string, unknown> = {},
@@ -101,7 +153,11 @@ export const purchasePackage = async (
   };
   trackPurchaseEvent('purchase_started', pkgProps);
   try {
-    const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
+    const googleProductChangeInfo = await buildProductChangeInfo(pkg.product.identifier);
+    const { customerInfo } = await Purchases.purchasePackage({
+      aPackage: pkg,
+      ...(googleProductChangeInfo && { googleProductChangeInfo }),
+    });
     const activeEntitlement = getActivePaidEntitlement(customerInfo);
     trackPurchaseEvent('purchase_succeeded', {
       ...pkgProps,

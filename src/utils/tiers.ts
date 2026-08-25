@@ -79,6 +79,17 @@ export const TIER_PRICING = {
   pro: { monthly: 19.99, productId: 'premium_monthly', label: 'Pro' },
 } as const;
 
+/**
+ * Which paid tier a store product identifier grants.
+ *
+ * Both tiers' ids start with `premium`, and Pro's (`premium_monthly`) is the
+ * SHORTER prefix — so the `premium_lite` test has to come first, or every
+ * Premium product reads as Pro. Play Store identifiers sometimes carry a
+ * `:basePlanId` suffix, which doesn't affect the prefix test.
+ */
+export const tierForProductId = (productId: string): Exclude<Tier, 'free'> =>
+  productId.startsWith('premium_lite') ? 'premium' : 'pro';
+
 export const tierFromProfile = (
   subscription_active?: boolean | null,
   subscription_tier?: string | null,

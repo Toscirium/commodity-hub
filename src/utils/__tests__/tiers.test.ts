@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { tierFromProfile, tierAtLeast, limitsFor, TIER_LIMITS, type Tier } from '@/utils/tiers'
+import { tierFromProfile, tierAtLeast, limitsFor, tierForProductId, TIER_LIMITS, TIER_PRICING, type Tier } from '@/utils/tiers'
 
 describe('tierFromProfile', () => {
   it('returns free when the subscription is not active, regardless of tier field', () => {
@@ -92,5 +92,34 @@ describe('limitsFor', () => {
 
     expect(premium.alertTypes.length).toBeGreaterThanOrEqual(free.alertTypes.length)
     expect(pro.alertTypes.length).toBeGreaterThanOrEqual(premium.alertTypes.length)
+  })
+})
+
+describe('tierForProductId', () => {
+  // Getting this backwards mis-classifies an upgrade as a downgrade, which
+  // picks the wrong Play Store proration mode and bills the customer wrong —
+  // see buildProductChangeInfo in src/services/revenueCat.ts.
+  it('maps the real Play Store product ids to their tier', () => {
+    expect(tierForProductId('premium_lite_monthly')).toBe('premium')
+    expect(tierForProductId('premium_lite_annual')).toBe('premium')
+    expect(tierForProductId('premium_monthly')).toBe('pro')
+    expect(tierForProductId('premium_annual')).toBe('pro')
+  })
+
+  it('stays in sync with the product ids TIER_PRICING actually ships', () => {
+    expect(tierForProductId(TIER_PRICING.premium.productId)).toBe('premium')
+    expect(tierForProductId(TIER_PRICING.pro.productId)).toBe('pro')
+  })
+
+  it("is not fooled by Pro's id being a prefix of Premium's", () => {
+    // 'premium_monthly' (Pro) is a shorter prefix than 'premium_lite_monthly'
+    // (Premium), so a naive startsWith('premium') check reads every Premium
+    // product as Pro.
+    expect(tierForProductId('premium_lite_monthly')).not.toBe(tierForProductId('premium_monthly'))
+  })
+
+  it('tolerates the :basePlanId suffix Play sometimes appends', () => {
+    expect(tierForProductId('premium_lite_annual:annual')).toBe('premium')
+    expect(tierForProductId('premium_annual:annual')).toBe('pro')
   })
 })

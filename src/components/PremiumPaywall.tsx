@@ -171,7 +171,11 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
   const [purchasing, setPurchasing] = React.useState<string | null>(null);
   const [webPurchasing, setWebPurchasing] = React.useState<string | null>(null);
   const tier = auth?.tier ?? 'free';
-  const isPaid = tier !== 'free';
+  // An existing Premium subscriber opening the paywall is upgrading, not
+  // subscribing fresh — they get the Pro card on its own rather than the
+  // full two-card comparison (and, before this, an "already a subscriber"
+  // dead end with no way through to Pro at all).
+  const isUpgrading = tier === 'premium';
   const isSignedIn = Boolean(auth?.user);
   const revenueCatReady = isRevenueCatAvailable();
   const webBillingReady = isRevenueCatWebAvailable();
@@ -422,12 +426,25 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
           </DialogDescription>
         </DialogHeader>
 
-        {isPaid ? (
+        {tier === 'pro' ? (
           <div className="space-y-3">
             <div className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm text-muted-foreground">
-              You're already a {tier === 'pro' ? 'Pro' : 'Premium'} subscriber — thanks for supporting Commodity Hub.
+              You're already a Pro subscriber — thanks for supporting Commodity Hub.
             </div>
             <ManageSubscriptionButton className="w-full" variant="default" size="default" />
+          </div>
+        ) : isUpgrading && !isNative ? (
+          // Web subscribers change plans in RevenueCat's billing portal. The
+          // web SDK has no product-change equivalent of Android's
+          // googleProductChangeInfo (see revenueCat.ts), so starting a fresh
+          // checkout here would open a SECOND subscription alongside the
+          // current one rather than replacing it.
+          <div className="space-y-3">
+            <div className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm text-muted-foreground">
+              You're on Premium. Switch to Pro from your subscription portal so your
+              current plan is replaced rather than billed twice.
+            </div>
+            <ManageSubscriptionButton className="w-full" variant="default" size="default" label="Change plan" />
           </div>
         ) : loading && (isNative || webBillingReady) ? (
           <div className="flex items-center justify-center py-6">
@@ -435,8 +452,14 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {renderTierCard(
+            {isUpgrading && (
+              <div className="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                You're on Premium. Upgrading replaces your current plan — Google Play
+                credits what you've already paid for the rest of this period.
+              </div>
+            )}
+            <div className={`grid gap-3 ${isUpgrading ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}>
+              {!isUpgrading && renderTierCard(
                 'default',
                 TIER_PRICING.premium.label,
                 PREMIUM_FEATURES,
@@ -453,6 +476,9 @@ const PremiumPaywall: React.FC<PremiumPaywallProps> = ({ open, onOpenChange, sou
                   : buildWebPlanChoices(webPackagesByTier.pro, webPurchasing, handleWebPurchase),
               )}
             </div>
+            {isUpgrading && (
+              <ManageSubscriptionButton className="w-full" variant="outline" size="default" />
+            )}
             {!isNative && !webBillingReady && (
               // Web, but Web Billing isn't configured (VITE_REVENUECAT_WEB_KEY
               // unset) — fall back to pointing people at the Android app
