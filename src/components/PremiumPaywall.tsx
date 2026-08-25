@@ -68,6 +68,21 @@ const PRO_FEATURES = [
 
 
 /**
+ * pkg.packageType is only reliable when the package was added to the RC
+ * offering using RC's reserved $rc_annual/$rc_monthly identifier — found
+ * live on the Pro (Annual) package that it wasn't: packageType came back
+ * as something other than 'ANNUAL', so both Pro options rendered labeled
+ * "Monthly" (one at the monthly price, one at the annual price) with no
+ * "Save X%" badge on either, on a real purchase screen showing real
+ * regional prices. product.subscriptionPeriod is a better ground truth —
+ * it's the ISO 8601 duration ("P1Y", "P1M") straight from Play Console's
+ * actual product config, independent of how the package itself was typed
+ * when added to the offering.
+ */
+const isAnnualNativePackage = (pkg: PurchasesPackage): boolean =>
+  pkg.packageType === 'ANNUAL' || (pkg.packageType !== 'MONTHLY' && pkg.product.subscriptionPeriod === 'P1Y');
+
+/**
  * Annual and monthly packages were rendered as two identical-looking
  * buttons with no framing — nothing nudged toward the plan that's actually
  * better for both sides (locks in revenue upfront, cuts monthly churn
@@ -75,11 +90,11 @@ const PRO_FEATURES = [
  * % saved vs. paying monthly all year, so the UI can call it out.
  */
 export const orderWithAnnualFirst = (pkgs: PurchasesPackage[]): PurchasesPackage[] =>
-  [...pkgs].sort((a, b) => (a.packageType === 'ANNUAL' ? -1 : b.packageType === 'ANNUAL' ? 1 : 0));
+  [...pkgs].sort((a, b) => (isAnnualNativePackage(a) ? -1 : isAnnualNativePackage(b) ? 1 : 0));
 
 export const getAnnualSavingsPct = (pkgs: PurchasesPackage[]): number | null => {
-  const monthly = pkgs.find((p) => p.packageType === 'MONTHLY');
-  const annual = pkgs.find((p) => p.packageType === 'ANNUAL');
+  const monthly = pkgs.find((p) => !isAnnualNativePackage(p));
+  const annual = pkgs.find((p) => isAnnualNativePackage(p));
   if (!monthly || !annual || !annual.product.pricePerMonth) return null;
   const pct = (1 - annual.product.pricePerMonth / monthly.product.price) * 100;
   return pct > 0 ? Math.round(pct) : null;
@@ -111,7 +126,7 @@ export const buildNativePlanChoices = (
 ): PlanChoice[] => {
   const savingsPct = getAnnualSavingsPct(pkgs);
   return orderWithAnnualFirst(pkgs).map((pkg) => {
-    const isAnnual = pkg.packageType === 'ANNUAL';
+    const isAnnual = isAnnualNativePackage(pkg);
     return {
       id: pkg.identifier,
       isAnnual,
@@ -125,13 +140,26 @@ export const buildNativePlanChoices = (
   });
 };
 
+// Same fallback reasoning as isAnnualNativePackage above — a Web Billing
+// package's packageType is only reliable when it was added to the RC
+// offering using the reserved $rc_annual/$rc_monthly identifier. The
+// subscription option's own base.period (real billing cadence, from
+// Stripe's actual price config) is the more trustworthy signal when it
+// wasn't. 'year' is PeriodUnit.Year's literal value — inlined rather than
+// imported for the same reason WEB_PACKAGE_TYPE above is: importing the
+// real enum would pull in the whole (dynamically-loaded-on-purpose) SDK.
+const isAnnualWebPackage = (pkg: WebPackage): boolean =>
+  pkg.packageType === WEB_PACKAGE_TYPE.Annual ||
+  (pkg.packageType !== WEB_PACKAGE_TYPE.Monthly &&
+    pkg.webBillingProduct.defaultSubscriptionOption?.base.period?.unit === 'year');
+
 export const buildWebPlanChoices = (
   pkgs: WebPackage[],
   purchasingId: string | null,
   onSelect: (pkg: WebPackage) => void,
 ): PlanChoice[] => {
-  const monthly = pkgs.find((p) => p.packageType === WEB_PACKAGE_TYPE.Monthly);
-  const annual = pkgs.find((p) => p.packageType === WEB_PACKAGE_TYPE.Annual);
+  const monthly = pkgs.find((p) => !isAnnualWebPackage(p));
+  const annual = pkgs.find((p) => isAnnualWebPackage(p));
   const monthlyMicros = monthly?.webBillingProduct.price.amountMicros;
   const annualPerMonthMicros = annual?.webBillingProduct.defaultSubscriptionOption?.base.pricePerMonth?.amountMicros;
   let savingsPct: number | null = null;
@@ -140,10 +168,10 @@ export const buildWebPlanChoices = (
     savingsPct = pct > 0 ? Math.round(pct) : null;
   }
   const ordered = [...pkgs].sort((a, b) =>
-    a.packageType === WEB_PACKAGE_TYPE.Annual ? -1 : b.packageType === WEB_PACKAGE_TYPE.Annual ? 1 : 0,
+    isAnnualWebPackage(a) ? -1 : isAnnualWebPackage(b) ? 1 : 0,
   );
   return ordered.map((pkg) => {
-    const isAnnual = pkg.packageType === WEB_PACKAGE_TYPE.Annual;
+    const isAnnual = isAnnualWebPackage(pkg);
     return {
       id: pkg.identifier,
       isAnnual,

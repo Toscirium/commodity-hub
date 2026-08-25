@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { getAnnualSavingsPct, orderWithAnnualFirst } from '../PremiumPaywall';
+import { describe, it, expect, vi } from 'vitest';
+import { getAnnualSavingsPct, orderWithAnnualFirst, buildNativePlanChoices } from '../PremiumPaywall';
 import type { PurchasesPackage } from '@revenuecat/purchases-capacitor';
 
 // Minimal fakes — only the fields orderWithAnnualFirst/getAnnualSavingsPct
@@ -7,10 +7,12 @@ import type { PurchasesPackage } from '@revenuecat/purchases-capacitor';
 // carries a lot of fields irrelevant here.
 const pkg = (opts: {
   identifier: string;
-  packageType: 'MONTHLY' | 'ANNUAL' | 'LIFETIME';
+  packageType: 'MONTHLY' | 'ANNUAL' | 'LIFETIME' | 'CUSTOM' | 'UNKNOWN';
   price: number;
   pricePerMonth?: number | null;
   pricePerMonthString?: string | null;
+  /** ISO 8601, e.g. 'P1M' / 'P1Y' — only needed for the packageType-is-wrong fallback tests. */
+  subscriptionPeriod?: string | null;
 }): PurchasesPackage =>
   ({
     identifier: opts.identifier,
@@ -20,6 +22,7 @@ const pkg = (opts: {
       priceString: `$${opts.price.toFixed(2)}`,
       pricePerMonth: opts.pricePerMonth ?? null,
       pricePerMonthString: opts.pricePerMonthString ?? null,
+      subscriptionPeriod: opts.subscriptionPeriod ?? null,
     },
   }) as unknown as PurchasesPackage;
 
@@ -52,6 +55,57 @@ describe('getAnnualSavingsPct', () => {
     const monthly = pkg({ identifier: 'm', packageType: 'MONTHLY', price: 6.99 });
     const annual = pkg({ identifier: 'a', packageType: 'ANNUAL', price: 59.99, pricePerMonth: null });
     expect(getAnnualSavingsPct([monthly, annual])).toBeNull();
+  });
+});
+
+describe('packageType misconfigured in the RC dashboard (found live)', () => {
+  // Real bug, found live on Pro's upgrade screen: Pro (Annual) was added to
+  // the RevenueCat offering without RC's reserved $rc_annual identifier, so
+  // the SDK reported its packageType as something other than 'ANNUAL'.
+  // Result: both Pro options rendered labeled "Monthly" — one at €20.99,
+  // one at €154.99 — with no "Save X%" badge on either, on a real payment
+  // screen. subscriptionPeriod (from Play Console's actual product config,
+  // independent of the package's own RC typing) is the fallback that
+  // catches this. Prices/packageType value below match what was actually
+  // observed.
+  const monthly = pkg({ identifier: 'pro_m', packageType: 'MONTHLY', price: 20.99, subscriptionPeriod: 'P1M' });
+  const annualMistyped = pkg({
+    identifier: 'pro_a',
+    packageType: 'CUSTOM', // <- the actual misconfiguration: not 'ANNUAL'
+    price: 154.99,
+    pricePerMonth: 12.92,
+    pricePerMonthString: '€12.92',
+    subscriptionPeriod: 'P1Y',
+  });
+
+  it('getAnnualSavingsPct still finds the annual package via subscriptionPeriod', () => {
+    // (1 - 12.92/20.99) * 100 ≈ 38.4 -> 38
+    expect(getAnnualSavingsPct([monthly, annualMistyped])).toBe(38);
+  });
+
+  it('orderWithAnnualFirst still puts it first', () => {
+    expect(orderWithAnnualFirst([monthly, annualMistyped]).map((p) => p.identifier)).toEqual(['pro_a', 'pro_m']);
+  });
+
+  it('buildNativePlanChoices labels it Annual, not Monthly', () => {
+    const choices = buildNativePlanChoices([monthly, annualMistyped], null, vi.fn());
+    const annualChoice = choices.find((c) => c.id === 'pro_a')!;
+    const monthlyChoice = choices.find((c) => c.id === 'pro_m')!;
+    expect(annualChoice.isAnnual).toBe(true);
+    expect(annualChoice.priceString).toBe('$154.99');
+    expect(annualChoice.perMonthString).toBe('€12.92');
+    expect(annualChoice.savingsPct).toBe(38);
+    expect(monthlyChoice.isAnnual).toBe(false);
+    expect(monthlyChoice.savingsPct).toBeNull();
+  });
+
+  it('does not mistake a genuinely-unknown packageType with no matching period for annual', () => {
+    // Guard against the fallback being too eager: a package that's neither
+    // MONTHLY nor has a P1Y period should NOT be labeled annual just because
+    // it isn't 'MONTHLY'.
+    const trulyUnknown = pkg({ identifier: 'x', packageType: 'UNKNOWN', price: 1, subscriptionPeriod: 'P1W' });
+    const choices = buildNativePlanChoices([trulyUnknown], null, vi.fn());
+    expect(choices[0].isAnnual).toBe(false);
   });
 });
 

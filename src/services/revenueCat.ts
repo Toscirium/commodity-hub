@@ -3,6 +3,7 @@ import {
   Purchases,
   LOG_LEVEL,
   PRORATION_MODE,
+  PURCHASES_ERROR_CODE,
   type GoogleProductChangeInfo,
   type PurchasesOffering,
   type CustomerInfo,
@@ -165,7 +166,14 @@ export const purchasePackage = async (
     });
     return { success: Boolean(activeEntitlement), customerInfo };
   } catch (err: any) {
-    if (err?.userCancelled) {
+    // userCancelled is documented deprecated in favor of checking code
+    // directly — kept as a fallback for older SDK behavior, but code is the
+    // one actually confirmed reliable: a real product-change cancellation
+    // (tested live, upgrading Premium -> Pro) surfaced with a message that
+    // read as a plain cancellation but didn't set userCancelled, so this
+    // fell through to the generic branch below and showed a "Purchase
+    // failed" toast for what was just the user backing out — not an error.
+    if (err?.userCancelled || err?.code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR) {
       trackPurchaseEvent('purchase_cancelled', pkgProps);
       return { success: false, error: 'cancelled' };
     }

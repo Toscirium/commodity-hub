@@ -10,11 +10,14 @@ import type { Package } from '@revenuecat/purchases-js';
 // PremiumPaywall.pricing.test.ts's native fakes but with the web field paths.
 const webPkg = (opts: {
   identifier: string;
-  packageType: typeof PackageType.Monthly | typeof PackageType.Annual;
+  packageType: typeof PackageType.Monthly | typeof PackageType.Annual | string;
   amountMicros: number;
   formattedPrice: string;
   pricePerMonthAmountMicros?: number | null;
   pricePerMonthFormatted?: string | null;
+  /** Real billing cadence, e.g. { number: 1, unit: 'year' } — only needed
+   *  for the packageType-is-wrong fallback tests. */
+  period?: { number: number; unit: string } | null;
 }): Package =>
   ({
     identifier: opts.identifier,
@@ -22,13 +25,14 @@ const webPkg = (opts: {
     webBillingProduct: {
       price: { amountMicros: opts.amountMicros, formattedPrice: opts.formattedPrice },
       defaultSubscriptionOption:
-        opts.pricePerMonthAmountMicros != null
+        opts.pricePerMonthAmountMicros != null || opts.period
           ? {
               base: {
-                pricePerMonth: {
-                  amountMicros: opts.pricePerMonthAmountMicros,
-                  formattedPrice: opts.pricePerMonthFormatted,
-                },
+                pricePerMonth:
+                  opts.pricePerMonthAmountMicros != null
+                    ? { amountMicros: opts.pricePerMonthAmountMicros, formattedPrice: opts.pricePerMonthFormatted }
+                    : null,
+                period: opts.period ?? null,
               },
             }
           : null,
@@ -130,5 +134,55 @@ describe('buildWebPlanChoices', () => {
     const choices = buildWebPlanChoices([monthly], null, onSelect);
     choices[0].onSelect();
     expect(onSelect).toHaveBeenCalledWith(monthly);
+  });
+});
+
+describe('buildWebPlanChoices — packageType misconfigured in the RC dashboard', () => {
+  // Same class of bug found live on the native (Android) side: a package
+  // added to the RC offering without the reserved $rc_annual identifier
+  // reports a packageType that isn't PackageType.Annual. The subscription
+  // option's own base.period (real cadence, from Stripe's actual price
+  // config) is the fallback that still gets this right.
+  const monthly = webPkg({
+    identifier: 'pro_m',
+    packageType: PackageType.Monthly,
+    amountMicros: 20_990_000,
+    formattedPrice: '€20.99',
+  });
+  const annualMistyped = webPkg({
+    identifier: 'pro_a',
+    packageType: 'custom', // <- the actual misconfiguration: not PackageType.Annual
+    amountMicros: 154_990_000,
+    formattedPrice: '€154.99',
+    pricePerMonthAmountMicros: 12_920_000,
+    pricePerMonthFormatted: '€12.92',
+    period: { number: 1, unit: 'year' },
+  });
+
+  it('labels it Annual, not Monthly, via the period fallback', () => {
+    const choices = buildWebPlanChoices([monthly, annualMistyped], null, vi.fn());
+    const annualChoice = choices.find((c) => c.id === 'pro_a')!;
+    const monthlyChoice = choices.find((c) => c.id === 'pro_m')!;
+    expect(annualChoice.isAnnual).toBe(true);
+    expect(annualChoice.priceString).toBe('€154.99');
+    expect(annualChoice.perMonthString).toBe('€12.92');
+    expect(monthlyChoice.isAnnual).toBe(false);
+  });
+
+  it('orders it first', () => {
+    const choices = buildWebPlanChoices([monthly, annualMistyped], null, vi.fn());
+    expect(choices.map((c) => c.id)).toEqual(['pro_a', 'pro_m']);
+  });
+
+  it('does not mistake a genuinely-unknown packageType with no year period for annual', () => {
+    const trulyUnknown = webPkg({
+      identifier: 'x',
+      packageType: 'unknown',
+      amountMicros: 1_000_000,
+      formattedPrice: '$1.00',
+      period: { number: 1, unit: 'week' },
+    });
+    const choices = buildWebPlanChoices([trulyUnknown], null, vi.fn());
+    expect(choices[0].isAnnual).toBe(false);
   });
 });
