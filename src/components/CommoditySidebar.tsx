@@ -6,7 +6,6 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { useSidebar } from "@/components/ui/sidebar";
-import { TrendingUp } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import CommodityGroupsList from "./sidebar/CommodityGroupsList";
 import MarketToolsList from "./sidebar/MarketToolsList";
@@ -36,8 +35,13 @@ const CommoditySidebar = React.memo(({ activeGroup, onGroupSelect, commodityCoun
     <Sidebar className="border-r border-border bg-background">
       <SidebarHeader className="border-b border-border bg-background">
         <div className={`flex items-center gap-2.5 ${isMobile ? 'px-4 py-4' : 'px-3 py-3'}`}>
-          <div className="w-7 h-7 rounded-none bg-primary/15 ring-1 ring-primary/40 flex items-center justify-center">
-            <TrendingUp className="w-3.5 h-3.5 text-primary" />
+          {/* The mark already carries its own indigo plate (see
+              assets/brand/app-icon.svg — the single source every app icon is
+              generated from), so this wrapper only needs to size/clip it,
+              not add another background the way an icon-in-a-tinted-box
+              pattern would. */}
+          <div className="w-7 h-7 overflow-hidden flex items-center justify-center shrink-0">
+            <img src="/icons/icon-96.webp" alt="" className="w-full h-full" />
           </div>
           {!collapsed && (
             <div className="leading-tight">
