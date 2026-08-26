@@ -2,11 +2,6 @@
 // functions (CommodityPriceAPI for non-energy, OilPriceAPI for energy).
 // FMP & Yahoo direct calls were removed in the CPA migration; see
 // mem://integrations/commoditypriceapi-config for full architecture notes.
-import {
-  fetchNewsFromMarketaux,
-  removeDuplicateNews,
-  sortNewsByRelevance,
-} from './newsHelpers';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface CommodityPrice {
@@ -156,26 +151,17 @@ export class CommodityApiService {
     return null;
   }
 
-  async fetchCommodityNews(commodityName: string, limit = 5): Promise<NewsItem[]> {
-    const cacheKey = `news_${commodityName}`;
-    const cached = this.cache.get(cacheKey);
-    if (cached && this.isCacheValid(cached.timestamp)) return cached.data as NewsItem[];
-
-    try {
-      const news = await fetchNewsFromMarketaux(commodityName);
-      const unique = removeDuplicateNews(news);
-      const sorted = sortNewsByRelevance(unique, commodityName);
-      // Same rule as fetchCommodityPrice above: never manufacture content.
-      // This used to fall back to template-generated articles bylined to
-      // Reuters/Bloomberg/WSJ/FT/CNBC — see the note in newsHelpers.ts.
-      const result = sorted.slice(0, limit);
-      this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
-      return result;
-    } catch (error) {
-      console.error(`Error fetching news for ${commodityName}:`, error);
-      return [];
-    }
-  }
+  // REMOVED 2026-08-26: fetchCommodityNews().
+  //
+  // It had no callers anywhere in the app, and the path it went down was the
+  // expensive one: fetchNewsFromMarketaux -> the fetch-commodity-news edge
+  // function, which fired THREE NewsAPI.org requests per invocation against
+  // a free plan licensed for development use only and capped at 100
+  // requests/day across all users.
+  //
+  // Per-commodity news now comes from the RSS-backed commodity_news_feed
+  // table via the enhanced-commodity-news function — no API key, no quota.
+  // See supabase/functions/_shared/commodity-news-match.ts.
 
   /** Historical chart data via the fetch-commodity-data edge function (CPA + OilPriceAPI). */
   async fetchHistoricalData(commodityName: string, timeframe = '1m'): Promise<HistoricalDataPoint[]> {

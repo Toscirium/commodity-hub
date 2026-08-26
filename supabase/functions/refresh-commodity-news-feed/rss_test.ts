@@ -134,6 +134,29 @@ Deno.test('stripHtml: collapses whitespace and trims', () => {
   assertEquals(stripHtml('  <b>Hello</b>   <i>world</i>  '), 'Hello world');
 });
 
+Deno.test('stripHtml: decodes numeric entities (found live as literal &#8216; in headlines)', () => {
+  assertEquals(
+    stripHtml('&#8216;Quiet&#8217; Hormuz crude flow &#8212; analysts weigh in'),
+    '‘Quiet’ Hormuz crude flow — analysts weigh in',
+  );
+});
+
+Deno.test('stripHtml: decodes hex entities', () => {
+  assertEquals(stripHtml('&#x2018;Tight&#x2019; supply'), '‘Tight’ supply');
+});
+
+Deno.test('stripHtml: decodes the named curly-quote/dash entities WordPress emits', () => {
+  assertEquals(stripHtml('&lsquo;a&rsquo; &ldquo;b&rdquo; c&ndash;d e&mdash;f&hellip;'), '‘a’ “b” c–d e—f…');
+});
+
+Deno.test('stripHtml: leaves an unknown named entity alone rather than mangling it', () => {
+  assertEquals(stripHtml('AT&T &notarealentity; done'), 'AT&T &notarealentity; done');
+});
+
+Deno.test('stripHtml: out-of-range numeric entity does not throw', () => {
+  assertEquals(stripHtml('bad &#1114112; entity'), 'bad entity');
+});
+
 Deno.test('stripHtml: non-string input returns empty string rather than throwing', () => {
   assertEquals(stripHtml(undefined), '');
   assertEquals(stripHtml(null), '');

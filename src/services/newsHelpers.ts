@@ -1,5 +1,4 @@
 import { NewsItem } from './commodityApi';
-import { supabase } from '@/integrations/supabase/client';
 
 // Enhanced news source interfaces
 interface NewsSourceConfig {
@@ -123,37 +122,15 @@ const calculateEnhancedRelevanceScore = (article: any, commodityName: string): n
   return score;
 };
 
-// Enhanced news fetching using Supabase edge function
-export const fetchNewsFromMarketaux = async (commodityName: string): Promise<EnhancedNewsItem[]> => {
-  try {
-    const { data, error } = await supabase.functions.invoke('fetch-commodity-news', {
-      body: { commodity: commodityName, source: 'marketaux' }
-    });
-
-    if (error || !data?.articles) {
-      console.warn('Marketaux edge function failed:', error);
-      return [];
-    }
-
-    return data.articles.map((article: any, index: number) => ({
-      id: `marketaux_${commodityName}_${index}_${Date.now()}`,
-      title: article.title || `${commodityName} Market Update`,
-      description: article.description || article.snippet || `Latest market analysis for ${commodityName}`,
-      url: article.url || `https://www.marketwatch.com/investing/commodity/${commodityName.toLowerCase()}`,
-      source: article.source || 'Marketaux',
-      publishedAt: article.publishedAt || new Date().toISOString(),
-      urlToImage: article.urlToImage,
-      sentiment: analyzeSentiment(article.title, article.description),
-      category: categorizeNews(article.title, article.description, commodityName),
-      relevanceScore: calculateEnhancedRelevanceScore(article, commodityName),
-      tags: extractTags(article.title, article.description, commodityName),
-      author: article.author
-    }));
-  } catch (error) {
-    console.warn('Marketaux edge function failed:', error);
-    return [];
-  }
-};
+// REMOVED 2026-08-26: fetchNewsFromMarketaux().
+//
+// Despite the name it invoked the fetch-commodity-news edge function, which
+// ignored the `source` argument entirely and made three NewsAPI.org requests
+// per call — on a free plan licensed for development use only. Its only
+// caller (commodityApi.fetchCommodityNews) had no callers of its own.
+//
+// Per-commodity news now reads the RSS-backed commodity_news_feed table via
+// enhanced-commodity-news. No API key, no per-request quota.
 
 const buildNewsQuery = (commodityName: string): string => {
   const baseQuery = commodityName.toLowerCase();

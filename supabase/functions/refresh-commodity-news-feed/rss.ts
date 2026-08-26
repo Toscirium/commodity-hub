@@ -71,18 +71,47 @@ export const MAX_FUTURE_DATE_MS = 60 * 60 * 1000;
 // guid's isPermaLink) — only element text.
 const xmlParser = new XMLParser({ isArray: (name) => name === 'item' });
 
+const NAMED_ENTITIES: Record<string, string> = {
+  nbsp: ' ',
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  lsquo: '‘',
+  rsquo: '’',
+  ldquo: '“',
+  rdquo: '”',
+  ndash: '–',
+  mdash: '—',
+  hellip: '…',
+};
+
 export function stripHtml(input: unknown): string {
   const text = typeof input === 'string' ? input : '';
   return text
     .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#0?39;/g, "'")
+    // Numeric entities, decimal and hex. WordPress feeds lean heavily on
+    // these for curly quotes and dashes — found live in Hellenic Shipping
+    // News headlines rendering as literal "&#8216;Quiet&#8217;" in the UI,
+    // because the previous version only decoded a handful of named ones
+    // plus &#39;.
+    .replace(/&#(\d+);/g, (_, code) => safeFromCodePoint(Number(code)))
+    .replace(/&#[xX]([0-9a-fA-F]+);/g, (_, hex) => safeFromCodePoint(parseInt(hex, 16)))
+    .replace(/&([a-zA-Z]+);/g, (match, name: string) => NAMED_ENTITIES[name.toLowerCase()] ?? match)
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/** String.fromCodePoint throws on out-of-range values; a malformed feed
+ *  shouldn't take down the whole run, so leave those as-is. */
+function safeFromCodePoint(code: number): string {
+  if (!Number.isFinite(code) || code < 0 || code > 0x10ffff) return '';
+  try {
+    return String.fromCodePoint(code);
+  } catch {
+    return '';
+  }
 }
 
 export function truncate(text: string, max: number): string {

@@ -132,9 +132,13 @@ const CommodityNews = ({ commodity }: CommodityNewsProps) => {
             <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
           <div className="min-w-0 max-w-full overflow-hidden">
-            <h4 className="text-sm sm:text-base font-bold text-foreground truncate">Enhanced {commodity} News</h4>
+            <h4 className="text-sm sm:text-base font-bold text-foreground truncate">{commodity} News</h4>
             <p className="text-xs sm:text-sm text-muted-foreground font-medium truncate">
-              {loading ? 'Loading with sentiment analysis...' : `${news.length} articles with smart insights`}
+              {loading
+                ? 'Loading…'
+                : news.length === 1
+                  ? '1 recent article'
+                  : `${news.length} recent articles`}
             </p>
           </div>
         </div>
@@ -149,11 +153,8 @@ const CommodityNews = ({ commodity }: CommodityNewsProps) => {
 
       {error && (
         <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-xl">
-          <p className="text-sm text-red-600 dark:text-red-400 mb-2">
-            Unable to load enhanced news: {error}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            💡 Tip: Configure API keys in settings for better news coverage
+          <p className="text-sm text-red-600 dark:text-red-400">
+            Couldn't load news right now.
           </p>
         </div>
       )}
