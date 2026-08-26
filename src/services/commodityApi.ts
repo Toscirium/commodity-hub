@@ -6,7 +6,6 @@ import {
   fetchNewsFromMarketaux,
   removeDuplicateNews,
   sortNewsByRelevance,
-  getFallbackNews,
 } from './newsHelpers';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -166,14 +165,15 @@ export class CommodityApiService {
       const news = await fetchNewsFromMarketaux(commodityName);
       const unique = removeDuplicateNews(news);
       const sorted = sortNewsByRelevance(unique, commodityName);
-      const result = sorted.length > 0
-        ? sorted.slice(0, limit)
-        : getFallbackNews(commodityName).slice(0, limit);
+      // Same rule as fetchCommodityPrice above: never manufacture content.
+      // This used to fall back to template-generated articles bylined to
+      // Reuters/Bloomberg/WSJ/FT/CNBC — see the note in newsHelpers.ts.
+      const result = sorted.slice(0, limit);
       this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
       return result;
     } catch (error) {
       console.error(`Error fetching news for ${commodityName}:`, error);
-      return getFallbackNews(commodityName).slice(0, limit);
+      return [];
     }
   }
 

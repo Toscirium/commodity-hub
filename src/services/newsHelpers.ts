@@ -234,161 +234,32 @@ const calculateRelevanceScore = (newsItem: NewsItem, commodityName: string): num
   
   const daysSincePublished = (Date.now() - new Date(newsItem.publishedAt).getTime()) / (1000 * 60 * 60 * 24);
   if (daysSincePublished <= 7) score += 2;
-  
+
   return score;
 };
 
-export const getFallbackNews = (commodityName: string): EnhancedNewsItem[] => {
-  const today = new Date();
-  const baseTime = today.getTime();
-  const commoditySlug = commodityName.toLowerCase().replace(/\s+/g, '-');
-  
-  const fallbackArticles = [
-    {
-      id: `${commodityName}_fallback_1`,
-      title: `${commodityName} prices surge amid global supply chain disruptions and economic uncertainty`,
-      description: `Recent geopolitical tensions and supply chain challenges are creating significant volatility in ${commodityName} markets, with analysts predicting continued price fluctuations in the coming months.`,
-      url: `https://www.marketwatch.com/investing/commodity/${commoditySlug}`,
-      source: 'MarketWatch',
-      publishedAt: new Date(baseTime - 1 * 60 * 60 * 1000).toISOString(),
-      sentiment: 'positive' as const,
-      category: 'supply_demand' as const,
-      relevanceScore: 85,
-      tags: ['volatility', 'bullish']
-    },
-    {
-      id: `${commodityName}_fallback_2`,
-      title: `Federal Reserve policy changes impact ${commodityName.toLowerCase()} market outlook significantly`,
-      description: `Central bank monetary policy adjustments are creating new dynamics in commodity markets, with ${commodityName} showing increased sensitivity to interest rate changes and inflation expectations.`,
-      url: `https://www.reuters.com/markets/commodities/${commoditySlug}`,
-      source: 'Reuters',
-      publishedAt: new Date(baseTime - 2 * 60 * 60 * 1000).toISOString(),
-      sentiment: 'neutral' as const,
-      category: 'economic' as const,
-      relevanceScore: 80,
-      tags: ['economic']
-    },
-    {
-      id: `${commodityName}_fallback_3`,
-      title: `Global demand shifts create unprecedented volatility in ${commodityName.toLowerCase()} trading`,
-      description: `International market dynamics and changing consumption patterns are driving significant price movements in ${commodityName}, with emerging markets playing an increasingly important role in price discovery.`,
-      url: `https://finance.yahoo.com/topic/commodities`,
-      source: 'Bloomberg',
-      publishedAt: new Date(baseTime - 3 * 60 * 60 * 1000).toISOString(),
-      sentiment: 'neutral' as const,
-      category: 'market_analysis' as const,
-      relevanceScore: 75,
-      tags: ['volatility']
-    },
-    {
-      id: `${commodityName}_fallback_4`,
-      title: `New regulatory framework could reshape ${commodityName.toLowerCase()} market structure`,
-      description: `Upcoming regulatory changes and compliance requirements are expected to impact how ${commodityName} is traded and priced, with industry experts calling for enhanced market transparency.`,
-      url: `https://www.wsj.com/markets/commodities`,
-      source: 'Financial Times',
-      publishedAt: new Date(baseTime - 4 * 60 * 60 * 1000).toISOString(),
-      sentiment: 'neutral' as const,
-      category: 'regulatory' as const,
-      relevanceScore: 70,
-      tags: []
-    },
-    {
-      id: `${commodityName}_fallback_5`,
-      title: `Technical analysis suggests ${commodityName} may break key resistance levels`,
-      description: `Chart patterns and technical indicators are pointing to potential breakout scenarios for ${commodityName}, with traders closely monitoring support and resistance levels for entry signals.`,
-      url: `https://www.marketwatch.com/investing/commodities`,
-      source: 'TradingView',
-      publishedAt: new Date(baseTime - 5 * 60 * 60 * 1000).toISOString(),
-      sentiment: 'positive' as const,
-      category: 'market_analysis' as const,
-      relevanceScore: 68,
-      tags: ['bullish']
-    },
-    {
-      id: `${commodityName}_fallback_6`,
-      title: `Weather patterns affecting ${commodityName.toLowerCase()} supply forecasts globally`,
-      description: `Climate conditions and seasonal weather patterns are influencing production estimates for ${commodityName}, with meteorologists predicting potential supply constraints in key producing regions.`,
-      url: `https://www.cnbc.com/commodities/`,
-      source: 'CNBC',
-      publishedAt: new Date(baseTime - 6 * 60 * 60 * 1000).toISOString(),
-      sentiment: 'negative' as const,
-      category: 'supply_demand' as const,
-      relevanceScore: 65,
-      tags: []
-    },
-    {
-      id: `${commodityName}_fallback_7`,
-      title: `Institutional investors increase ${commodityName.toLowerCase()} allocations amid inflation hedge`,
-      description: `Major pension funds and institutional investors are boosting their ${commodityName} positions as a hedge against inflation, driving increased demand in both spot and futures markets.`,
-      url: `https://www.reuters.com/markets/commodities/`,
-      source: 'Wall Street Journal',
-      publishedAt: new Date(baseTime - 7 * 60 * 60 * 1000).toISOString(),
-      sentiment: 'positive' as const,
-      category: 'economic' as const,
-      relevanceScore: 63,
-      tags: ['bullish']
-    },
-    {
-      id: `${commodityName}_fallback_8`,
-      title: `Energy transition impacts ${commodityName.toLowerCase()} demand projections long-term`,
-      description: `The global shift toward renewable energy and sustainable practices is reshaping demand forecasts for ${commodityName}, with analysts revising long-term price targets accordingly.`,
-      url: `https://www.bloomberg.com/markets/commodities/`,
-      source: 'Reuters',
-      publishedAt: new Date(baseTime - 8 * 60 * 60 * 1000).toISOString(),
-      sentiment: 'neutral' as const,
-      category: 'market_analysis' as const,
-      relevanceScore: 60,
-      tags: []
-    },
-    {
-      id: `${commodityName}_fallback_9`,
-      title: `Emerging market demand drives ${commodityName.toLowerCase()} price momentum higher`,
-      description: `Strong economic growth in developing countries is boosting consumption of ${commodityName}, creating upward pressure on prices as global supply chains adapt to changing demand patterns.`,
-      url: 'https://www.bloomberg.com/markets/commodities',
-      source: 'Bloomberg',
-      publishedAt: new Date(today.getTime() - 9 * 60 * 60 * 1000).toISOString(),
-      sentiment: 'positive' as const,
-      category: 'supply_demand' as const,
-      relevanceScore: 58,
-      tags: ['bullish']
-    },
-    {
-      id: `${commodityName}_fallback_10`,
-      title: `Currency fluctuations add complexity to ${commodityName.toLowerCase()} pricing dynamics`,
-      description: `Dollar strength and cross-currency volatility are creating additional pricing pressures for ${commodityName}, with traders factoring in exchange rate risks when making investment decisions.`,
-      url: 'https://www.ft.com/markets',
-      source: 'Financial Times',
-      publishedAt: new Date(today.getTime() - 10 * 60 * 60 * 1000).toISOString(),
-      sentiment: 'neutral' as const,
-      category: 'economic' as const,
-      relevanceScore: 55,
-      tags: ['volatility']
-    },
-    {
-      id: `${commodityName}_fallback_11`,
-      title: `Production cuts announcement sends ${commodityName.toLowerCase()} futures soaring`,
-      description: `Major producing countries announce coordinated production reductions for ${commodityName}, triggering immediate rally in futures markets as supply concerns intensify among traders.`,
-      url: 'https://www.cnbc.com/commodities',
-      source: 'CNBC',
-      publishedAt: new Date(today.getTime() - 11 * 60 * 60 * 1000).toISOString(),
-      sentiment: 'positive' as const,
-      category: 'supply_demand' as const,
-      relevanceScore: 90,
-      tags: ['breaking', 'bullish']
-    },
-    {
-      id: `${commodityName}_fallback_12`,
-      title: `${commodityName} inventory levels reach critical thresholds amid strong demand`,
-      description: `Global stockpiles of ${commodityName} have fallen to multi-year lows as consumption outpaces production, raising concerns about potential supply shortages in key markets worldwide.`,
-      url: 'https://www.wsj.com/markets/commodities',
-      source: 'Wall Street Journal',
-      publishedAt: new Date(today.getTime() - 12 * 60 * 60 * 1000).toISOString(),
-      sentiment: 'negative' as const,
-      category: 'supply_demand' as const,
-      relevanceScore: 88,
-      tags: ['bearish']
-    }
-  ];
-  
-  return fallbackArticles;
-};
+// REMOVED 2026-08-26: getFallbackNews().
+//
+// It returned twelve template-generated articles — invented headlines and
+// summaries — each stamped with `source: 'Reuters' | 'Bloomberg' | 'Wall
+// Street Journal' | 'Financial Times' | 'CNBC' | 'MarketWatch'` and linked
+// to those outlets' generic commodity sections. Anything that couldn't be
+// served real news rendered them as if those newsrooms had written them.
+//
+// This was live in production and reachable by paying subscribers: verified
+// against the deployed enhanced-commodity-news function, Rough Rice, Class
+// III Milk and Orange Juice (all Premium-unlock commodities) each returned
+// four fabricated articles under real outlets' bylines. Fabricated market
+// commentary attributed to a real financial wire is a credibility and
+// trademark problem, and a much larger one in a finance app than an empty
+// news panel ever was.
+//
+// commodityApi.ts already held the right rule for prices — "Never
+// manufacture a quote. Callers render their explicit unavailable state." —
+// and this is the same rule applied to news. Callers now show their empty
+// state (CommodityNews.tsx renders "No Recent News"), which is honest.
+//
+// The matching fallbacks in supabase/functions/enhanced-commodity-news and
+// fetch-commodity-news were removed at the same time; leaving either in
+// place would have kept serving fabrications through the edge function even
+// with this one gone.

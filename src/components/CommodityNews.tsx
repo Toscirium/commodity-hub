@@ -3,7 +3,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { getFallbackNews, EnhancedNewsItem } from '@/services/newsHelpers';
+import { EnhancedNewsItem } from '@/services/newsHelpers';
 import EnhancedNewsCard from './EnhancedNewsCard';
 
 interface NewsItem {
@@ -42,9 +42,11 @@ const CommodityNews = ({ commodity }: CommodityNewsProps) => {
         console.log('Edge function response:', { data, error });
         
         if (error || !data?.articles) {
-          console.warn('Enhanced news API failed, using fallback:', error);
-          const fallbackNews = getFallbackNews(commodity);
-          setNews(fallbackNews);
+          // Show the explicit "No Recent News" state below rather than
+          // template-generated articles bylined to real outlets — see the
+          // note in newsHelpers.ts.
+          console.warn('Enhanced news API returned nothing:', error);
+          setNews([]);
         } else {
           console.log('Got news articles:', data.articles.length);
           // Convert to enhanced news items
@@ -60,9 +62,7 @@ const CommodityNews = ({ commodity }: CommodityNewsProps) => {
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch news');
         console.error('Error fetching commodity news:', err);
-        // Use fallback news on error
-        const fallbackNews = getFallbackNews(commodity);
-        setNews(fallbackNews);
+        setNews([]);
       } finally {
         setLoading(false);
       }

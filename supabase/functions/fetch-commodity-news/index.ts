@@ -72,40 +72,13 @@ serve(async (req) => {
     const newsApiKey = Deno.env.get('NEWS_API_KEY');
     
     if (!newsApiKey) {
+      // Was returning three invented articles bylined 'Market News' /
+      // 'Financial Times' / 'AgriNews' with url '#'. Removed 2026-08-26 —
+      // see the note in src/services/newsHelpers.ts. An empty list is the
+      // honest answer; clients render their own "no recent news" state.
       console.error('NEWS_API_KEY not found in environment variables');
-      // Return fallback news data
-      const fallbackNews: NewsItem[] = [
-        {
-          id: '1',
-          title: 'Global Oil Prices Rise Amid Supply Concerns',
-          description: 'Crude oil prices increased by 2% as supply chain disruptions continue to affect global markets.',
-          url: '#',
-          source: 'Market News',
-          publishedAt: new Date().toISOString(),
-          category: 'energy'
-        },
-        {
-          id: '2',
-          title: 'Gold Futures Hit Monthly High',
-          description: 'Gold prices reached their highest point this month as investors seek safe-haven assets.',
-          url: '#',
-          source: 'Financial Times',
-          publishedAt: new Date(Date.now() - 3600000).toISOString(),
-          category: 'metals'
-        },
-        {
-          id: '3',
-          title: 'Wheat Production Forecasts Revised Upward',
-          description: 'Agricultural experts predict better than expected wheat yields this season.',
-          url: '#',
-          source: 'AgriNews',
-          publishedAt: new Date(Date.now() - 7200000).toISOString(),
-          category: 'grains'
-        }
-      ];
-      
       return new Response(
-        JSON.stringify({ articles: fallbackNews, source: 'fallback' }),
+        JSON.stringify({ articles: [], source: 'unconfigured' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -195,32 +168,13 @@ serve(async (req) => {
     );
 
   } catch (error) {
+    // Was returning two invented articles bylined 'Economic Times' /
+    // 'Trade News' with url '#'. Removed 2026-08-26 alongside the other
+    // fabricated fallbacks — see src/services/newsHelpers.ts.
     console.error('Error fetching news:', error);
-    
-      // Return enhanced fallback data on error
-      const fallbackNews: NewsItem[] = [
-        {
-          id: '1',
-          title: 'Federal Reserve Signals Potential Rate Changes Amid Inflation Concerns',
-          description: 'Central bank officials hint at monetary policy adjustments as commodity markets react to inflation data.',
-          url: '#',
-          source: 'Economic Times',
-          publishedAt: new Date().toISOString(),
-          category: 'economic'
-        },
-        {
-          id: '2',
-          title: 'Global Supply Chain Disruptions Impact Commodity Prices',
-          description: 'International shipping delays and geopolitical tensions continue to affect raw material costs worldwide.',
-          url: '#',
-          source: 'Trade News',
-          publishedAt: new Date(Date.now() - 1800000).toISOString(),
-          category: 'geopolitical'
-        }
-      ];
-    
+
     return new Response(
-      JSON.stringify({ articles: fallbackNews, source: 'fallback', error: 'Failed to fetch news' }),
+      JSON.stringify({ articles: [], source: 'error', error: 'Failed to fetch news' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

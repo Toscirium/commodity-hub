@@ -127,12 +127,9 @@ serve(async (req) => {
     const uniqueArticles = removeDuplicates(articles);
     const sortedArticles = sortByRelevance(uniqueArticles, commodity).slice(0, 20);
 
-    // If still no articles, provide enhanced fallback
-    if (sortedArticles.length === 0) {
-      console.log('No articles found, using fallback news');
-      sortedArticles.push(...generateFallbackNews(commodity));
-    }
-
+    // Deliberately no fallback: an empty list is the honest answer when
+    // neither provider had anything. See REMOVED note at the bottom of this
+    // file. Clients render their own "no recent news" state.
     console.log('Returning articles:', sortedArticles.length);
     return new Response(
       JSON.stringify({ articles: sortedArticles, source: 'enhanced' }),
@@ -141,10 +138,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in enhanced commodity news:', error);
-    
-    const fallbackNews = generateFallbackNews('Commodity');
+
     return new Response(
-      JSON.stringify({ articles: fallbackNews, source: 'fallback', error: 'Failed to fetch news' }),
+      JSON.stringify({ articles: [], source: 'error', error: 'Failed to fetch news' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
@@ -275,46 +271,15 @@ function calculateRelevanceScore(article: NewsItem, commodity: string): number {
   return score;
 }
 
-function generateFallbackNews(commodity: string): NewsItem[] {
-  const today = new Date();
-  const baseTime = today.getTime();
-  
-  return [
-    {
-      id: `${commodity}_enhanced_1`,
-      title: `${commodity} markets show resilience amid global economic uncertainty`,
-      description: `Market analysts highlight ${commodity}'s performance as institutional investors adjust portfolios in response to changing economic conditions.`,
-      url: 'https://www.marketwatch.com/investing/commodities',
-      source: 'MarketWatch',
-      publishedAt: new Date(baseTime - 1 * 60 * 60 * 1000).toISOString(),
-      category: 'market_analysis'
-    },
-    {
-      id: `${commodity}_enhanced_2`,
-      title: `Supply chain dynamics reshape ${commodity.toLowerCase()} trading patterns`,
-      description: `Global supply chain developments continue to influence ${commodity} pricing as traders adapt to new market realities.`,
-      url: 'https://www.reuters.com/markets/commodities/',
-      source: 'Reuters',
-      publishedAt: new Date(baseTime - 2 * 60 * 60 * 1000).toISOString(),
-      category: 'supply_demand'
-    },
-    {
-      id: `${commodity}_enhanced_3`,
-      title: `Central bank policies influence ${commodity.toLowerCase()} investment flows`,
-      description: `Monetary policy decisions from major central banks are creating new dynamics in commodity markets including ${commodity}.`,
-      url: 'https://finance.yahoo.com/topic/commodities/',
-      source: 'Bloomberg',
-      publishedAt: new Date(baseTime - 3 * 60 * 60 * 1000).toISOString(),
-      category: 'economic'
-    },
-    {
-      id: `${commodity}_enhanced_4`,
-      title: `Technical indicators suggest ${commodity} approaching key levels`,
-      description: `Chart analysis reveals important price levels for ${commodity} as traders monitor technical signals and market momentum.`,
-      url: 'https://www.cnbc.com/commodities/',
-      source: 'CNBC',
-      publishedAt: new Date(baseTime - 4 * 60 * 60 * 1000).toISOString(),
-      category: 'market_analysis'
-    }
-  ];
-}
+
+// REMOVED 2026-08-26: generateFallbackNews().
+//
+// It returned four invented articles bylined 'MarketWatch' / 'Reuters' /
+// 'Bloomberg' / 'CNBC' whenever neither Marketaux nor NewsAPI had anything
+// for a commodity. Verified live before removal: Rough Rice, Class III Milk
+// and Orange Juice — all Premium-unlock commodities — were serving nothing
+// but these to paying subscribers.
+//
+// Returning an empty list is the honest answer; clients already render a
+// "No Recent News" state for it. See the fuller note in
+// src/services/newsHelpers.ts, where the client-side twin was removed.
