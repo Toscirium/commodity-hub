@@ -13,7 +13,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders, EdgeLogger } from '../_shared/utils.ts';
-import { FEED_SOURCES, parseFeed, type FeedSource, type NewsRow } from './rss.ts';
+import { dedupeByGuid, FEED_SOURCES, parseFeed, type FeedSource, type NewsRow } from './rss.ts';
 
 const FETCH_TIMEOUT_MS = 10_000;
 const RETENTION_DAYS = 14;
@@ -71,13 +71,18 @@ serve(async (req) => {
     allRows.push(...result.rows);
   });
 
+  // Must dedupe before the upsert, not after — see dedupeByGuid: one
+  // repeated guid anywhere in the batch aborts the whole statement.
+  const rows = dedupeByGuid(allRows);
+  const duplicatesDropped = allRows.length - rows.length;
+
   let upserted = 0;
-  if (allRows.length) {
-    const { error } = await supabase.from('commodity_news_feed').upsert(allRows, { onConflict: 'guid' });
+  if (rows.length) {
+    const { error } = await supabase.from('commodity_news_feed').upsert(rows, { onConflict: 'guid' });
     if (error) {
       logger.error('upsert failed', error);
     } else {
-      upserted = allRows.length;
+      upserted = rows.length;
     }
   }
 
@@ -88,9 +93,9 @@ serve(async (req) => {
     .lt('published_at', cutoff);
   if (cleanupError) logger.warn('cleanup failed', cleanupError);
 
-  logger.info('refresh complete', { upserted, sources: summary });
+  logger.info('refresh complete', { upserted, duplicatesDropped, sources: summary });
 
-  return new Response(JSON.stringify({ ok: true, upserted, sources: summary }), {
+  return new Response(JSON.stringify({ ok: true, upserted, duplicatesDropped, sources: summary }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
 });

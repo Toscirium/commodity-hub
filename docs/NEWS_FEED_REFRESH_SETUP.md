@@ -9,6 +9,11 @@ see the `commodity_news_feed` migration). Nothing calls this function from the
 client — there is no lazy/on-demand path — so without a cron job the table
 just never fills in.
 
+> **Status: done.** The migration is applied, the function is deployed, and
+> `refresh-commodity-news-feed-every-30min` is scheduled and active as of
+> 2026-08-26. The SQL below is kept for reference — to recreate the job after
+> a project restore, or to update the URL during the custom-domain migration.
+
 ## Schedule it
 
 Run in the Supabase SQL editor. Replace `<SERVICE_ROLE_KEY>` with the
@@ -51,10 +56,7 @@ where jobid = (select jobid from cron.job where jobname = 'refresh-commodity-new
 order by start_time desc limit 10;
 ```
 
-Then confirm articles actually landed, and spot-check the two sources that
-couldn't be verified live before shipping (Mining.com, Hellenic Shipping
-News — both blocked by bot-protection from an automated fetch during
-development; high confidence on their RSS URLs, not yet proven):
+Then confirm articles actually landed:
 
 ```sql
 select source_name, count(*), max(published_at) as newest
@@ -63,11 +65,17 @@ group by source_name
 order by source_name;
 ```
 
-Every one of the 5 `source_name` values should show up with a recent
-`newest`. If Mining.com or Hellenic Shipping News is missing, check that
-run's `return_message` above, or invoke the function manually and read its
-JSON response — `sources` in the response body reports a fetch error per
-source without failing the whole run.
+All 6 `source_name` values should show up with a recent `newest`. If one is
+missing, invoke the function manually and read its JSON response — `sources`
+reports a per-source fetch error without failing the whole run.
+
+**Source health is worth re-checking periodically.** Two of the original five
+had to be replaced after the first live run: Mining.com began returning HTTP
+403 to non-browser clients, and USDA NASS's feed had gone ~11 months stale so
+every row it produced fell outside the 14-day retention window and was
+deleted on insert. Both failure modes are quiet — the run still reports
+`ok: true`. A source showing `fetched: 0` with an error, or contributing no
+rows despite fetching some, is the signal.
 
 ## Note for the custom-domain migration
 

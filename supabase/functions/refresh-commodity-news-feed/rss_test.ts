@@ -1,5 +1,5 @@
 import { assertEquals, assert } from 'https://deno.land/std@0.224.0/assert/mod.ts';
-import { categorize, parseFeed, stripHtml, truncate, type FeedSource } from './rss.ts';
+import { categorize, dedupeByGuid, parseFeed, stripHtml, truncate, type FeedSource, type NewsRow } from './rss.ts';
 
 const SOURCE: FeedSource = { name: 'Test Source', url: 'https://example.com/rss', category: 'energy' };
 
@@ -149,4 +149,67 @@ Deno.test('truncate: cuts long text and appends an ellipsis, never exceeding max
   const result = truncate(long, 320);
   assert(result.length <= 320);
   assert(result.endsWith('…'));
+});
+
+// --- Regressions from the first live production run ---
+
+Deno.test('parseFeed: skips far-future-dated (scheduled/embargoed) posts', () => {
+  // Found live: Farm Progress publishes embargoed posts dated up to a week
+  // out. The feed page orders by published_at DESC, so these would pin
+  // themselves above every real article until their date arrived.
+  const weekOut = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toUTCString();
+  const xml = `<rss version="2.0"><channel>
+    <item><title>Embargoed piece</title><link>https://example.com/future</link><pubDate>${weekOut}</pubDate></item>
+    <item><title>Real piece</title><link>https://example.com/now</link><pubDate>${new Date().toUTCString()}</pubDate></item>
+  </channel></rss>`;
+  const rows = parseFeed(xml, SOURCE);
+  assertEquals(rows.length, 1);
+  assertEquals(rows[0].title, 'Real piece');
+});
+
+Deno.test('parseFeed: keeps an item dated slightly ahead (publisher clock skew)', () => {
+  const inTenMinutes = new Date(Date.now() + 10 * 60 * 1000).toUTCString();
+  const xml = `<rss version="2.0"><channel>
+    <item><title>Just published</title><link>https://example.com/skew</link><pubDate>${inTenMinutes}</pubDate></item>
+  </channel></rss>`;
+  assertEquals(parseFeed(xml, SOURCE).length, 1);
+});
+
+const row = (guid: string, title = guid): NewsRow => ({
+  guid,
+  title,
+  description: '',
+  url: `https://example.com/${guid}`,
+  source_name: 'Test Source',
+  category: 'energy',
+  published_at: '2026-08-25T10:00:00.000Z',
+  fetched_at: '2026-08-25T10:00:00.000Z',
+});
+
+Deno.test('dedupeByGuid: collapses repeated guids, keeping the first occurrence', () => {
+  // THE bug from the first live run: USDA NASS listed 7 URLs twice, and
+  // Postgres aborted the entire 367-row ON CONFLICT batch ("cannot affect
+  // row a second time") — upserted: 0, empty table, every other source
+  // silently taken down with it.
+  const rows = [row('a', 'first'), row('b'), row('a', 'second'), row('c')];
+  const out = dedupeByGuid(rows);
+  assertEquals(out.map((r) => r.guid), ['a', 'b', 'c']);
+  assertEquals(out[0].title, 'first', 'keeps the first occurrence, not the last');
+});
+
+Deno.test('dedupeByGuid: dedupes across sources, not just within one', () => {
+  // The batch handed to the upsert is the concatenation of every source, so
+  // that whole array is what has to be conflict-key-unique.
+  const a = { ...row('shared'), source_name: 'A' };
+  const b = { ...row('shared'), source_name: 'B' };
+  assertEquals(dedupeByGuid([a, b]).length, 1);
+});
+
+Deno.test('dedupeByGuid: leaves an already-unique batch untouched', () => {
+  const rows = [row('a'), row('b'), row('c')];
+  assertEquals(dedupeByGuid(rows).length, 3);
+});
+
+Deno.test('dedupeByGuid: handles an empty batch', () => {
+  assertEquals(dedupeByGuid([]), []);
 });

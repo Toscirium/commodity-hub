@@ -3,14 +3,9 @@
 // importing it directly (see rss_test.ts) without pulling in the HTTP
 // listener the way index.ts's serve() call would.
 //
-// All 5 sources are plain RSS 2.0 (<rss><channel><item>...) — this does not
-// attempt to support Atom feeds. Verified live before shipping: EIA,
-// OilPrice.com and USDA NASS were fetched directly and checked for real,
-// current items. Mining.com and Hellenic Shipping News use WordPress's
-// standard /feed/ RSS endpoint and each has its own page describing RSS
-// syndication — high confidence, but bot-protection blocked fetching them
-// the same way before shipping, so their first live run is worth a spot
-// check against the `sources` summary this function logs/returns.
+// All sources are plain RSS 2.0 (<rss><channel><item>...) — this does not
+// attempt to support Atom feeds. Every one was fetched live and checked for
+// real, current items before being listed here.
 import { XMLParser } from 'npm:fast-xml-parser@5.11.0';
 
 export type NewsCategory =
@@ -33,17 +28,40 @@ export interface FeedSource {
 // Reuters/LSEG access is enterprise-licensed, sales-quote-only, and
 // standard individual terms explicitly forbid redistribution — see the
 // commodity_news_feed migration's header comment. These need no commercial
-// license at all: EIA and USDA NASS are official U.S. government data,
-// the rest publish RSS specifically for syndication.
+// license at all: EIA is official U.S. government data, the rest publish RSS
+// specifically for syndication.
+//
+// Chosen to keep every category filter on the news page populated —
+// energy/metals/grains/livestock all have a dedicated primary source, since
+// a feed that leaves half its filters permanently empty reads as broken.
+//
+// Two sources were dropped after the first live run, both verified:
+//  - Mining.com returned HTTP 403 on every feed path (/feed/, /rss/, apex
+//    domain). They're blocking non-browser clients; spoofing a browser
+//    User-Agent to get around that is evading an access control, not
+//    syndication, so Northern Miner covers metals/mining instead.
+//  - USDA NASS's news.xml parsed fine but its newest item was ~11 months
+//    old (their ASB feed was worse). Every row it produced fell outside the
+//    14-day retention window and was deleted immediately after insert, so
+//    it contributed nothing but fetch time. Farm Progress covers grains.
 export const FEED_SOURCES: FeedSource[] = [
   { name: 'U.S. Energy Information Administration', url: 'https://www.eia.gov/rss/todayinenergy.xml', category: 'energy' },
   { name: 'OilPrice.com', url: 'https://oilprice.com/rss/main', category: 'energy' },
-  { name: 'USDA NASS', url: 'https://www.nass.usda.gov/rss/news.xml', category: 'grains' },
-  { name: 'Mining.com', url: 'https://www.mining.com/feed/', category: 'metals' },
+  { name: 'Northern Miner', url: 'https://www.northernminer.com/feed/', category: 'metals' },
+  { name: 'Farm Progress', url: 'https://www.farmprogress.com/rss.xml', category: 'grains' },
+  { name: 'Beef Magazine', url: 'https://www.beefmagazine.com/rss.xml', category: 'livestock' },
   { name: 'Hellenic Shipping News', url: 'https://www.hellenicshippingnews.com/feed/', category: 'general' },
 ];
 
 export const MAX_DESCRIPTION_LENGTH = 320;
+
+/** How far ahead of "now" a pubDate may be before the item is treated as
+ *  scheduled-but-not-published rather than news. Found live: Farm Progress
+ *  ships embargoed posts dated up to a week out, and since the feed page
+ *  orders by published_at DESC those would pin themselves above every real
+ *  article until their date arrived. The hour of slack absorbs ordinary
+ *  clock skew between a publisher's server and ours. */
+export const MAX_FUTURE_DATE_MS = 60 * 60 * 1000;
 
 // isArray forces <item> to always parse as an array even when a feed has
 // exactly one entry — without it, fast-xml-parser collapses a single item
@@ -153,6 +171,10 @@ export function parseFeed(xml: string, source: FeedSource, onSkip?: (reason: str
       onSkip?.('unparseable pubDate', { title, pubDateRaw });
       continue;
     }
+    if (published.getTime() > Date.now() + MAX_FUTURE_DATE_MS) {
+      onSkip?.('published in the future (scheduled post)', { title, pubDateRaw });
+      continue;
+    }
 
     const description = truncate(stripHtml(extractText(item.description)), MAX_DESCRIPTION_LENGTH);
 
@@ -171,4 +193,29 @@ export function parseFeed(xml: string, source: FeedSource, onSkip?: (reason: str
   }
 
   return rows;
+}
+
+/**
+ * Collapses rows sharing a guid, keeping the first occurrence.
+ *
+ * This is not a nicety — it's required for the upsert to work at all.
+ * Postgres aborts an ENTIRE `INSERT ... ON CONFLICT DO UPDATE` statement
+ * with "cannot affect row a second time" if one batch carries the same
+ * conflict key twice, so a single duplicated item silently takes down every
+ * other row in the run. Found exactly that way on the first live run: USDA
+ * NASS's feed listed 7 URLs twice, and all 367 rows from all 5 sources
+ * failed to insert (`upserted: 0`, empty table) because of it.
+ *
+ * Runs across the combined batch, not per-source, since that's the shape
+ * actually handed to the upsert.
+ */
+export function dedupeByGuid(rows: NewsRow[]): NewsRow[] {
+  const seen = new Set<string>();
+  const out: NewsRow[] = [];
+  for (const row of rows) {
+    if (seen.has(row.guid)) continue;
+    seen.add(row.guid);
+    out.push(row);
+  }
+  return out;
 }
