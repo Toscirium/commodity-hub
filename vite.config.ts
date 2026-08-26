@@ -77,15 +77,25 @@ export default defineConfig(({ mode }) => ({
   build: {
     target: 'es2020',
     cssCodeSplit: true,
-    // Was false — the JS this maps to is already bundled inside the APK
-    // either way (a sourcemap alongside it doesn't expose anything a
-    // curious party couldn't already get by unzipping the APK and
-    // deobfuscating), and without it a production crash log gives you
-    // useless positions like "router-BYGlZScH.js:30:3303" instead of the
-    // real file/line/column. Not served publicly, so no hosting-side
-    // exposure either — this only ships inside dist/, which becomes the
-    // Capacitor app bundle.
-    sourcemap: true,
+    // Back to false. The previous comment here justified `true` on the
+    // premise that sourcemaps were "not served publicly ... this only ships
+    // inside dist/, which becomes the Capacitor app bundle" — but dist/ is
+    // also exactly what Vercel deploys, so that premise was wrong. Verified
+    // against production: https://app.commodity-hub.eu/assets/<chunk>.js.map
+    // returned HTTP 200 with full `sourcesContent`, publishing the original
+    // TypeScript of 86 src/ files from the App chunk alone to anyone who
+    // asked. (No credential exposure — the anon key is public by design —
+    // but the whole codebase, which is not.)
+    //
+    // The crash-log readability it was meant to buy also had no consumer:
+    // there is no Sentry/Crashlytics/Bugsnag in this project, so nothing
+    // ever symbolicated anything. Meanwhile the maps cost 40MB inside the
+    // APK (vs 18MB of actual JS).
+    //
+    // If a crash reporter is added later, the right setup is
+    // `sourcemap: 'hidden'` plus uploading the maps to that service at
+    // build time — never deploying them alongside the app.
+    sourcemap: false,
     minify: 'esbuild',
     rollupOptions: {
       external: ['@capacitor/app', '@capacitor/haptics'],
