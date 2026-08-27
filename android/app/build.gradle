@@ -1,5 +1,56 @@
 apply plugin: 'com.android.application'
 
+// ---------------------------------------------------------------------------
+// versionCode is DERIVED from the git commit count. Never hand-edit it.
+//
+// Releases get built from more than one machine (this laptop and the dev
+// server), and versionCode was being bumped independently on each. Git's
+// recorded history went 6 -> 7 -> 16 -> 17 while Play Console was already on
+// 28: the 8-15 and 18-28 bumps only ever existed on a build machine, so the
+// two checkouts disagreed and the file conflicted on every pull.
+//
+// Deriving it from the commit graph makes that impossible - whichever machine
+// builds, the number comes from history both machines share. It is also
+// monotonic by construction, which is exactly what Play requires.
+//
+// versionName is deliberately NOT derived. It's a cosmetic marketing string
+// and a commit-count-shaped one ("1.0.156") would be absurd; it stays hand-set
+// because a wrong versionName is harmless, while a wrong versionCode is a
+// rejected upload.
+// ---------------------------------------------------------------------------
+def MIN_VERSION_CODE = 29  // 28 (1.0.27) is live on Play; never emit <= that.
+
+def gitCommitCount = { ->
+    try {
+        def proc = new ProcessBuilder('git', 'rev-list', '--count', 'HEAD')
+                .directory(rootProject.projectDir)
+                .redirectErrorStream(true)
+                .start()
+        def out = proc.inputStream.text.trim()
+        proc.waitFor()
+        return (proc.exitValue() == 0 && out.isInteger()) ? out.toInteger() : -1
+    } catch (Exception ignored) {
+        return -1
+    }
+}
+
+def resolvedVersionCode
+if (project.hasProperty('versionCodeOverride')) {
+    resolvedVersionCode = project.property('versionCodeOverride').toString().toInteger()
+} else {
+    def counted = gitCommitCount()
+    if (counted < MIN_VERSION_CODE) {
+        throw new GradleException(
+            "Could not derive versionCode from git (got ${counted}, need >= ${MIN_VERSION_CODE}).\n" +
+            "Usual causes: a shallow clone (CI often uses --depth 1), a missing .git\n" +
+            "directory (building from a source archive), or git not on PATH.\n" +
+            "Fix with 'git fetch --unshallow', or pass -PversionCodeOverride=<n> to\n" +
+            "build anyway - but make sure <n> is above whatever is live on Play."
+        )
+    }
+    resolvedVersionCode = counted
+}
+
 android {
     namespace "app.lovable.c8fabd7a96c74aff8d7b001690ec23c7"
     compileSdk rootProject.ext.compileSdkVersion
@@ -7,8 +58,8 @@ android {
         applicationId "app.lovable.c8fabd7a96c74aff8d7b001690ec23c7"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 17
-        versionName "1.0.16"
+        versionCode resolvedVersionCode
+        versionName "1.0.28"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -61,11 +112,28 @@ dependencies {
 
 apply from: 'capacitor.build.gradle'
 
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+// google-services.json is gitignored (it carries a Firebase API key), so it
+// exists only on machines it has been copied to. Without it the google-services
+// plugin never applies, the google_app_id string resource is never generated,
+// FirebaseConfigPlugin.isConfigured() returns false, and usePushNotifications
+// silently no-ops on every device - no crash, no log, just no notifications.
+//
+// That exact state shipped undetected for months. A release build must never be
+// able to reach it quietly again, so release fails hard while debug only warns.
+def servicesJSON = file('google-services.json')
+def isReleaseBuild = gradle.startParameter.taskNames.any { it.toLowerCase().contains('release') }
+
+if (servicesJSON.exists() && servicesJSON.length() > 0) {
+    apply plugin: 'com.google.gms.google-services'
+} else if (isReleaseBuild) {
+    throw new GradleException(
+        "android/app/google-services.json is missing - refusing to build a release.\n" +
+        "Shipping without it silently disables push notifications on every device:\n" +
+        "no google_app_id resource, so the app never registers for FCM.\n" +
+        "The file is gitignored, so copy it from a checkout that has it, or\n" +
+        "re-download it from the Firebase console (project commodity-hub-557fc,\n" +
+        "Android app app.lovable.c8fabd7a96c74aff8d7b001690ec23c7)."
+    )
+} else {
+    logger.warn("WARNING: google-services.json not found - push notifications are disabled in this build.")
 }
