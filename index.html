@@ -61,7 +61,12 @@
     <!-- Custom Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- These must stay in sync with tailwind.config.ts's fontFamily. They were
+         not: the config asked for DM Sans and Space Grotesk, this tag loaded
+         Inter, so `font-sans` and `font-display` both fell through to
+         system-ui and the app rendered in Roboto/Segoe while paying to
+         download six unused weights of Inter on every visit. -->
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
 
   
