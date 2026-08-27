@@ -68,6 +68,8 @@ const Fundamentals = lazy(() => import('@/pages/Fundamentals'));
 const OptionsChain = lazy(() => import('@/pages/OptionsChain'));
 const ProAnalyticsWorkspace = lazy(() => import('@/pages/ProAnalyticsWorkspace'));
 const DataExports = lazy(() => import('@/pages/DataExports'));
+const DeveloperDocs = lazy(() => import('@/pages/DeveloperDocs'));
+const DataApiLanding = lazy(() => import('@/pages/DataApiLanding'));
 const TeamWorkspace = lazy(() => import('@/pages/TeamWorkspace'));
 const StressTest = lazy(() => import('@/pages/StressTest'));
 const Messages = lazy(() => import('@/pages/Messages'));
@@ -134,6 +136,10 @@ const App = () => {
                 <Route path="/delete-account" element={<DeleteAccount />} />
                 <Route path="/account-settings" element={<AccountSettings />} />
                 <Route path="/exports" element={<DataExports />} />
+                <Route path="/developers" element={<DeveloperDocs />} />
+                <Route path="/docs" element={<DeveloperDocs />} />
+                <Route path="/data-api" element={<DataApiLanding />} />
+                <Route path="/api-pricing" element={<DataApiLanding />} />
                 <Route path="/team" element={<TeamWorkspace />} />
                 <Route path="/account" element={<AccountSettings />} />
                 <Route path="/settings" element={<AccountSettings />} />
