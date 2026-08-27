@@ -13,9 +13,14 @@ Deno.serve(async (req) => {
   if (!user) return json({ error: 'unauthorized' }, 401);
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   const { data: profile } = await admin.from('profiles').select('subscription_active, subscription_tier').eq('id', user.id).maybeSingle();
-  if (!profile?.subscription_active || profile.subscription_tier !== 'pro') return json({ error: 'pro_required' }, 403);
+  const isPro = !!profile?.subscription_active && profile.subscription_tier === 'pro';
   const body = await req.json().catch(() => ({}));
   const action = body.action;
+  // list/create_key/revoke_key are open to any authenticated user now — Data
+  // API keys carry their own trial-vs-Pro enforcement (see data-api/index.ts:
+  // Pro is unlimited at 60/min, non-Pro gets 50 req/day). Bulk exports and
+  // scheduled reports stay Pro-only below; those are app features, not the
+  // API-evaluation path this trial exists for.
   if (action === 'list') {
     const [{ data: keys }, { data: schedules }] = await Promise.all([
       admin.from('data_api_keys').select('id,name,key_prefix,last_used_at,revoked_at,created_at').eq('user_id', user.id).order('created_at', { ascending: false }),
@@ -26,6 +31,12 @@ Deno.serve(async (req) => {
   if (action === 'create_key') {
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     if (!name || name.length > 80) return json({ error: 'invalid_name' }, 400);
+    if (!isPro) {
+      // Cap non-Pro accounts to 1 active trial key — otherwise the daily
+      // trial quota (per-key) is trivially multiplied by minting more keys.
+      const { count } = await admin.from('data_api_keys').select('id', { count: 'exact', head: true }).eq('user_id', user.id).is('revoked_at', null);
+      if ((count ?? 0) >= 1) return json({ error: 'trial_key_limit', message: 'Free trial is limited to 1 active key. Revoke it or upgrade to Pro for unlimited keys.' }, 403);
+    }
     const rawKey = `ch_live_${crypto.randomUUID().replaceAll('-', '')}${crypto.randomUUID().replaceAll('-', '').slice(0, 8)}`;
     const { data, error } = await admin.from('data_api_keys').insert({ user_id: user.id, name, key_prefix: rawKey.slice(0, 16), key_hash: await hash(rawKey) }).select('id,name,key_prefix,last_used_at,revoked_at,created_at').single();
     return error ? json({ error: 'key_creation_failed' }, 500) : json({ key: data, rawKey });
@@ -34,6 +45,7 @@ Deno.serve(async (req) => {
     const { error } = await admin.from('data_api_keys').update({ revoked_at: new Date().toISOString() }).eq('id', body.id).eq('user_id', user.id);
     return error ? json({ error: 'key_revoke_failed' }, 500) : json({ ok: true });
   }
+  if (!isPro) return json({ error: 'pro_required' }, 403);
   if (action === 'save_schedule') {
     const input = body.schedule ?? {};
     if (!['portfolio', 'watchlists'].includes(input.dataset) || !['csv', 'xlsx'].includes(input.format) || !['daily', 'weekly', 'monthly'].includes(input.frequency)) return json({ error: 'invalid_schedule' }, 400);

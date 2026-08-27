@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders } from '../_shared/utils.ts';
 import { rateLimitHeaders, tooManyRequestsResponse, type RateLimitResult } from '../_shared/rateLimit.ts';
+import { CommodityService } from '../_shared/commodity-service.ts';
 
 const hash = async (value: string) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))).map((v) => v.toString(16).padStart(2, '0')).join('');
 const json = (body: unknown, status = 200, extraHeaders: Record<string, string> = {}) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, ...extraHeaders, 'Content-Type': 'application/json' } });
@@ -17,7 +18,20 @@ const json = (body: unknown, status = 200, extraHeaders: Record<string, string> 
 // in-memory counter barely limits anything under a real burst.
 const RATE_LIMIT = 60;
 const RATE_WINDOW_MS = 60_000;
-const MAX_COT_LIMIT = 260; // 5 years of weekly reports
+// Raised 2026-08-27 from 260 (5yr) — a ceiling on what a request can ask
+// for, not a claim about how much history actually exists. cot_reports is
+// currently populated back to 2019 (~340 weeks); this just stops the cap
+// itself from being the limiting factor if/when older data gets backfilled.
+const MAX_COT_LIMIT = 520; // 10 years of weekly reports
+// Requests/day for a key whose owner isn't on an active Pro subscription —
+// lets a prospect evaluate the API for real before paying anything, instead
+// of requiring a full Pro subscription just to see a response. Pro keys are
+// exempt (RATE_LIMIT/RATE_WINDOW_MS above is their only cap). Chosen to
+// land in the same range competitors' free tiers use (OilPriceAPI: 50/day,
+// CommodityFundamentals: 1,000/day) without being generous enough to
+// substitute for actually subscribing.
+const TRIAL_DAILY_LIMIT = 50;
+const TIMEFRAMES = new Set(['1d', '1m', '3m', '6m', '1y', '2y']); // matches api-docs' ChartDataPoint enum
 
 // Supabase Edge Functions (Deno Deploy) keep an isolate alive for
 // EdgeRuntime.waitUntil()'d work after the response has already been sent.
@@ -37,10 +51,12 @@ Deno.serve(async (req) => {
   const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   const { data: key } = await admin.from('data_api_keys').select('id,user_id').eq('key_hash', await hash(raw)).is('revoked_at', null).maybeSingle();
   if (!key) return json({ error: 'invalid_api_key' }, 401);
-  // Keys are only issued to Pro subscribers (see export-center), but a key
-  // outlives a downgrade unless we re-check tier on every request here.
+  // Any authenticated user can create a key now (see export-center) — Pro
+  // gets the uncapped 60/min-only path below, everyone else gets a daily
+  // trial allowance instead of an outright 403. Re-checked every request
+  // since a key outlives a tier change either direction.
   const { data: profile } = await admin.from('profiles').select('subscription_active, subscription_tier').eq('id', key.user_id).maybeSingle();
-  if (!profile?.subscription_active || profile.subscription_tier !== 'pro') return json({ error: 'pro_required' }, 403);
+  const isPro = !!profile?.subscription_active && profile.subscription_tier === 'pro';
 
   const windowStartMs = Math.floor(Date.now() / RATE_WINDOW_MS) * RATE_WINDOW_MS;
   const { data: requestCount, error: rateErr } = await admin.rpc('data_api_increment_rate', { p_key_id: key.id, p_window_start: new Date(windowStartMs).toISOString() });
@@ -61,6 +77,23 @@ Deno.serve(async (req) => {
   }
 
   const url = new URL(req.url); const resource = url.searchParams.get('resource') ?? 'portfolio';
+
+  if (!isPro) {
+    const { data: trialCount, error: trialErr } = await admin.rpc('data_api_increment_trial_quota', { p_key_id: key.id });
+    if (trialErr) {
+      // Fail open, same philosophy as the rate-limit check above — an infra
+      // hiccup on the quota table shouldn't take a trial user's request down.
+      console.error(JSON.stringify({ evt: 'trial_quota_check_failed', fn: 'data-api', keyId: key.id, error: trialErr.message }));
+    } else if ((trialCount as number) > TRIAL_DAILY_LIMIT) {
+      console.warn(JSON.stringify({ evt: 'trial_quota_exceeded', fn: 'data-api', keyId: key.id, count: trialCount, ts: new Date().toISOString() }));
+      return json({
+        error: 'trial_daily_limit_exceeded',
+        message: `Free trial is limited to ${TRIAL_DAILY_LIMIT} requests/day. Upgrade to Pro for unlimited requests (60/min).`,
+        upgrade_url: 'https://app.commodity-hub.eu/data-api',
+      }, 429, rlHeaders);
+    }
+  }
+
   runBackground(Promise.resolve(admin.from('data_api_keys').update({ last_used_at: new Date().toISOString() }).eq('id', key.id)));
   runBackground(
     Promise.resolve(admin.rpc('data_api_record_usage', { p_key_id: key.id, p_resource: resource })).then(({ error: usageErr }) => {
@@ -74,6 +107,22 @@ Deno.serve(async (req) => {
   if (resource === 'watchlists') {
     const { data, error } = await admin.from('watchlists').select('id,name,created_at,watchlist_items(commodity_name,commodity_symbol,position)').eq('user_id', key.user_id).order('created_at', { ascending: false });
     return error ? json({ error: 'data_unavailable' }, 500, rlHeaders) : json({ data, generated_at: new Date().toISOString() }, 200, rlHeaders);
+  }
+  if (resource === 'prices') {
+    const commodity = url.searchParams.get('commodity');
+    const timeframe = url.searchParams.get('timeframe');
+    const svc = new CommodityService('data-api');
+    if (!commodity) {
+      const data = await svc.fetchAllCommodities(true);
+      return json({ data, generated_at: new Date().toISOString() }, 200, rlHeaders);
+    }
+    if (timeframe) {
+      if (!TIMEFRAMES.has(timeframe)) return json({ error: 'invalid_timeframe', valid: Array.from(TIMEFRAMES) }, 400, rlHeaders);
+      const data = await svc.fetchCommodityChart(commodity, timeframe);
+      return json({ data, commodity, timeframe, generated_at: new Date().toISOString() }, 200, rlHeaders);
+    }
+    const data = await svc.fetchCurrentPrice(commodity);
+    return data ? json({ data, generated_at: new Date().toISOString() }, 200, rlHeaders) : json({ error: 'commodity_not_found' }, 404, rlHeaders);
   }
   if (resource === 'cot') {
     const commodity = url.searchParams.get('commodity');

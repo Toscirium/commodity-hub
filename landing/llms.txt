@@ -11,7 +11,7 @@ Commodity Hub is a data and analytics product, not a broker — it does not exec
 
 ## Data API
 
-- [Data API](https://app.commodity-hub.eu/developers): REST API for the same data — CFTC COT positioning, EIA/USDA/FRED fundamentals series, and your own portfolio/watchlist data. JSON responses, per-key auth (`Authorization: Bearer ch_live_...`), 60 requests/minute per key. Requires a Pro subscription ($19.99/mo); see [pricing](https://app.commodity-hub.eu/data-api) or the [full reference](https://app.commodity-hub.eu/developers) (auth, all resources, example requests/responses, error codes).
+- [Data API](https://app.commodity-hub.eu/developers): REST API for the same data plus live/historical prices — CFTC COT positioning, EIA/USDA/FRED fundamentals series, current and historical commodity prices, and your own portfolio/watchlist data. JSON responses, per-key auth (`Authorization: Bearer ch_live_...`). Free tier: 1 key, 50 requests/day, no card required. Pro ($19.99/mo): unlimited keys, 60 requests/minute per key, no monthly cap. No per-request/usage-based billing at either tier. See [pricing](https://app.commodity-hub.eu/data-api) or the [full reference](https://app.commodity-hub.eu/developers) (auth, all resources, example requests/responses, error codes).
 
 ## Reference
 

@@ -237,10 +237,10 @@ const DataApiUsage: React.FC = () => {
                           <TableCell>
                             {k.revoked ? (
                               <Badge variant="secondary">Revoked</Badge>
-                            ) : k.owner_active === false ? (
-                              <Badge variant="outline">Inactive sub</Badge>
+                            ) : k.owner_tier === 'pro' && k.owner_active ? (
+                              <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/40">Pro</Badge>
                             ) : (
-                              <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/40">Active</Badge>
+                              <Badge variant="outline">Free trial</Badge>
                             )}
                           </TableCell>
                         </TableRow>

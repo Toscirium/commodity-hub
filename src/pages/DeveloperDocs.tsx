@@ -37,6 +37,39 @@ type Resource = {
 
 const RESOURCES: Resource[] = [
   {
+    id: 'prices',
+    title: 'resource=prices',
+    description: 'Live and historical commodity prices — the same feed the app itself runs on.',
+    params: [
+      { name: 'commodity', note: "e.g. 'WTI Crude Oil'. Omit to get every commodity's current price in one call." },
+      { name: 'timeframe', note: "One of 1d, 1m, 3m, 6m, 1y, 2y. Requires commodity. Omit for just the current price; set it to get historical chart data instead." },
+    ],
+    example: `# Current price, single commodity
+curl "${BASE_URL}?resource=prices&commodity=WTI%20Crude%20Oil" \\
+  -H "Authorization: Bearer ch_live_..."
+
+# Historical, single commodity
+curl "${BASE_URL}?resource=prices&commodity=WTI%20Crude%20Oil&timeframe=6m" \\
+  -H "Authorization: Bearer ch_live_..."
+
+# Every commodity, current price
+curl "${BASE_URL}?resource=prices" \\
+  -H "Authorization: Bearer ch_live_..."`,
+    response: `{
+  "data": {
+    "symbol": "CL",
+    "name": "WTI Crude Oil",
+    "price": 80.32,
+    "change": -0.41,
+    "changePercent": -0.51,
+    "category": "energy",
+    "contractSize": "1,000 barrels",
+    "venue": "NYMEX"
+  },
+  "generated_at": "2026-08-27T12:00:00.000Z"
+}`,
+  },
+  {
     id: 'portfolio',
     title: 'resource=portfolio',
     description: 'The positions in your Commodity Hub portfolio.',
@@ -84,7 +117,7 @@ const RESOURCES: Resource[] = [
     description: 'CFTC Commitments of Traders positioning, by commodity.',
     params: [
       { name: 'commodity', required: true, note: "e.g. 'WTI Crude Oil'" },
-      { name: 'limit', note: 'Weekly reports to return. Default 52, max 260 (5 years).' },
+      { name: 'limit', note: 'Weekly reports to return. Default 52, max 520 (10 years).' },
     ],
     example: `curl "${BASE_URL}?resource=cot&commodity=WTI%20Crude%20Oil&limit=104" \\
   -H "Authorization: Bearer ch_live_..."`,
@@ -141,11 +174,13 @@ curl "${BASE_URL}?resource=fundamentals&series_id=PET.WCESTUS1.W" \\
 const ERRORS: { status: string; error: string; meaning: string }[] = [
   { status: '401', error: 'api_key_required', meaning: 'No `Authorization: Bearer ch_live_...` header sent.' },
   { status: '401', error: 'invalid_api_key', meaning: 'Key not found, or revoked.' },
-  { status: '403', error: 'pro_required', meaning: "Key's owner is not currently on an active Pro subscription." },
   { status: '400', error: 'commodity_required', meaning: '`resource=cot` was called without a `commodity` param.' },
+  { status: '400', error: 'invalid_timeframe', meaning: '`resource=prices` timeframe must be one of 1d, 1m, 3m, 6m, 1y, 2y.' },
+  { status: '404', error: 'commodity_not_found', meaning: '`resource=prices` commodity name didn’t match anything.' },
   { status: '404', error: 'series_not_found', meaning: '`series_id` does not match any fundamentals series.' },
   { status: '404', error: 'unknown_resource', meaning: '`resource` was missing/invalid and did not match a known value.' },
-  { status: '429', error: 'rate_limited', meaning: 'More than 60 requests in the current 60-second window for this key.' },
+  { status: '429', error: 'rate_limited', meaning: 'More than 60 requests in the current 60-second window for this key (all tiers).' },
+  { status: '429', error: 'trial_daily_limit_exceeded', meaning: 'Free-trial key made more than 50 requests today. Upgrade to Pro to remove it.' },
   { status: '500', error: 'data_unavailable', meaning: 'Transient read failure. Safe to retry.' },
 ];
 
@@ -172,9 +207,10 @@ const DeveloperDocs: React.FC = () => {
             </Badge>
             <h1 className="text-3xl font-bold tracking-tight">Commodity Hub Data API</h1>
             <p className="max-w-2xl text-muted-foreground">
-              A REST API for CFTC Commitments of Traders positioning, EIA/USDA/FRED fundamentals
-              series, and your own saved portfolio and watchlist data. JSON in, JSON out, one
-              header for auth.
+              Live and historical commodity prices, CFTC Commitments of Traders positioning,
+              EIA/USDA/FRED fundamentals series, and your own saved portfolio and watchlist data.
+              JSON in, JSON out, one header for auth. Free to start — no card, no per-request
+              billing at any tier.
             </p>
           </div>
 
@@ -188,16 +224,16 @@ const DeveloperDocs: React.FC = () => {
             <CardContent className="space-y-4">
               <ol className="ml-4 list-decimal space-y-2 text-sm text-muted-foreground">
                 <li>
-                  Subscribe to <strong className="text-foreground">Pro</strong> — API access is
-                  included with the Pro plan, no separate SKU today. Works from the web (no app
-                  install required).
-                </li>
-                <li>
-                  Create a key at{' '}
+                  Sign in (free — no card) and create a key at{' '}
                   <Link to="/exports" className="underline">
                     /exports
                   </Link>
-                  . Keys are shown once at creation — copy it immediately.
+                  . Keys are shown once at creation — copy it immediately. Free accounts get 1 key
+                  and 50 requests/day to evaluate the API; upgrading to{' '}
+                  <Link to="/data-api" className="underline">
+                    Pro
+                  </Link>{' '}
+                  removes both caps (unlimited keys, 60 req/min, no monthly ceiling).
                 </li>
                 <li>
                   Send it as a bearer token on every request:{' '}
@@ -207,7 +243,7 @@ const DeveloperDocs: React.FC = () => {
                 </li>
               </ol>
               <CodeBlock label="Base URL">{BASE_URL}</CodeBlock>
-              <CodeBlock label="Minimal example">{`curl "${BASE_URL}?resource=portfolio" \\
+              <CodeBlock label="Minimal example">{`curl "${BASE_URL}?resource=prices&commodity=WTI%20Crude%20Oil" \\
   -H "Authorization: Bearer ch_live_..."`}</CodeBlock>
             </CardContent>
           </Card>
@@ -226,12 +262,16 @@ const DeveloperDocs: React.FC = () => {
                   /exports
                 </Link>
                 , sent as <code className="rounded bg-muted px-1 py-0.5 text-xs">Authorization: Bearer ch_live_...</code>.
-                A key stops working immediately if you revoke it, or if the account's Pro
-                subscription lapses.
+                A key stops working immediately if you revoke it, or if the account's subscription
+                lapses (Pro keys fall back to the free-trial cap, not a hard cutoff).
               </p>
               <p>
-                <strong className="text-foreground">60 requests/minute per key</strong>, enforced
-                per key (not per IP) — safe to call from a shared server. Every response carries:
+                <strong className="text-foreground">Free trial:</strong> 1 key, 50 requests/day —
+                enough to actually evaluate the API, no card required.{' '}
+                <strong className="text-foreground">Pro:</strong> unlimited keys, 60 requests/
+                minute per key (enforced per key, not per IP — safe to call from a shared server),
+                no monthly ceiling either way. There is no per-request billing at any tier. Every
+                response carries:
               </p>
               <ul className="ml-4 list-disc space-y-1">
                 <li><code className="rounded bg-muted px-1 py-0.5 text-xs">X-RateLimit-Limit</code> — 60</li>
@@ -239,8 +279,10 @@ const DeveloperDocs: React.FC = () => {
                 <li><code className="rounded bg-muted px-1 py-0.5 text-xs">X-RateLimit-Reset</code> — unix seconds when the window resets</li>
               </ul>
               <p>
-                Exceeding the limit returns <code className="rounded bg-muted px-1 py-0.5 text-xs">429</code> with a{' '}
-                <code className="rounded bg-muted px-1 py-0.5 text-xs">Retry-After</code> header (seconds).
+                Exceeding the per-minute limit returns <code className="rounded bg-muted px-1 py-0.5 text-xs">429 rate_limited</code> with
+                a <code className="rounded bg-muted px-1 py-0.5 text-xs">Retry-After</code> header (seconds). Exceeding the free-trial daily
+                cap returns <code className="rounded bg-muted px-1 py-0.5 text-xs">429 trial_daily_limit_exceeded</code> instead — resets at
+                midnight UTC.
               </p>
             </CardContent>
           </Card>
@@ -320,13 +362,14 @@ const DeveloperDocs: React.FC = () => {
                 <KeyRound className="h-5 w-5" /> Pricing
               </CardTitle>
               <CardDescription>
-                Data API access is included with a Pro subscription — no separate metering or
-                usage-based charges today.
+                Free trial with no card required (50 req/day, 1 key). Pro removes both caps and
+                also unlocks the full app — no separate metering or per-request charges at either
+                tier.
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap items-center gap-3">
               <Button asChild>
-                <Link to="/exports">Get API access</Link>
+                <Link to="/exports">Get a free key</Link>
               </Button>
               <Button variant="outline" asChild>
                 <a

@@ -253,20 +253,23 @@ const openApiSpec = {
     "/data-api": {
       get: {
         summary: "Query your data-api key's resources",
-        description: "Pro-tier programmatic access. Authenticate with `Authorization: Bearer ch_live_...` (create/revoke keys at /exports). Choose a resource via the `resource` query param.",
+        description: "Free to start: any signed-in account can create a key at /exports (50 requests/day, 1 key). Pro removes both caps (unlimited keys, 60 requests/minute per key, no monthly ceiling — no per-request billing at any tier). Authenticate with `Authorization: Bearer ch_live_...`. Choose a resource via the `resource` query param.",
         tags: ["Data API"],
         security: [{ "apiKeyAuth": [] }],
         parameters: [
-          { name: "resource", in: "query", schema: { type: "string", enum: ["portfolio", "watchlists", "cot", "fundamentals"] }, description: "Defaults to 'portfolio'." },
-          { name: "commodity", in: "query", schema: { type: "string" }, description: "Required when resource=cot, e.g. 'WTI Crude Oil'." },
-          { name: "limit", in: "query", schema: { type: "integer" }, description: "resource=cot only. Weekly reports to return, default 52, max 260." },
+          { name: "resource", in: "query", schema: { type: "string", enum: ["prices", "portfolio", "watchlists", "cot", "fundamentals"] }, description: "Defaults to 'portfolio'." },
+          { name: "commodity", in: "query", schema: { type: "string" }, description: "resource=prices: optional, e.g. 'WTI Crude Oil' — omit for all commodities. resource=cot: required." },
+          { name: "timeframe", in: "query", schema: { type: "string", enum: ["1d", "1m", "3m", "6m", "1y", "2y"] }, description: "resource=prices only, requires commodity. Omit for the current price; set for historical chart data instead." },
+          { name: "limit", in: "query", schema: { type: "integer" }, description: "resource=cot only. Weekly reports to return, default 52, max 520." },
           { name: "series_id", in: "query", schema: { type: "string" }, description: "resource=fundamentals only. Returns one series with its full observation history, e.g. 'PET.WCESTUS1.W'." },
           { name: "dataset", in: "query", schema: { type: "string" }, description: "resource=fundamentals only, ignored if series_id is set. Filters the series list, e.g. 'petroleum'." }
         ],
         responses: {
-          "200": { description: "Successful response", content: { "application/json": { schema: { type: "object", properties: { data: { type: "array", items: {} }, generated_at: { type: "string", format: "date-time" } } } } } },
-          "401": { description: "Missing or invalid API key" },
-          "429": { description: "Rate limit exceeded (60 requests/minute per key)" }
+          "200": { description: "Successful response", content: { "application/json": { schema: { type: "object", properties: { data: {}, generated_at: { type: "string", format: "date-time" } } } } } },
+          "400": { description: "commodity_required (resource=cot) or invalid_timeframe (resource=prices)" },
+          "401": { description: "api_key_required or invalid_api_key" },
+          "404": { description: "commodity_not_found (resource=prices), series_not_found (resource=fundamentals), or unknown_resource" },
+          "429": { description: "rate_limited (60/min, all tiers) or trial_daily_limit_exceeded (50/day, non-Pro only)" }
         }
       }
     }
