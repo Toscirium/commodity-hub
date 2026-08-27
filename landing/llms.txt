@@ -9,6 +9,10 @@ Commodity Hub is a data and analytics product, not a broker — it does not exec
 - [Live Positioning](https://commodity-hub.eu/now): current CFTC Commitment of Traders managed-money positioning per commodity, updated weekly (Fridays, CFTC's own publication schedule)
 - [Commodities](https://commodity-hub.eu/commodities): live price, exchange, ticker, and contract specs per commodity
 
+## Data API
+
+- [Data API](https://app.commodity-hub.eu/developers): REST API for the same data — CFTC COT positioning, EIA/USDA/FRED fundamentals series, and your own portfolio/watchlist data. JSON responses, per-key auth (`Authorization: Bearer ch_live_...`), 60 requests/minute per key. Requires a Pro subscription ($19.99/mo); see [pricing](https://app.commodity-hub.eu/data-api) or the [full reference](https://app.commodity-hub.eu/developers) (auth, all resources, example requests/responses, error codes).
+
 ## Reference
 
 - [Glossary](https://commodity-hub.eu/glossary): short, precise definitions of futures-market concepts — contango/backwardation, COT report, crack spread, seasonality
