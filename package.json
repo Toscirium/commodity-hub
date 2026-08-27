@@ -20,7 +20,7 @@
     "format:check": "prettier --check .",
     "analyze": "source-map-explorer 'dist/assets/*.js' --html dist/bundle-report.html",
     "android:bump": "node scripts/bump-android-version.mjs",
-    "android:release": "node scripts/bump-android-version.mjs && vite build && npx cap sync android",
+    "android:release": "vite build && npx cap sync android",
     "lint": "eslint .",
     "preview": "vite preview",
     "gen:attributions": "node scripts/generate-oss-attributions.mjs",

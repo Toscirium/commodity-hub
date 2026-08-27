@@ -1,35 +1,62 @@
 #!/usr/bin/env node
-// Auto-bump Android versionCode (and patch versionName) in android/app/build.gradle.
+// Bump the Android versionName (the marketing string) in android/app/build.gradle.
+//
+// This script used to bump versionCode too, and that was the source of a long-
+// running release bug. `npm run android:release` ran it automatically, so every
+// release rewrote a *tracked* file on whichever machine happened to build. Those
+// writes were never committed, so git and Play Console told different stories:
+//
+//   git:  6 -> 7 -> (8 reverted) -> 16 -> 17
+//   play: ................................. 28 (1.0.27)
+//
+// and android/app/build.gradle conflicted on every pull between the two
+// checkouts. versionCode is now derived from the git commit count inside
+// build.gradle itself, so it can't drift and nothing needs to write it.
+//
+// versionName is still a human decision - it's cosmetic, and it shouldn't
+// change just because someone ran a build. So this is no longer wired into
+// android:release; run it deliberately, then COMMIT THE RESULT.
+//
 // Usage:
-//   node scripts/bump-android-version.mjs           # bump patch (1.0.3 -> 1.0.4) + versionCode +1
-//   node scripts/bump-android-version.mjs minor     # 1.0.3 -> 1.1.0
-//   node scripts/bump-android-version.mjs major     # 1.0.3 -> 2.0.0
-//   node scripts/bump-android-version.mjs --code-only  # only bump versionCode
+//   npm run android:bump            # 1.0.28 -> 1.0.29
+//   npm run android:bump minor      # 1.0.28 -> 1.1.0
+//   npm run android:bump major      # 1.0.28 -> 2.0.0
 import { readFileSync, writeFileSync } from "node:fs";
 
 const path = "android/app/build.gradle";
 const arg = process.argv[2] || "patch";
-const codeOnly = process.argv.includes("--code-only");
 
-let src = readFileSync(path, "utf8");
-const codeMatch = src.match(/versionCode\s+(\d+)/);
-const nameMatch = src.match(/versionName\s+"(\d+)\.(\d+)\.(\d+)"/);
-if (!codeMatch || !nameMatch) {
-  console.error("Could not find versionCode/versionName in", path);
+if (process.argv.includes("--code-only")) {
+  console.error(
+    "--code-only no longer does anything: versionCode is derived from the git\n" +
+    "commit count in build.gradle and is not stored in the file. Nothing to bump.",
+  );
   process.exit(1);
 }
 
-const newCode = parseInt(codeMatch[1], 10) + 1;
-let [_, maj, min, pat] = nameMatch.map((x, i) => (i === 0 ? x : parseInt(x, 10)));
-
-if (!codeOnly) {
-  if (arg === "major") { maj++; min = 0; pat = 0; }
-  else if (arg === "minor") { min++; pat = 0; }
-  else { pat++; }
+if (!["patch", "minor", "major"].includes(arg)) {
+  console.error(`Unknown argument "${arg}". Expected one of: patch, minor, major.`);
+  process.exit(1);
 }
 
-const newName = `${maj}.${min}.${pat}`;
-src = src.replace(/versionCode\s+\d+/, `versionCode ${newCode}`);
-src = src.replace(/versionName\s+"[^"]+"/, `versionName "${newName}"`);
-writeFileSync(path, src);
-console.log(`Bumped Android: versionCode ${codeMatch[1]} -> ${newCode}, versionName ${nameMatch[0].match(/"([^"]+)"/)[1]} -> ${newName}`);
+let src = readFileSync(path, "utf8");
+const nameMatch = src.match(/versionName\s+"(\d+)\.(\d+)\.(\d+)"/);
+if (!nameMatch) {
+  console.error(`Could not find a versionName "x.y.z" line in ${path}`);
+  process.exit(1);
+}
+
+let [major, minor, patch] = nameMatch.slice(1, 4).map(Number);
+if (arg === "major") { major++; minor = 0; patch = 0; }
+else if (arg === "minor") { minor++; patch = 0; }
+else { patch++; }
+
+const oldName = `${nameMatch[1]}.${nameMatch[2]}.${nameMatch[3]}`;
+const newName = `${major}.${minor}.${patch}`;
+
+writeFileSync(path, src.replace(/versionName\s+"[^"]+"/, `versionName "${newName}"`));
+
+console.log(`Bumped versionName ${oldName} -> ${newName}`);
+console.log(`versionCode is derived from git and needs no bump.`);
+console.log(`\nCommit this before building, or the two machines drift again:`);
+console.log(`  git commit -am "Bump Android versionName to ${newName}"`);
