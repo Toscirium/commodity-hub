@@ -21,8 +21,27 @@ A scheduled refresh keeps the snapshot warm regardless of page traffic.
 
 ## Schedule it
 
-Run in the Supabase SQL editor. Replace `<SERVICE_ROLE_KEY>` with the
-service-role key (Dashboard → Settings → API).
+**This section previously documented `Authorization: Bearer <SERVICE_ROLE_KEY>`
+— that does not actually work.** `fetch-fundamentals` authenticates via
+`userClient.auth.getUser()`, which rejects a service-role token (it isn't a
+real user session) with `401 Invalid session`. This was never caught because
+nothing had ever actually scheduled the job to find out — see
+[[pg-cron-jobs-missing]]. Fixed 2026-08-27: the function now also accepts an
+`x-cron-secret` header (same pattern `fetch-cot-report` and
+`evaluate-price-alerts` already used), which is what the cron below uses. This
+also avoids ever putting the real service-role key in a cron job's stored SQL
+text, which any `cron.job` reader can see in plaintext.
+
+First, set the shared secret once (only needed if it isn't already set —
+`fetch-cot-report` uses the same one):
+
+```
+SUPABASE_ACCESS_TOKEN=<token> npx supabase secrets set CRON_SECRET=<a random value> --project-ref kcxhsmlqqyarhlmcapmj
+```
+
+Then run in the Supabase SQL editor (or via the Management API's
+`/database/query` endpoint — see [[edge-function-deploy-blocked]]). Replace
+`<CRON_SECRET>` with the same value:
 
 ```sql
 select cron.schedule(
@@ -33,7 +52,7 @@ select cron.schedule(
     url := 'https://kcxhsmlqqyarhlmcapmj.supabase.co/functions/v1/fetch-fundamentals',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer <SERVICE_ROLE_KEY>'
+      'x-cron-secret', '<CRON_SECRET>'
     ),
     body := jsonb_build_object('dataset', 'all', 'force', true)
   ) as request_id;

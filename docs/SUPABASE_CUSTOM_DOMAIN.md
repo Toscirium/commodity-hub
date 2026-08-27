@@ -77,9 +77,13 @@ Easy to forget; each one breaks silently.
 - [ ] **Database cron jobs (`pg_cron` + `net.http_post`)** — these live in the
       database, not in git. At least two call edge functions by absolute URL:
       - `evaluate-price-alerts` (see `docs/PRICE_ALERTS_SETUP.md`)
-      - `audit-premium-freshness`
       - `refresh-fundamentals-every-2h` (see `docs/FUNDAMENTALS_REFRESH_SETUP.md`)
+      - `fetch-cot-report-daily` (see `docs/COT_REFRESH_SETUP.md`)
       - `refresh-commodity-news-feed-every-30min` (see `docs/NEWS_FEED_REFRESH_SETUP.md`)
+      (`audit-premium-freshness` is admin-triggered on demand from
+      `/admin/catalog-audit`, not on a cron schedule — listed here before but
+      that was never actually true; verified 2026-08-27, see
+      `cron.job` for the current source of truth either way.)
       Find them with:
       ```sql
       SELECT jobid, jobname, command FROM cron.job;

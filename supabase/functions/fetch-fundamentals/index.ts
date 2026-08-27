@@ -342,28 +342,41 @@ serve(async (req) => {
 
   try {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const eiaKey = Deno.env.get('EIA_API_KEY');
     const usdaKey = Deno.env.get('USDA_NASS_API_KEY');
-
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
     const admin = createClient(supabaseUrl, serviceKey);
 
-    const { data: userData } = await userClient.auth.getUser();
-    if (!userData?.user) {
-      return new Response(JSON.stringify({ error: 'Invalid session' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Two ways in: a real user session (the original lazy-refresh-on-page-view
+    // path — "whoever opened the page pays the refresh cost"), or a scheduled
+    // cron call carrying x-cron-secret. A service-role bearer token is
+    // deliberately NOT accepted here (unlike fetch-cot-report/evaluate-price-
+    // alerts) because auth.getUser() rejects it anyway (it's not a real user
+    // session) — x-cron-secret is the only working path for the cron, and
+    // avoids ever putting the actual service-role key in a cron job's stored
+    // SQL text. Same CRON_SECRET as fetch-cot-report; see
+    // docs/FUNDAMENTALS_REFRESH_SETUP.md.
+    const cronSecret = Deno.env.get('CRON_SECRET') ?? '';
+    const suppliedCronSecret = req.headers.get('x-cron-secret') ?? '';
+    const isCron = !!cronSecret && suppliedCronSecret === cronSecret;
+
+    if (!isCron) {
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: 'Authentication required' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
       });
+      const { data: userData } = await userClient.auth.getUser();
+      if (!userData?.user) {
+        return new Response(JSON.stringify({ error: 'Invalid session' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
     }
 
     const parsed = BodySchema.safeParse(await req.json().catch(() => ({})));

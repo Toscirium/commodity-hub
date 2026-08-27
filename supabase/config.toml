@@ -112,3 +112,6 @@ verify_jwt = false
 
 [functions.fetch-cot-report]
 verify_jwt = false
+
+[functions.fetch-fundamentals]
+verify_jwt = false
