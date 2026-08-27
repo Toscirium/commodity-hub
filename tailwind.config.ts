@@ -19,15 +19,10 @@ export default {
       }
     },
     extend: {
-      // One superfamily in three roles. IBM Plex was drawn for technical
-      // products and reads as instrumentation rather than as another Inter
-      // dashboard; Condensed gives headings real character without dragging in
-      // an unrelated display face. Every family here is actually loaded in
-      // index.html — DM Sans and Space Grotesk never were.
       fontFamily: {
-        sans: ['"IBM Plex Sans"', 'system-ui', 'sans-serif'],
-        display: ['"IBM Plex Sans Condensed"', '"IBM Plex Sans"', 'system-ui', 'sans-serif'],
-        mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
+        display: ['"Space Grotesk"', '"DM Sans"', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       fontSize: {
         '2xs': ['0.625rem', { lineHeight: '0.75rem' }],

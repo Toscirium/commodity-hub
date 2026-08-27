@@ -44,7 +44,7 @@ export interface LightweightChartColors {
 // index.css) — lightweight-charts draws its own axis/price labels on
 // <canvas>, so it never picked this up from CSS and looked subtly
 // mismatched next to every other price in the UI.
-export const CHART_FONT_FAMILY = '"IBM Plex Mono", ui-monospace, SFMono-Regular, monospace';
+export const CHART_FONT_FAMILY = '"JetBrains Mono", ui-monospace, SFMono-Regular, monospace';
 
 // Literal colors mapped from the app's HSL tokens in src/index.css — lightweight-charts
 // renders to <canvas> and cannot read CSS variables, so these must be concrete values.

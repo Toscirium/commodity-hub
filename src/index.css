@@ -6,32 +6,23 @@
 
 @layer base {
   :root {
-    /* Light theme — warm neutral ground with a bronze accent.
-       The accent was hsl(262 83% 58%) for a long time: that is the stock
-       shadcn/ui violet, shipped by every scaffold and changed by nobody. It
-       said nothing about commodities. Bronze/brass reads as metal and as the
-       amber-on-black financial terminals this product descends from — and it
-       finally makes the marketing site's `--brass` variable honest, which was
-       named for the colour it wanted and set to the violet it inherited.
-       Light mode runs the accent dark enough to carry white text. */
+    /* Light theme — neutral with a restrained purple accent */
     --background: 0 0% 100%;
     --foreground: 222 14% 12%;
 
-    --primary: 34 62% 40%;
-    --primary-foreground: 40 30% 98%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 34 14% 95%;
+    --secondary: 220 14% 96%;
     --secondary-foreground: 222 14% 12%;
 
-    --accent: 34 62% 40%;
-    --accent-foreground: 40 30% 98%;
+    --accent: 262 83% 58%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
     --success: 156 47% 51%;
-    /* Pushed orange, away from the bronze accent, so a warning still reads as
-       a warning and not as a slightly-off primary. */
-    --warning: 25 88% 44%;
+    --warning: 43 90% 56%;
 
     --muted: 220 14% 96%;
     --muted-foreground: 220 9% 42%;
@@ -42,36 +33,31 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 14% 12%;
 
-    --border: 220 13% 90%;
-    --input: 220 13% 90%;
-    --ring: 34 62% 40%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 262 83% 58%;
 
-    /* 3px, matching the marketing site. 0.5rem was the shadcn default and
-       rounded every one of the ~190 rounded-md/lg surfaces in the app into
-       the same soft SaaS card. A near-square corner reads as an instrument. */
-    --radius: 0.1875rem;
+    --radius: 0.5rem;
   }
 
   .dark {
-    /* Dark theme — near-black ground, brass accent run bright enough to sit
-       on it, with dark ink on top rather than white (a light accent carrying
-       white text is the classic unreadable-button bug). */
+    /* Dark theme — near-black with a purple accent */
     --background: 225 7% 5%;
     --foreground: 220 13% 91%;
 
-    --primary: 40 74% 58%;
-    --primary-foreground: 36 32% 8%;
+    --primary: 262 83% 58%;
+    --primary-foreground: 0 0% 100%;
 
     --secondary: 225 7% 11%;
     --secondary-foreground: 220 13% 91%;
 
-    --accent: 40 62% 48%;
-    --accent-foreground: 36 32% 8%;
+    --accent: 262 58% 42%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 76% 60%;          /* #eb5757 */
     --destructive-foreground: 0 0% 100%;
     --success: 152 43% 51%;            /* #4cb782 */
-    --warning: 30 90% 60%;
+    --warning: 46 86% 62%;             /* #f2c94c */
 
     --muted: 225 6% 12%;
     --muted-foreground: 220 5% 56%;
@@ -84,7 +70,7 @@
 
     --border: 225 5% 16%;
     --input: 225 5% 16%;
-    --ring: 40 74% 58%;
+    --ring: 262 83% 58%;
   }
 }
 
@@ -167,7 +153,7 @@
   overscroll-behavior: contain;
   }
   
-  /* Refined typography — IBM Plex Sans Condensed display, tight tracking */
+  /* Refined typography — Space Grotesk display, tight tracking */
   h1, h2, h3, h4, h5, h6 {
     @apply font-display font-medium tracking-tight text-foreground;
     text-wrap: balance;
