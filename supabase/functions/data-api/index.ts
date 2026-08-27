@@ -19,6 +19,17 @@ const RATE_LIMIT = 60;
 const RATE_WINDOW_MS = 60_000;
 const MAX_COT_LIMIT = 260; // 5 years of weekly reports
 
+// Supabase Edge Functions (Deno Deploy) keep an isolate alive for
+// EdgeRuntime.waitUntil()'d work after the response has already been sent.
+// Falls back to firing the task without awaiting it if that global isn't
+// present (e.g. local `supabase functions serve`) — never blocks the
+// response either way. Same helper as messages/index.ts.
+const runBackground = (task: Promise<unknown>) => {
+  const rt = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
+  if (rt?.waitUntil) rt.waitUntil(task);
+  else task.catch(() => {});
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   const raw = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '');
@@ -49,8 +60,13 @@ Deno.serve(async (req) => {
     return tooManyRequestsResponse(limit, corsHeaders);
   }
 
-  await admin.from('data_api_keys').update({ last_used_at: new Date().toISOString() }).eq('id', key.id);
   const url = new URL(req.url); const resource = url.searchParams.get('resource') ?? 'portfolio';
+  runBackground(Promise.resolve(admin.from('data_api_keys').update({ last_used_at: new Date().toISOString() }).eq('id', key.id)));
+  runBackground(
+    Promise.resolve(admin.rpc('data_api_record_usage', { p_key_id: key.id, p_resource: resource })).then(({ error: usageErr }) => {
+      if (usageErr) console.error(JSON.stringify({ evt: 'usage_record_failed', fn: 'data-api', keyId: key.id, error: usageErr.message }));
+    }),
+  );
   if (resource === 'portfolio') {
     const { data, error } = await admin.from('portfolio_positions').select('commodity_name,quantity,entry_price,entry_date,notes,created_at').eq('user_id', key.user_id).order('created_at', { ascending: false });
     return error ? json({ error: 'data_unavailable' }, 500, rlHeaders) : json({ data, generated_at: new Date().toISOString() }, 200, rlHeaders);

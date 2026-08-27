@@ -70,6 +70,7 @@ const ProAnalyticsWorkspace = lazy(() => import('@/pages/ProAnalyticsWorkspace')
 const DataExports = lazy(() => import('@/pages/DataExports'));
 const DeveloperDocs = lazy(() => import('@/pages/DeveloperDocs'));
 const DataApiLanding = lazy(() => import('@/pages/DataApiLanding'));
+const DataApiUsage = lazy(() => import('@/pages/DataApiUsage'));
 const TeamWorkspace = lazy(() => import('@/pages/TeamWorkspace'));
 const StressTest = lazy(() => import('@/pages/StressTest'));
 const Messages = lazy(() => import('@/pages/Messages'));
@@ -177,6 +178,7 @@ const App = () => {
                 <Route path="/messages" element={<Messages />} />
                 <Route path="/trade" element={<Trade />} />
                 <Route path="/admin/catalog-audit" element={<CatalogAudit />} />
+                <Route path="/admin/data-api-usage" element={<DataApiUsage />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <MobileBottomNavigation />

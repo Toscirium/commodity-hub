@@ -45,6 +45,9 @@
       "integrity": "sha512-ghig2TBE/H11aOVgmahA3MhimvkBr6JIYknH/Dhdk10nXwdbIqBJsbfMxpvFPG8bAw77gN29aQWvKpmVoPlvPQ=="
     }
   },
+  "redirects": {
+    "https://esm.sh/@supabase/supabase-js@2": "https://esm.sh/@supabase/supabase-js@2.112.4"
+  },
   "remote": {
     "https://deno.land/std@0.168.0/async/abortable.ts": "80b2ac399f142cc528f95a037a7d0e653296352d95c681e284533765961de409",
     "https://deno.land/std@0.168.0/async/deadline.ts": "2c2deb53c7c28ca1dda7a3ad81e70508b1ebc25db52559de6b8636c9278fd41f",
@@ -102,6 +105,7 @@
     "https://deno.land/std@0.224.0/internal/diff.ts": "6234a4b493ebe65dc67a18a0eb97ef683626a1166a1906232ce186ae9f65f4e6",
     "https://deno.land/std@0.224.0/internal/format.ts": "0a98ee226fd3d43450245b1844b47003419d34d210fa989900861c79820d21c2",
     "https://deno.land/std@0.224.0/internal/mod.ts": "534125398c8e7426183e12dc255bb635d94e06d0f93c60a297723abe69d3b22e",
+    "https://esm.sh/@supabase/supabase-js@2.112.4": "cfaa762b66cf8717f1b32db2699c4277aa673b39417cb9be9c0b19d9c7786bd7",
     "https://esm.sh/@supabase/supabase-js@2.45.0": "36ae57c3f2dc3f94fd122a846b40a87114d29bb2f47e910cb46bee5575febf2e"
   },
   "workspace": {
