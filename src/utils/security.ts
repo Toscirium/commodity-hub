@@ -94,8 +94,10 @@ export const getCSPHeaders = () => ({
   'Content-Security-Policy': [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src 'self' https://fonts.gstatic.com",
+    // Fonts are self-hosted (@fontsource, bundled by Vite), so no Google
+    // Fonts origins are allowed here any more.
+    "style-src 'self' 'unsafe-inline'",
+    "font-src 'self' data:",
     "img-src 'self' data: https: blob:",
     "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.commoditypriceapi.com https://api.oilpriceapi.com https://api.frankfurter.dev https://www.alphavantage.co",
     "frame-src 'none'",

@@ -58,10 +58,11 @@
     
     <meta name="twitter:image" content="https://app.commodity-hub.eu/icon.png">
     
-    <!-- Custom Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Fonts are self-hosted via @fontsource and imported in src/main.tsx, so
+         there is deliberately no Google Fonts <link> here. This tag used to
+         load Inter while tailwind.config.ts asked for DM Sans and Space
+         Grotesk — two sources of truth that silently disagreed, leaving Inter
+         downloaded on every visit and never used. One source now. -->
 
 
   

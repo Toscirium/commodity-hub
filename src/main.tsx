@@ -2,15 +2,20 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import './styles/smooth-scroll.css';
-import '@fontsource/space-grotesk/400.css';
-import '@fontsource/space-grotesk/500.css';
-import '@fontsource/space-grotesk/600.css';
-import '@fontsource/space-grotesk/700.css';
-import '@fontsource/dm-sans/400.css';
-import '@fontsource/dm-sans/500.css';
-import '@fontsource/dm-sans/600.css';
-import '@fontsource/jetbrains-mono/400.css';
-import '@fontsource/jetbrains-mono/500.css';
+// Self-hosted via @fontsource rather than a Google Fonts <link>: this ships as
+// a native Android app, where a webfont fetched over the network fails on a bad
+// connection and falls back mid-session. Bundling also drops a third-party
+// request from an EU-operated app. Keep these in sync with
+// tailwind.config.ts's fontFamily — they drifted apart once before.
+import '@fontsource/ibm-plex-sans/400.css';
+import '@fontsource/ibm-plex-sans/500.css';
+import '@fontsource/ibm-plex-sans/600.css';
+import '@fontsource/ibm-plex-sans/700.css';
+import '@fontsource/ibm-plex-sans-condensed/600.css';
+import '@fontsource/ibm-plex-sans-condensed/700.css';
+import '@fontsource/ibm-plex-mono/400.css';
+import '@fontsource/ibm-plex-mono/500.css';
+import '@fontsource/ibm-plex-mono/600.css';
 import { Capacitor } from '@capacitor/core';
 import { redirectNativeOAuthCallbackFromWeb } from './utils/nativeOAuth';
 import './lib/desktopBridge';

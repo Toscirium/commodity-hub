@@ -41,8 +41,8 @@ export const preloadCriticalResources = () => {
     // DNS prefetch for external APIs
     addDNSPrefetch('//api.commoditypriceapi.com');
     addDNSPrefetch('//www.alphavantage.co');
-    addDNSPrefetch('//fonts.googleapis.com');
-    addDNSPrefetch('//fonts.gstatic.com');
+    // No Google Fonts prefetch: fonts are self-hosted via @fontsource and
+    // bundled, so there is no third-party font origin to warm up.
     
     // Preload critical fonts (if using custom fonts)
     // preloadFont('/fonts/inter-var.woff2');

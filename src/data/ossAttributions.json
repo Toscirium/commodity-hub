@@ -1,30 +1,30 @@
 {
-  "generatedAt": "2026-06-26T06:57:59.252Z",
+  "generatedAt": "2026-08-28T09:20:05.939Z",
   "libraries": [
     {
       "name": "@ai-sdk/openai-compatible",
-      "version": "2.0.48",
+      "version": "2.0.56",
       "license": "Apache-2.0",
       "licenseSource": "package.json",
       "url": "https://ai-sdk.dev/docs"
     },
     {
       "name": "@ai-sdk/react",
-      "version": "3.0.203",
+      "version": "3.0.220",
       "license": "Apache-2.0",
       "licenseSource": "package.json",
       "url": "https://ai-sdk.dev/docs"
     },
     {
       "name": "@capacitor/android",
-      "version": "7.4.0",
+      "version": "7.6.7",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://capacitorjs.com"
     },
     {
       "name": "@capacitor/app",
-      "version": "7.0.1",
+      "version": "7.1.2",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://github.com/ionic-team/capacitor-plugins"
@@ -38,21 +38,21 @@
     },
     {
       "name": "@capacitor/core",
-      "version": "7.4.0",
+      "version": "7.6.7",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://capacitorjs.com"
     },
     {
       "name": "@capacitor/haptics",
-      "version": "7.0.2",
+      "version": "7.0.5",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://github.com/ionic-team/capacitor-plugins"
     },
     {
       "name": "@capacitor/ios",
-      "version": "7.4.0",
+      "version": "7.6.7",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://capacitorjs.com"
@@ -65,218 +65,225 @@
       "url": "https://github.com/ionic-team/capacitor-plugins"
     },
     {
-      "name": "@fontsource/dm-sans",
-      "version": "5.2.8",
-      "license": "OFL-1.1",
+      "name": "@capgo/capacitor-social-login",
+      "version": "7.20.0",
+      "license": "MPL-2.0",
       "licenseSource": "package.json",
-      "url": "https://fontsource.org/fonts/dm-sans"
+      "url": "https://github.com/Cap-go/capacitor-social-login"
     },
     {
-      "name": "@fontsource/jetbrains-mono",
-      "version": "5.2.8",
+      "name": "@fontsource/ibm-plex-mono",
+      "version": "5.3.0",
       "license": "OFL-1.1",
       "licenseSource": "package.json",
-      "url": "https://fontsource.org/fonts/jetbrains-mono"
+      "url": "https://fontsource.org/fonts/ibm-plex-mono"
     },
     {
-      "name": "@fontsource/space-grotesk",
-      "version": "5.2.10",
+      "name": "@fontsource/ibm-plex-sans",
+      "version": "5.3.0",
       "license": "OFL-1.1",
       "licenseSource": "package.json",
-      "url": "https://fontsource.org/fonts/space-grotesk"
+      "url": "https://fontsource.org/fonts/ibm-plex-sans"
+    },
+    {
+      "name": "@fontsource/ibm-plex-sans-condensed",
+      "version": "5.3.0",
+      "license": "OFL-1.1",
+      "licenseSource": "package.json",
+      "url": "https://fontsource.org/fonts/ibm-plex-sans-condensed"
     },
     {
       "name": "@hookform/resolvers",
-      "version": "3.9.0",
+      "version": "3.10.0",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://react-hook-form.com"
     },
     {
       "name": "@radix-ui/react-accordion",
-      "version": "1.2.1",
+      "version": "1.2.15",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-alert-dialog",
-      "version": "1.1.2",
+      "version": "1.1.18",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-aspect-ratio",
-      "version": "1.1.0",
+      "version": "1.1.11",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-avatar",
-      "version": "1.1.1",
+      "version": "1.2.1",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-checkbox",
-      "version": "1.1.2",
+      "version": "1.3.6",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-collapsible",
-      "version": "1.1.1",
+      "version": "1.1.15",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-context-menu",
-      "version": "2.2.2",
+      "version": "2.3.2",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-dialog",
-      "version": "1.1.16",
+      "version": "1.1.18",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-dropdown-menu",
-      "version": "2.1.17",
+      "version": "2.1.19",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-hover-card",
-      "version": "1.1.16",
+      "version": "1.1.18",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-label",
-      "version": "2.1.0",
+      "version": "2.1.11",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-menubar",
-      "version": "1.1.2",
+      "version": "1.1.19",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-navigation-menu",
-      "version": "1.2.1",
+      "version": "1.2.17",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-popover",
-      "version": "1.1.2",
+      "version": "1.1.18",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-progress",
-      "version": "1.1.0",
+      "version": "1.1.11",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-radio-group",
-      "version": "1.2.1",
+      "version": "1.4.2",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-scroll-area",
-      "version": "1.2.0",
+      "version": "1.2.13",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-select",
-      "version": "2.3.0",
+      "version": "2.3.2",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-separator",
-      "version": "1.1.9",
+      "version": "1.1.11",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-slider",
-      "version": "1.2.1",
+      "version": "1.4.2",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-slot",
-      "version": "1.2.5",
+      "version": "1.3.0",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-switch",
-      "version": "1.1.1",
+      "version": "1.3.2",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-tabs",
-      "version": "1.1.1",
+      "version": "1.1.16",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-toast",
-      "version": "1.2.2",
+      "version": "1.2.18",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-toggle",
-      "version": "1.1.0",
+      "version": "1.1.13",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-toggle-group",
-      "version": "1.1.0",
+      "version": "1.1.14",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
     },
     {
       "name": "@radix-ui/react-tooltip",
-      "version": "1.2.9",
+      "version": "1.2.11",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://radix-ui.com/primitives"
@@ -287,6 +294,13 @@
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://github.com/RevenueCat/purchases-capacitor"
+    },
+    {
+      "name": "@revenuecat/purchases-js",
+      "version": "1.53.1",
+      "license": "MIT",
+      "licenseSource": "package.json",
+      "url": "https://github.com/RevenueCat/purchases-js"
     },
     {
       "name": "@streamdown/cjk",
@@ -318,17 +332,24 @@
     },
     {
       "name": "@supabase/supabase-js",
-      "version": "2.108.2",
+      "version": "2.110.0",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://github.com/supabase/supabase-js/tree/master/packages/core/supabase-js"
     },
     {
       "name": "@tanstack/react-query",
-      "version": "5.59.16",
+      "version": "5.101.2",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://tanstack.com/query"
+    },
+    {
+      "name": "@tauri-apps/api",
+      "version": "2.11.1",
+      "license": "Apache-2.0 OR MIT",
+      "licenseSource": "package.json",
+      "url": "https://github.com/tauri-apps/tauri"
     },
     {
       "name": "@xmldom/xmldom",
@@ -339,7 +360,7 @@
     },
     {
       "name": "ai",
-      "version": "6.0.201",
+      "version": "6.0.218",
       "license": "Apache-2.0",
       "licenseSource": "package.json",
       "url": "https://ai-sdk.dev/docs"
@@ -381,17 +402,24 @@
     },
     {
       "name": "embla-carousel-react",
-      "version": "8.3.0",
+      "version": "8.6.0",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://www.embla-carousel.com"
     },
     {
       "name": "input-otp",
-      "version": "1.2.4",
+      "version": "1.4.2",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://input-otp.rodz.dev/"
+    },
+    {
+      "name": "lightweight-charts",
+      "version": "5.2.0",
+      "license": "Apache-2.0",
+      "licenseSource": "package.json",
+      "url": "https://www.tradingview.com/lightweight-charts/"
     },
     {
       "name": "lodash",
@@ -402,21 +430,21 @@
     },
     {
       "name": "lucide-react",
-      "version": "1.17.0",
+      "version": "1.23.0",
       "license": "ISC",
       "licenseSource": "package.json",
       "url": "https://lucide.dev"
     },
     {
       "name": "motion",
-      "version": "12.40.0",
+      "version": "12.42.2",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://github.com/motiondivision/motion"
     },
     {
       "name": "nanoid",
-      "version": "5.1.11",
+      "version": "5.1.16",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "ai/nanoid"
@@ -429,6 +457,13 @@
       "url": "https://github.com/pacocoursey/next-themes"
     },
     {
+      "name": "posthog-js",
+      "version": "1.422.1",
+      "license": "(Apache-2.0 AND MIT)",
+      "licenseSource": "package.json",
+      "url": "https://posthog.com/docs/libraries/js"
+    },
+    {
       "name": "react",
       "version": "18.3.1",
       "license": "MIT",
@@ -437,7 +472,7 @@
     },
     {
       "name": "react-day-picker",
-      "version": "8.10.1",
+      "version": "8.10.2",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "http://react-day-picker.js.org"
@@ -451,21 +486,21 @@
     },
     {
       "name": "react-hook-form",
-      "version": "7.53.1",
+      "version": "7.80.0",
       "license": "MIT",
       "licenseSource": "package.json",
-      "url": "https://www.react-hook-form.com"
+      "url": "https://react-hook-form.com"
     },
     {
       "name": "react-resizable-panels",
-      "version": "2.1.5",
+      "version": "2.1.9",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://github.com/bvaughn/react-resizable-panels"
     },
     {
       "name": "react-router-dom",
-      "version": "6.30.4",
+      "version": "6.30.6",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://github.com/remix-run/react-router"
@@ -479,7 +514,7 @@
     },
     {
       "name": "sonner",
-      "version": "1.5.0",
+      "version": "1.7.4",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://sonner.emilkowal.ski/"
@@ -493,7 +528,7 @@
     },
     {
       "name": "tailwind-merge",
-      "version": "2.5.4",
+      "version": "2.6.1",
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://github.com/dcastil/tailwind-merge"
@@ -518,6 +553,13 @@
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://vaul.emilkowal.ski/"
+    },
+    {
+      "name": "xlsx",
+      "version": "0.20.3",
+      "license": "Apache-2.0",
+      "licenseSource": "package.json",
+      "url": "https://sheetjs.com/"
     },
     {
       "name": "zod",

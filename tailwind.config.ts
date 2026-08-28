@@ -19,10 +19,15 @@ export default {
       }
     },
     extend: {
+      // One superfamily in three roles. Inter and Space Grotesk are the faces
+      // every scaffold reaches for; IBM Plex was drawn for technical products,
+      // reads as instrumentation rather than as another dashboard, and matches
+      // the marketing site, which already runs IBM Plex Sans and Mono.
+      // Every family listed here is actually loaded in index.html.
       fontFamily: {
-        sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
-        display: ['"Space Grotesk"', '"DM Sans"', 'system-ui', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+        sans: ['"IBM Plex Sans"', 'system-ui', 'sans-serif'],
+        display: ['"IBM Plex Sans Condensed"', '"IBM Plex Sans"', 'system-ui', 'sans-serif'],
+        mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       fontSize: {
         '2xs': ['0.625rem', { lineHeight: '0.75rem' }],
