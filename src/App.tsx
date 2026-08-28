@@ -19,6 +19,7 @@ import { useCapacitorAuthDeepLink } from '@/hooks/useCapacitorAuthDeepLink';
 import { useDesktopAuthDeepLink } from '@/hooks/useDesktopAuthDeepLink';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import SEOHead from '@/components/SEOHead';
+import AnalyticsBridge from '@/components/AnalyticsBridge';
 import Dashboard from '@/pages/Dashboard';
 import Auth from '@/pages/Auth';
 import BillingStatusBanner from '@/components/BillingStatusBanner';
@@ -71,6 +72,7 @@ const DataExports = lazy(() => import('@/pages/DataExports'));
 const DeveloperDocs = lazy(() => import('@/pages/DeveloperDocs'));
 const DataApiLanding = lazy(() => import('@/pages/DataApiLanding'));
 const DataApiUsage = lazy(() => import('@/pages/DataApiUsage'));
+const FeedbackInbox = lazy(() => import('@/pages/FeedbackInbox'));
 const TeamWorkspace = lazy(() => import('@/pages/TeamWorkspace'));
 const StressTest = lazy(() => import('@/pages/StressTest'));
 const Messages = lazy(() => import('@/pages/Messages'));
@@ -100,6 +102,7 @@ const App = () => {
           <BrowserRouter>
           <TooltipProvider>
             <RealtimeDataProvider>
+              <AnalyticsBridge />
               <SEOHead />
               <BillingStatusBanner />
               <Suspense fallback={<RouteFallback />}>
@@ -179,6 +182,7 @@ const App = () => {
                 <Route path="/trade" element={<Trade />} />
                 <Route path="/admin/catalog-audit" element={<CatalogAudit />} />
                 <Route path="/admin/data-api-usage" element={<DataApiUsage />} />
+                <Route path="/admin/feedback" element={<FeedbackInbox />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <MobileBottomNavigation />

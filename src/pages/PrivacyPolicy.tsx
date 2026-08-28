@@ -37,6 +37,8 @@ const PrivacyPolicy = () => {
                   <li><strong>Device and notification data:</strong> a push-notification token only after you grant notification permission and register for alerts.</li>
                   <li><strong>AI Copilot content:</strong> messages you submit and the app data needed to answer a request, such as relevant portfolio, watchlist, or alert data.</li>
                   <li><strong>Technical data:</strong> limited operational data such as browser/app version, route, and error details needed to maintain security and reliability. We do not use advertising IDs or collect precise location.</li>
+                  <li><strong>Product usage and session replay:</strong> which pages you open and what you interact with, recorded so we can find where the app fails or confuses people. Text you type into fields is masked before it leaves your device.</li>
+                  <li><strong>Feedback you send us:</strong> your message, the page you were on, your browser version, and an email address only if you choose to provide one.</li>
                 </ul>
               </section>
 
@@ -59,6 +61,7 @@ const PrivacyPolicy = () => {
                   <li><strong>Firebase Cloud Messaging</strong> to deliver notifications when you opt in.</li>
                   <li><strong>AI service providers</strong> for AI Copilot requests you submit.</li>
                   <li><strong>Market-data and news providers</strong> to deliver requested market information; these requests are not sent with your account profile.</li>
+                  <li><strong>PostHog</strong> (EU-hosted) for product analytics and session replay, used to find where the app is confusing or broken. Replays record on-screen interaction and navigation; the contents of input fields are masked before leaving your device, and we do not record payment details. Sessions are linked to your account identifier and subscription tier, not your email address.</li>
                 </ul>
                 <p className="mt-3">We do not sell or share personal information for cross-context behavioral advertising.</p>
               </section>

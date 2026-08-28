@@ -38,6 +38,42 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback: {
+        Row: {
+          app_version: string | null
+          contact_email: string | null
+          created_at: string
+          id: string
+          message: string
+          resolved_at: string | null
+          route: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          app_version?: string | null
+          contact_email?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          resolved_at?: string | null
+          route?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          app_version?: string | null
+          contact_email?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          resolved_at?: string | null
+          route?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       ai_messages: {
         Row: {
           created_at: string

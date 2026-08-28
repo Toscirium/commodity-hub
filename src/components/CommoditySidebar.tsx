@@ -10,6 +10,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import CommodityGroupsList from "./sidebar/CommodityGroupsList";
 import MarketToolsList from "./sidebar/MarketToolsList";
 import ThemeSwitcher from "./sidebar/ThemeSwitcher";
+import FeedbackButton from "./sidebar/FeedbackButton";
 import { CommodityCounts } from "./sidebar/types";
 
 interface CommoditySidebarProps {
@@ -74,6 +75,7 @@ const CommoditySidebar = React.memo(({ activeGroup, onGroupSelect, commodityCoun
 
       {/* Theme Switcher - Always at bottom */}
       <SidebarFooter className={`${isMobile ? 'px-4 py-2 bg-background' : 'p-2'} border-t flex-shrink-0`}>
+        <FeedbackButton />
         <ThemeSwitcher />
       </SidebarFooter>
     </Sidebar>
