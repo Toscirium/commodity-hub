@@ -6,13 +6,28 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'none'; script-src 'sha256-OQqxHA5tuFNcGF9Mc+iCn5RRspc/3pVuTQTfAzWsit0=' 'sha256-HBeW7Jqk7rlX3I6UAeaFJ23A4JNWyS7KFwaT2u5JiY0=' 'sha256-Z/t+1g29rX3pHFMquJ+Fs5LXFG3JLesAO7f1xMsPLzg=' 'sha256-j7u6fh6Qrt9OFNNYcCEOot4N7qNF3IOv02o71hwyOzY=' 'sha256-l7Infy9cT5rqPWQDTPxZ+h23Hey/vRDdAqu3TvYRxtU=' 'sha256-KeHj6Bm5qAM/pLw0iDdElGBtcUlLO9d9rkRQh80iM+U=' 'sha256-c7eGuihoi+y65WPYUPdtuJCTE6+VcuXwSunHRC6BDMg=' 'sha256-DarFId23bgmmNhbtsH3J8ag6x0C0A0I5VNd1hMlhSUk=' 'sha256-zk4Olk9nPmP9ea7yRD0wSKHneNqmRI8IsPPHDFLHhRU=' 'sha256-tfsI5PPkf4kPKG3YuaEB0jm2Awk/HO1SPfCuRXqiQmY=' 'sha256-BmspyxFLM2PLNOcHfrY+pKZMh+UubmvhlKCFbGyr/u8=' 'sha256-ZSXlMpshQrkvPb10l2KrVL7BY4l3+l3d2p9VFy31YRc=' 'sha256-uuXADnn01A11Ro0F59tq1Yr95SCk1ohM/OlJtNbdSW0=' 'sha256-JWQn2L0maUUx4A47NkqOjWdS8XEElPrghUPw88CfTME=' 'sha256-z2AlMz8MBY5yBKQTMnp/fsg69SyeHXM1Y3lTBCFm6Aw=' 'sha256-bSsqa12fkh+xwn7Gzz9b69t+unTLCF2RTkCru9tj3zY=' 'sha256-oCfSTP71AvQmSaVKaX9QwLfNZQouJhORvw4gZlwo0D0=' 'sha256-aFhljsQQbi/bi7f0wehmtbKmaRF1qRgtV9e3UhjK6H4=' 'sha256-s2bLt0pOG6T0ou1FTblVsv3F26vrJbXByV7Nu34Fkfg=' https://pagead2.googlesyndication.com; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; connect-src https://kcxhsmlqqyarhlmcapmj.supabase.co; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
+          "value": "default-src 'none'; script-src 'sha256-0KHiBoHr8sgTzjZJQNKcM1zOaLvMauuJe+VFyHD6NSc=' 'sha256-4Twtx0PnFU30OpuxlMMOHsZywqC5WH1Lz3ALc+HgfOI=' 'sha256-BmspyxFLM2PLNOcHfrY+pKZMh+UubmvhlKCFbGyr/u8=' 'sha256-BuB9H8KuPA73yUHZvZdgPVOm/5YNZ0mNIBCDDFcG1D0=' 'sha256-DarFId23bgmmNhbtsH3J8ag6x0C0A0I5VNd1hMlhSUk=' 'sha256-HBeW7Jqk7rlX3I6UAeaFJ23A4JNWyS7KFwaT2u5JiY0=' 'sha256-HIJRmkIrWmIy8moOlucKNuf+nXzc63l9LaJeDil50Ys=' 'sha256-JWQn2L0maUUx4A47NkqOjWdS8XEElPrghUPw88CfTME=' 'sha256-Jw67jVRFc/luvPhbAKvbtAmuZN2Bsp2lU9o+iTozMsw=' 'sha256-KeHj6Bm5qAM/pLw0iDdElGBtcUlLO9d9rkRQh80iM+U=' 'sha256-MrHHJ/fkYABJ9kdoVG+HekJPchiAP3ynTzKVTl7KKTs=' 'sha256-OQqxHA5tuFNcGF9Mc+iCn5RRspc/3pVuTQTfAzWsit0=' 'sha256-Osf5slTIsadUStxM5x2oIIoi4cgavScvvMI3dP+/gZo=' 'sha256-QX9VOAUbWfRQQl4I0zPCn6ZROSOZvd7iMurqJZe7FGo=' 'sha256-Qy7ZWt/AjRjB7baTOzuJTNdoytRI1meBvcrQikqDuz4=' 'sha256-YIyYR0UY8FPE/krp/+Wik/THbDMYoZQpDk5b+41B2cw=' 'sha256-Z/t+1g29rX3pHFMquJ+Fs5LXFG3JLesAO7f1xMsPLzg=' 'sha256-ZSXlMpshQrkvPb10l2KrVL7BY4l3+l3d2p9VFy31YRc=' 'sha256-bSsqa12fkh+xwn7Gzz9b69t+unTLCF2RTkCru9tj3zY=' 'sha256-bkiidjk1kcDVce2UUGoxG0OrD7eubtco8Nq/4PhqwDQ=' 'sha256-c7eGuihoi+y65WPYUPdtuJCTE6+VcuXwSunHRC6BDMg=' 'sha256-j7u6fh6Qrt9OFNNYcCEOot4N7qNF3IOv02o71hwyOzY=' 'sha256-kHStEyrd8QLHVrkRnz3scEezpgx5Svaw/NpJfgWqKJ0=' 'sha256-l7Infy9cT5rqPWQDTPxZ+h23Hey/vRDdAqu3TvYRxtU=' 'sha256-tfsI5PPkf4kPKG3YuaEB0jm2Awk/HO1SPfCuRXqiQmY=' 'sha256-uuXADnn01A11Ro0F59tq1Yr95SCk1ohM/OlJtNbdSW0=' 'sha256-vWzjL0ojdkSiIa5YgbhXo7GSrPzEDdaIjLgxE3IH2TU=' 'sha256-z2AlMz8MBY5yBKQTMnp/fsg69SyeHXM1Y3lTBCFm6Aw=' 'sha256-zk4Olk9nPmP9ea7yRD0wSKHneNqmRI8IsPPHDFLHhRU=' https://pagead2.googlesyndication.com; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; connect-src https://kcxhsmlqqyarhlmcapmj.supabase.co; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
         },
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()" },
-        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+        },
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin"
+        }
       ]
     }
   ]

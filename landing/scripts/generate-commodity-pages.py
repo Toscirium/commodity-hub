@@ -4,15 +4,15 @@
 Add a new entry to COMMODITIES and re-run to add a page:
     python landing/scripts/generate-commodity-pages.py
 
-Also regenerates landing/commodities/index.html. Does NOT touch
-sitemap.xml or vercel.json's CSP hashes — after running, recompute each
-new/changed inline <script> block's hash with:
-    python -c "import hashlib,base64;print(base64.b64encode(hashlib.sha256(open('/dev/stdin','rb').read()).digest()).decode())"
-(pipe just the script body in), add the `'sha256-...'` value to the
-script-src list in landing/vercel.json, and add new <loc> entries to
-sitemap.xml by hand.
+Also regenerates landing/commodities/index.html, and then runs
+sync-csp-hashes.py so vercel.json's CSP script-src stays in sync with
+whatever inline <script>/JSON-LD blocks the new pages contain — no manual
+hash-copying step. Does NOT touch sitemap.xml — add new <loc> entries there
+by hand.
 """
 import os
+import subprocess
+import sys
 
 SITE = "https://commodity-hub.eu"
 GLOSSARY = {
@@ -199,6 +199,8 @@ PAGE_TEMPLATE = """<!doctype html>
   "mainEntityOfPage": "__CANONICAL__"
 }
 </script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8597609154479605"
+     crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -211,6 +213,7 @@ PAGE_TEMPLATE = """<!doctype html>
     <div class="nav-links">
       <a href="/#coverage">Coverage</a>
       <a href="/#toolkit">Toolkit</a>
+      <a href="/api">API</a>
       <a href="/#pricing">Pricing</a>
     </div>
     <div class="nav-right">
@@ -276,7 +279,7 @@ PAGE_TEMPLATE = """<!doctype html>
       </div>
     </div>
     <div class="footer-fine">
-      Commodity Hub is an information service providing commodity market prices, news, and analytics. It does not execute trades, hold client funds, or provide investment advice. The "Trade" section of the app links to independent, regulated third parties (Capital.com, eToro, Kalshi); Commodity Hub may earn a referral commission from those links. © <span id="year"></span> Commodity Hub. All rights reserved.
+      Commodity Hub is an information service providing commodity market prices, news, and analytics. It does not execute trades, hold client funds, or provide investment advice. The "Trade" section of the app links to an independent, regulated third party (eToro); Commodity Hub may earn a referral commission from those links. © <span id="year"></span> Commodity Hub. All rights reserved.
     </div>
   </div>
 </footer>
@@ -370,6 +373,8 @@ INDEX_TEMPLATE = """<!doctype html>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/styles.css" />
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8597609154479605"
+     crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -382,6 +387,7 @@ INDEX_TEMPLATE = """<!doctype html>
     <div class="nav-links">
       <a href="/#coverage">Coverage</a>
       <a href="/#toolkit">Toolkit</a>
+      <a href="/api">API</a>
       <a href="/#pricing">Pricing</a>
     </div>
     <div class="nav-right">
@@ -425,7 +431,7 @@ __ROWS__
       </div>
     </div>
     <div class="footer-fine">
-      Commodity Hub is an information service providing commodity market prices, news, and analytics. It does not execute trades, hold client funds, or provide investment advice. The "Trade" section of the app links to independent, regulated third parties (Capital.com, eToro, Kalshi); Commodity Hub may earn a referral commission from those links. © <span id="year"></span> Commodity Hub. All rights reserved.
+      Commodity Hub is an information service providing commodity market prices, news, and analytics. It does not execute trades, hold client funds, or provide investment advice. The "Trade" section of the app links to an independent, regulated third party (eToro); Commodity Hub may earn a referral commission from those links. © <span id="year"></span> Commodity Hub. All rights reserved.
     </div>
   </div>
 </footer>
@@ -512,6 +518,9 @@ def main():
     with open(index_path, "w", encoding="utf-8") as f:
         f.write(build_index())
     print("wrote", index_path)
+
+    sync_script = os.path.join(os.path.dirname(__file__), "sync-csp-hashes.py")
+    subprocess.run([sys.executable, sync_script], check=True)
 
 
 if __name__ == "__main__":

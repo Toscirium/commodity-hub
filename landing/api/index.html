@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Commodity Data API — Prices, CFTC COT &amp; Fundamentals — Commodity Hub</title>
+<meta name="description" content="REST API for commodity prices, CFTC Commitment of Traders positioning, and EIA/USDA/FRED fundamentals. Free key, 50 requests/day, no card. Flat-rate paid tier, no per-request billing." />
+<meta name="theme-color" content="#0d0d0f" />
+<link rel="canonical" href="https://commodity-hub.eu/api" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Commodity Hub" />
+<meta property="og:url" content="https://commodity-hub.eu/api" />
+<meta property="og:title" content="Commodity Data API — Commodity Hub" />
+<meta property="og:description" content="REST API for commodity prices, CFTC COT positioning, and EIA/USDA/FRED fundamentals. Free key, no card, no per-request billing." />
+<meta property="og:image" content="https://commodity-hub.eu/assets/app-icon.png" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="Commodity Data API — Commodity Hub" />
+<meta name="twitter:description" content="REST API for commodity prices, CFTC COT positioning, and EIA/USDA/FRED fundamentals. Free key, no card, no per-request billing." />
+<meta name="twitter:image" content="https://commodity-hub.eu/assets/app-icon.png" />
+<link rel="icon" href="/assets/app-icon.png" />
+<link rel="apple-touch-icon" href="/assets/app-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/styles.css" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebAPI",
+  "name": "Commodity Hub Data API",
+  "description": "REST API for commodity prices, CFTC Commitment of Traders positioning, and EIA/USDA/FRED fundamentals series.",
+  "documentation": "https://commodity-hub.eu/api",
+  "provider": { "@type": "Organization", "name": "Commodity Hub" },
+  "termsOfService": "https://commodity-hub.eu/terms"
+}
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8597609154479605"
+     crossorigin="anonymous"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="/">
+      <img src="/assets/logo.png" alt="" />
+      <span class="brand-word">Commodity Hub</span>
+    </a>
+    <div class="nav-links">
+      <a href="/#coverage">Coverage</a>
+      <a href="/#toolkit">Toolkit</a>
+      <a href="/api">API</a>
+      <a href="/#pricing">Pricing</a>
+    </div>
+    <div class="nav-right">
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme">☾/☀</button>
+      <a class="nav-cta" href="https://app.commodity-hub.eu">Open the app</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero hero-doc">
+  <div class="container">
+    <div class="doc doc-wide">
+      <div class="eyebrow">REST · JSON · No per-request billing</div>
+      <h1>Commodity Data API</h1>
+      <p class="doc-lede">Live and historical prices, CFTC Commitment of Traders positioning, and EIA/USDA/FRED fundamentals — over one REST endpoint. Free key, no card required.</p>
+      <div class="api-ctas">
+        <a class="btn btn-brass" href="https://app.commodity-hub.eu/exports">Get a free key</a>
+        <a class="btn btn-line" href="https://app.commodity-hub.eu/developers">Full reference</a>
+      </div>
+      <div class="api-facts">
+        <div><span class="num">5</span><span class="label">Resources</span></div>
+        <div><span class="num">50</span><span class="label">Free req/day</span></div>
+        <div><span class="num">60</span><span class="label">Req/min</span></div>
+        <div><span class="num">$0</span><span class="label">To start</span></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="container">
+    <div class="doc doc-wide">
+
+      <section>
+        <h2>Quickstart</h2>
+        <p>Sign in, open <a href="https://app.commodity-hub.eu/exports">Data &amp; exports</a>, and create a key. Any signed-in account can create one free key — no subscription and no card. Keys look like <code>ch_live_…</code> and are shown once.</p>
+        <div class="api-code"><span class="c"># Current price for WTI crude</span>
+curl -H <span class="k">"Authorization: Bearer ch_live_YOUR_KEY"</span> \
+  <span class="k">"https://kcxhsmlqqyarhlmcapmj.supabase.co/functions/v1/data-api?resource=prices&amp;commodity=WTI%20Crude%20Oil"</span></div>
+        <p>Every response is JSON, wraps its payload in <code>data</code>, and carries a <code>generated_at</code> ISO timestamp.</p>
+        <div class="api-code">{
+  <span class="k">"data"</span>: { <span class="k">"name"</span>: <span class="k">"WTI Crude Oil"</span>, <span class="k">"price"</span>: 63.41, <span class="k">"change_percent"</span>: -0.82, … },
+  <span class="k">"generated_at"</span>: <span class="k">"2026-08-29T11:04:22.117Z"</span>
+}</div>
+      </section>
+
+      <section>
+        <h2>Authentication</h2>
+        <p>Pass your key as a bearer token on every request. There are no other auth schemes, and keys are not accepted as query parameters.</p>
+        <div class="api-code">Authorization: Bearer ch_live_YOUR_KEY</div>
+        <p>Rate limits are applied <strong>per key, not per IP</strong> — so a team hitting the API from one server address is not throttled as a single client.</p>
+      </section>
+
+      <section>
+        <h2>Resources</h2>
+        <p>One endpoint, selected with the <code>resource</code> query parameter. The base URL is <code>https://kcxhsmlqqyarhlmcapmj.supabase.co/functions/v1/data-api</code>.</p>
+        <div class="api-table-wrap">
+          <table class="api-table">
+            <thead><tr><th>Resource</th><th>Parameters</th><th>Returns</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="mono">prices</td>
+                <td class="mono">commodity, timeframe</td>
+                <td>No parameters returns the full live catalogue. With <code>commodity</code>, the current price. Add <code>timeframe</code> — one of <code>1d 1m 3m 6m 1y 2y</code> — for a historical series.</td>
+              </tr>
+              <tr>
+                <td class="mono">cot</td>
+                <td class="mono">commodity (required), limit</td>
+                <td>Weekly CFTC positioning — managed money and commercial longs/shorts, net position, open interest. <code>limit</code> defaults to 52 weeks, maximum 520.</td>
+              </tr>
+              <tr>
+                <td class="mono">fundamentals</td>
+                <td class="mono">series_id, dataset</td>
+                <td>EIA, USDA and FRED series with latest value, week-on-week and year-on-year change, and a five-year average. A <code>series_id</code> returns the full observation history; without one you get the list.</td>
+              </tr>
+              <tr>
+                <td class="mono">portfolio</td>
+                <td class="mono">—</td>
+                <td>Your own positions — commodity, quantity, entry price and date, notes.</td>
+              </tr>
+              <tr>
+                <td class="mono">watchlists</td>
+                <td class="mono">—</td>
+                <td>Your own watchlists and their items.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="api-note">
+          <p><code>portfolio</code> and <code>watchlists</code> are scoped to the account that owns the key. The other three are market data and identical for everyone.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Rate limits and quotas</h2>
+        <div class="api-table-wrap">
+          <table class="api-table">
+            <thead><tr><th></th><th>Free</th><th>Pro</th></tr></thead>
+            <tbody>
+              <tr><td>Keys</td><td>1</td><td>Unlimited</td></tr>
+              <tr><td>Daily requests</td><td>50</td><td>No cap</td></tr>
+              <tr><td>Per-minute</td><td>60</td><td>60</td></tr>
+              <tr><td>Card required</td><td>No</td><td>—</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Every response carries rate-limit headers so you can back off before being throttled. The per-minute ceiling is the same on both tiers; Pro removes the daily cap and the single-key limit.</p>
+      </section>
+
+      <section>
+        <h2>Errors</h2>
+        <p>Errors return the appropriate HTTP status with a machine-readable <code>error</code> string.</p>
+        <div class="api-table-wrap">
+          <table class="api-table">
+            <thead><tr><th>Status</th><th>Error</th><th>Meaning</th></tr></thead>
+            <tbody>
+              <tr><td class="mono">401</td><td class="mono">api_key_required</td><td>No bearer token, or it does not start with <code>ch_live_</code>.</td></tr>
+              <tr><td class="mono">401</td><td class="mono">invalid_api_key</td><td>The key is not recognised or has been revoked.</td></tr>
+              <tr><td class="mono">400</td><td class="mono">commodity_required</td><td><code>cot</code> was called without a <code>commodity</code>.</td></tr>
+              <tr><td class="mono">400</td><td class="mono">invalid_timeframe</td><td>Unsupported <code>timeframe</code>; the response lists the valid values.</td></tr>
+              <tr><td class="mono">404</td><td class="mono">commodity_not_found</td><td>No live price for that commodity name.</td></tr>
+              <tr><td class="mono">404</td><td class="mono">series_not_found</td><td>No fundamentals series with that <code>series_id</code>.</td></tr>
+              <tr><td class="mono">404</td><td class="mono">unknown_resource</td><td>The <code>resource</code> parameter is not one of the five above.</td></tr>
+              <tr><td class="mono">429</td><td class="mono">rate_limited</td><td>More than 60 requests in the current 60-second window for this key.</td></tr>
+              <tr><td class="mono">429</td><td class="mono">trial_daily_limit_exceeded</td><td>A free key passed 50 requests today. Upgrade to remove the cap.</td></tr>
+              <tr><td class="mono">500</td><td class="mono">data_unavailable</td><td>Upstream data problem on our side. Retry.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>Pricing</h2>
+        <div class="api-tiers">
+          <div class="api-tier">
+            <h3>Free</h3>
+            <div class="price">$0</div>
+            <ul>
+              <li>1 API key</li>
+              <li>50 requests per day</li>
+              <li>All five resources</li>
+              <li>No card required</li>
+            </ul>
+          </div>
+          <div class="api-tier featured">
+            <h3>Pro</h3>
+            <div class="price">$19.99<span> /mo</span></div>
+            <ul>
+              <li>Unlimited keys</li>
+              <li>No monthly request cap</li>
+              <li>60 requests/minute per key</li>
+              <li>Everything in the Pro app tier</li>
+            </ul>
+          </div>
+        </div>
+        <div class="api-note">
+          <p><strong>No per-request billing at either tier.</strong> The price is flat — you will never receive a surprise invoice for a backfill.</p>
+        </div>
+      </section>
+
+      <section>
+        <h2>Full reference</h2>
+        <p>This page covers the whole surface. For per-resource request and response examples, field-level schemas, and the machine-readable OpenAPI description, see the <a href="https://app.commodity-hub.eu/developers">developer reference</a> in the app.</p>
+        <p>Commodity Hub is a data and analytics service. It does not execute trades, hold funds, or provide investment advice. Market data is sourced from CME, CBOT, COMEX and NYMEX, positioning from the CFTC, and fundamentals from the EIA, USDA and FRED — always check the <code>generated_at</code> timestamp before citing a number as current.</p>
+      </section>
+
+    </div>
+  </div>
+</section>
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <a class="brand" href="/">
+        <img src="/assets/logo.png" alt="" />
+        <span class="brand-word">Commodity Hub</span>
+      </a>
+      <div class="footer-links">
+        <a href="/commodities">Commodities</a>
+        <a href="/glossary">Glossary</a>
+        <a href="/terms">Terms of Service</a>
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/about">About</a>
+        <a href="https://app.commodity-hub.eu/delete-account">Delete account</a>
+      </div>
+    </div>
+    <div class="footer-fine">
+      Commodity Hub is an information service providing commodity market prices, news, and analytics. It does not execute trades, hold client funds, or provide investment advice. The "Trade" section of the app links to an independent, regulated third party (eToro); Commodity Hub may earn a referral commission from those links. © <span id="year"></span> Commodity Hub. All rights reserved.
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+  var t = document.getElementById('themeToggle');
+  var root = document.documentElement;
+  t.addEventListener('click', function () {
+    var current = root.getAttribute('data-theme');
+    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var effectiveDark = current ? current === 'dark' : prefersDark;
+    root.setAttribute('data-theme', effectiveDark ? 'light' : 'dark');
+  });
+</script>
+</body>
+</html>
