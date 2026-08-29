@@ -30,14 +30,24 @@ const VersionInfo: React.FC = () => {
         if (cap?.isNativePlatform?.()) {
           setPlatform(cap.getPlatform?.() ?? "native");
           try {
-            const mod = await import(/* @vite-ignore */ "@capacitor/app");
-            const info = await mod.App.getInfo();
+            // No /* @vite-ignore */ here — it used to be, and that was the bug:
+            // it told Vite to leave the specifier untouched, so the bundle
+            // shipped a literal import("@capacitor/app"). A WebView can't
+            // resolve a bare specifier without an import map, so this threw on
+            // every native launch and the catch below silently swallowed it —
+            // which is why the native version/build rows never rendered on
+            // device. Plain dynamic import, matching useAndroidBackButton.ts
+            // and useCapacitorAuthDeepLink.ts, lets Vite resolve and bundle it.
+            const { App } = await import("@capacitor/app");
+            const info = await App.getInfo();
             setNativeAppVersion(info.version ?? null);
             setNativeBuild(info.build ?? null);
             setBundleId(info.id ?? null);
             setNativeAppName(info.name ?? null);
-          } catch {
-            // @capacitor/app not available in web build
+          } catch (err) {
+            // Genuinely expected on web (no native bridge). Log rather than
+            // swallow silently so a real native failure is visible next time.
+            console.warn("[VersionInfo] native app info unavailable:", err);
           }
         } else {
           setPlatform("web");

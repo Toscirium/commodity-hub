@@ -102,7 +102,17 @@ export default defineConfig(({ mode }) => ({
     sourcemap: false,
     minify: 'esbuild',
     rollupOptions: {
-      external: ['@capacitor/app', '@capacitor/haptics'],
+      // NOTE: '@capacitor/app' and '@capacitor/haptics' used to be listed as
+      // `external` here, inherited from the initial scaffold commit with no
+      // stated reason. Externalizing a real npm package in a *browser* build
+      // means Rollup emits the bare specifier verbatim — `import("@capacitor/app")`
+      // — and a WebView cannot resolve a bare specifier without an import map,
+      // so every dynamic import of them threw at runtime. Each call site
+      // happened to wrap it in try/catch, so it failed silently: the About
+      // screen's native version/build rows never populated, and
+      // useAndroidBackButton's Capacitor listener never attached (masked by
+      // its ionBackButton "Method 1" fallback). Both are ordinary bundled
+      // dependencies; do not re-add them here.
       output: {
         manualChunks: {
           // Core React chunks
