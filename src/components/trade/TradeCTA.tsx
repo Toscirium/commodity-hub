@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useVisitorCountry } from '@/hooks/useVisitorCountry';
+import { useProView } from '@/contexts/ProViewContext';
 import {
   AFFILIATE_PROVIDERS,
   buildAffiliateUrl,
@@ -33,12 +34,18 @@ interface TradeCTAProps {
  * Also hidden by country per each provider's own compliance restrictions
  * (e.g. eToro's CFD guidelines exclude US/AU/ES) — see
  * isProviderAvailableInCountry() in src/config/affiliates.ts.
+ *
+ * Also hidden entirely in the professional view (see ProViewContext) — a
+ * CFD affiliate CTA is the opposite of what a firm evaluating this as a
+ * price-reference tool should see; unlike the tier/country checks above,
+ * this isn't compliance, it's presentation for a specific audience.
  */
 const TradeCTA: React.FC<TradeCTAProps> = ({ symbol, commodityName, className }) => {
   const auth = useAuth();
   const tier = auth?.tier ?? 'free';
-  const { country, isLoading: countryLoading } = useVisitorCountry({ enabled: tier === 'free' });
-  if (tier !== 'free') return null;
+  const { isProView } = useProView();
+  const { country, isLoading: countryLoading } = useVisitorCountry({ enabled: tier === 'free' && !isProView });
+  if (tier !== 'free' || isProView) return null;
 
   const handleClick = (provider: AffiliateProvider) => {
     const url = buildAffiliateUrl(provider, symbol);

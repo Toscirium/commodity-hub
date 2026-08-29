@@ -14,6 +14,7 @@ import { Toaster as RadixToaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { RealtimeDataProvider } from '@/contexts/RealtimeDataContext';
+import { ProViewProvider } from '@/contexts/ProViewContext';
 import { createOptimizedQueryClient } from '@/lib/queryClient';
 import { useCapacitorAuthDeepLink } from '@/hooks/useCapacitorAuthDeepLink';
 import { useDesktopAuthDeepLink } from '@/hooks/useDesktopAuthDeepLink';
@@ -29,6 +30,7 @@ import MobileBottomNavigation from '@/components/mobile/MobileBottomNavigation';
 // Lazy-load every non-critical route so initial Dashboard paint stays fast
 // and route transitions only fetch what they need.
 const NotFound = lazy(() => import('@/pages/NotFound'));
+const ProModeEntry = lazy(() => import('@/pages/ProModeEntry'));
 const Portfolio = lazy(() => import('@/pages/Portfolio'));
 const MarketStatus = lazy(() => import('@/pages/MarketStatus'));
 const APIComparison = lazy(() => import('@/pages/APIComparison'));
@@ -102,6 +104,7 @@ const App = () => {
           <BrowserRouter>
           <TooltipProvider>
             <RealtimeDataProvider>
+             <ProViewProvider>
               <AnalyticsBridge />
               <SEOHead />
               <BillingStatusBanner />
@@ -183,12 +186,14 @@ const App = () => {
                 <Route path="/admin/catalog-audit" element={<CatalogAudit />} />
                 <Route path="/admin/data-api-usage" element={<DataApiUsage />} />
                 <Route path="/admin/feedback" element={<FeedbackInbox />} />
+                <Route path="/pro" element={<ProModeEntry />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <MobileBottomNavigation />
               </Suspense>
               <Toaster />
               <RadixToaster />
+             </ProViewProvider>
             </RealtimeDataProvider>
           </TooltipProvider>
         </BrowserRouter>

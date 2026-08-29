@@ -6,13 +6,24 @@ import {
 import { useSidebar } from "@/components/ui/sidebar";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useProView } from "@/contexts/ProViewContext";
 import { MARKET_TOOLS, COMMUNITY_TOOLS, ACTIVITY_TOOLS, PRO_TOOLS } from "./constants";
+
+// Nav items suppressed in the professional view (see ProViewContext) — the
+// Trade/CFD affiliate section and Portfolio's speculative-position framing
+// don't fit a firm referencing prices for settlement, and Market Sentiment
+// voting reads as a retail/community feature to that audience.
+const HIDDEN_IN_PRO_VIEW = new Set(["trade", "portfolio", "sentiment"]);
 
 const MarketToolsList = () => {
   const { setOpenMobile } = useSidebar();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const isMobile = useIsMobile();
+  const { isProView } = useProView();
+
+  const visible = <T extends { id: string }>(tools: T[]) =>
+    isProView ? tools.filter((t) => !HIDDEN_IN_PRO_VIEW.has(t.id)) : tools;
 
   const handleNavigate = (path: string) => {
     navigate(path);
@@ -51,7 +62,7 @@ const MarketToolsList = () => {
       <SidebarGroup>
         <SidebarGroupLabel className={sectionLabel}>Tools</SidebarGroupLabel>
         <SidebarGroupContent>
-          <div className={sectionList}>{MARKET_TOOLS.map(renderToolButton)}</div>
+          <div className={sectionList}>{visible(MARKET_TOOLS).map(renderToolButton)}</div>
         </SidebarGroupContent>
       </SidebarGroup>
 
@@ -65,7 +76,7 @@ const MarketToolsList = () => {
       <SidebarGroup>
         <SidebarGroupLabel className={sectionLabel}>Insights</SidebarGroupLabel>
         <SidebarGroupContent>
-          <div className={sectionList}>{COMMUNITY_TOOLS.map(renderToolButton)}</div>
+          <div className={sectionList}>{visible(COMMUNITY_TOOLS).map(renderToolButton)}</div>
         </SidebarGroupContent>
       </SidebarGroup>
 
