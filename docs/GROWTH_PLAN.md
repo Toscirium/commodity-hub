@@ -1,5 +1,10 @@
 # Commodity Hub — Growth & Revenue Plan
 
+> **⚠️ SUPERSEDED (2026-08-29).** Kept for the Semrush keyword research in §1, which is still
+> useful. Everything else is stale: price alerts, CSV export, multi-portfolio, the Premium/Pro
+> split at $6.99/$19.99, and API access have all since shipped, so the recommendations below are
+> mostly already done. See `MARKETING_PLAN.md` and `GROWTH_PLAN_2026H2.md` for current strategy.
+
 Last updated: 2026-05-24. Sources: Semrush (US database, May 2026), current paywall code, RevenueCat config.
 
 ---
