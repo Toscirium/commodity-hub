@@ -253,22 +253,25 @@ const openApiSpec = {
     "/data-api": {
       get: {
         summary: "Query your data-api key's resources",
-        description: "Free to start: any signed-in account can create a key at /exports (50 requests/day, 1 key). Pro removes both caps (unlimited keys, 60 requests/minute per key, no monthly ceiling — no per-request billing at any tier). Authenticate with `Authorization: Bearer ch_live_...`. Choose a resource via the `resource` query param.",
+        description: "Free to start: any signed-in account can create a key at /exports (50 requests/day, 1 key), covering prices/cot/fundamentals/sentiment/portfolio/watchlists/alerts. Pro removes both request caps (unlimited keys, 60 requests/minute per key, no monthly ceiling — no per-request billing at any tier) and unlocks vol_cone/roll_scanner/term_structure. The news resource separately needs a Premium or Pro subscription on the account, independent of the key's own free/Pro status. Authenticate with `Authorization: Bearer ch_live_...`. Choose a resource via the `resource` query param.",
         tags: ["Data API"],
         security: [{ "apiKeyAuth": [] }],
         parameters: [
-          { name: "resource", in: "query", schema: { type: "string", enum: ["prices", "portfolio", "watchlists", "cot", "fundamentals"] }, description: "Defaults to 'portfolio'." },
-          { name: "commodity", in: "query", schema: { type: "string" }, description: "resource=prices: optional, e.g. 'WTI Crude Oil' — omit for all commodities. resource=cot: required." },
+          { name: "resource", in: "query", schema: { type: "string", enum: ["prices", "portfolio", "watchlists", "cot", "fundamentals", "alerts", "sentiment", "news", "vol_cone", "roll_scanner", "term_structure"] }, description: "Defaults to 'portfolio'." },
+          { name: "commodity", in: "query", schema: { type: "string" }, description: "resource=prices/sentiment: optional full display name (e.g. 'WTI Crude Oil') — omit for all commodities. resource=cot: required, same display-name format. resource=vol_cone/term_structure: required, but a SHORT SLUG instead (wti, brent, gold, silver, copper, platinum, palladium, corn, wheat, soybeans, cattle, hogs, lumber) — a different namespace, not the display name." },
           { name: "timeframe", in: "query", schema: { type: "string", enum: ["1d", "1m", "3m", "6m", "1y", "2y"] }, description: "resource=prices only, requires commodity. Omit for the current price; set for historical chart data instead." },
-          { name: "limit", in: "query", schema: { type: "integer" }, description: "resource=cot only. Weekly reports to return, default 52, max 520." },
+          { name: "limit", in: "query", schema: { type: "integer" }, description: "resource=cot: weekly reports to return, default 52, max 520. resource=news: articles to return, default 20, max 100." },
           { name: "series_id", in: "query", schema: { type: "string" }, description: "resource=fundamentals only. Returns one series with its full observation history, e.g. 'PET.WCESTUS1.W'." },
-          { name: "dataset", in: "query", schema: { type: "string" }, description: "resource=fundamentals only, ignored if series_id is set. Filters the series list, e.g. 'petroleum'." }
+          { name: "dataset", in: "query", schema: { type: "string" }, description: "resource=fundamentals only, ignored if series_id is set. Filters the series list, e.g. 'petroleum'." },
+          { name: "category", in: "query", schema: { type: "string", enum: ["energy", "metals", "grains", "livestock", "softs", "economic", "geopolitical", "general"] }, description: "resource=news only. Omit for all categories." },
+          { name: "months_ahead", in: "query", schema: { type: "integer", minimum: 3, maximum: 18 }, description: "resource=term_structure only. How far out the curve extends. Default 12." }
         ],
         responses: {
-          "200": { description: "Successful response", content: { "application/json": { schema: { type: "object", properties: { data: {}, generated_at: { type: "string", format: "date-time" } } } } } },
-          "400": { description: "commodity_required (resource=cot) or invalid_timeframe (resource=prices)" },
+          "200": { description: "Successful response. vol_cone/roll_scanner/term_structure payloads additionally carry `stale: true` if the underlying cache is more than 6h old.", content: { "application/json": { schema: { type: "object", properties: { data: {}, generated_at: { type: "string", format: "date-time" } } } } } },
+          "400": { description: "commodity_required (resource=cot/vol_cone/term_structure), invalid_commodity (resource=vol_cone/term_structure), invalid_months_ahead (resource=term_structure), or invalid_timeframe (resource=prices)" },
           "401": { description: "api_key_required or invalid_api_key" },
-          "404": { description: "commodity_not_found (resource=prices), series_not_found (resource=fundamentals), or unknown_resource" },
+          "403": { description: "premium_required (resource=news, needs an active Premium or Pro subscription) or pro_required (resource=vol_cone/roll_scanner/term_structure, needs an active Pro subscription)" },
+          "404": { description: "commodity_not_found (resource=prices), series_not_found (resource=fundamentals), snapshot_not_available (resource=vol_cone/roll_scanner/term_structure — no cached value exists yet; these never compute live on request), or unknown_resource" },
           "429": { description: "rate_limited (60/min, all tiers) or trial_daily_limit_exceeded (50/day, non-Pro only)" }
         }
       }
@@ -341,7 +344,7 @@ const openApiSpec = {
     { name: "Commodities", description: "Commodity data and pricing" },
     { name: "Trading", description: "Trading instruments and contracts" },
     { name: "Billing", description: "Subscription and billing management" },
-    { name: "Data API", description: "Pro-tier programmatic access to portfolio, watchlist, COT, and fundamentals data" }
+    { name: "Data API", description: "Programmatic access to prices, COT, fundamentals, news, sentiment, curve analytics, and your own portfolio/watchlist/alert data — free to start, some resources need Premium or Pro" }
   ]
 };
 

@@ -63,13 +63,13 @@
     <div class="doc doc-wide">
       <div class="eyebrow">REST · JSON · No per-request billing</div>
       <h1>Commodity Data API</h1>
-      <p class="doc-lede">Live and historical prices, CFTC Commitment of Traders positioning, and EIA/USDA/FRED fundamentals — over one REST endpoint. Free key, no card required.</p>
+      <p class="doc-lede">Live and historical prices, CFTC Commitment of Traders positioning, EIA/USDA/FRED fundamentals, news, sentiment, your own alerts — plus curve analytics you won't find on any other commodity API. Free key, no card required.</p>
       <div class="api-ctas">
         <a class="btn btn-brass" href="https://app.commodity-hub.eu/exports">Get a free key</a>
         <a class="btn btn-line" href="https://app.commodity-hub.eu/developers">Full reference</a>
       </div>
       <div class="api-facts">
-        <div><span class="num">5</span><span class="label">Resources</span></div>
+        <div><span class="num">11</span><span class="label">Resources</span></div>
         <div><span class="num">50</span><span class="label">Free req/day</span></div>
         <div><span class="num">60</span><span class="label">Req/min</span></div>
         <div><span class="num">$0</span><span class="label">To start</span></div>
@@ -107,38 +107,80 @@ curl -H <span class="k">"Authorization: Bearer ch_live_YOUR_KEY"</span> \
         <p>One endpoint, selected with the <code>resource</code> query parameter. The base URL is <code>https://kcxhsmlqqyarhlmcapmj.supabase.co/functions/v1/data-api</code>.</p>
         <div class="api-table-wrap">
           <table class="api-table">
-            <thead><tr><th>Resource</th><th>Parameters</th><th>Returns</th></tr></thead>
+            <thead><tr><th>Resource</th><th>Tier</th><th>Parameters</th><th>Returns</th></tr></thead>
             <tbody>
               <tr>
                 <td class="mono">prices</td>
+                <td>Free</td>
                 <td class="mono">commodity, timeframe</td>
                 <td>No parameters returns the full live catalogue. With <code>commodity</code>, the current price. Add <code>timeframe</code> — one of <code>1d 1m 3m 6m 1y 2y</code> — for a historical series.</td>
               </tr>
               <tr>
                 <td class="mono">cot</td>
+                <td>Free</td>
                 <td class="mono">commodity (required), limit</td>
                 <td>Weekly CFTC positioning — managed money and commercial longs/shorts, net position, open interest. <code>limit</code> defaults to 52 weeks, maximum 520.</td>
               </tr>
               <tr>
                 <td class="mono">fundamentals</td>
+                <td>Free</td>
                 <td class="mono">series_id, dataset</td>
                 <td>EIA, USDA and FRED series with latest value, week-on-week and year-on-year change, and a five-year average. A <code>series_id</code> returns the full observation history; without one you get the list.</td>
               </tr>
               <tr>
+                <td class="mono">sentiment</td>
+                <td>Free</td>
+                <td class="mono">commodity</td>
+                <td>Community bullish/bearish votes per commodity — the same aggregate the in-app sentiment page shows. Omit <code>commodity</code> for every commodity's aggregate.</td>
+              </tr>
+              <tr>
+                <td class="mono">news</td>
+                <td>Premium+</td>
+                <td class="mono">category, limit</td>
+                <td>The RSS-based news feed. <code>category</code> filters to one of energy, metals, grains, livestock, softs, economic, geopolitical, general. <code>limit</code> defaults to 20, maximum 100.</td>
+              </tr>
+              <tr>
+                <td class="mono">vol_cone</td>
+                <td>Pro</td>
+                <td class="mono">commodity (required)</td>
+                <td>Historical realized volatility — annualized, over rolling 10/20/60/120-day windows, with percentile rank against the last ~5 years. Reads a cache; see the note below.</td>
+              </tr>
+              <tr>
+                <td class="mono">roll_scanner</td>
+                <td>Pro</td>
+                <td class="mono">—</td>
+                <td>Roll yield across every covered contract, ranked contango-to-backwardation, in one call. Always the full universe — no <code>commodity</code> param. Reads a cache; see the note below.</td>
+              </tr>
+              <tr>
+                <td class="mono">term_structure</td>
+                <td>Pro</td>
+                <td class="mono">commodity (required), months_ahead</td>
+                <td>The forward curve, plus the same contracts priced 1 week and 1 month ago, so you can see how the shape shifted. <code>months_ahead</code> is 3–18, default 12. Reads a cache; see the note below.</td>
+              </tr>
+              <tr>
                 <td class="mono">portfolio</td>
+                <td>Free</td>
                 <td class="mono">—</td>
                 <td>Your own positions — commodity, quantity, entry price and date, notes.</td>
               </tr>
               <tr>
                 <td class="mono">watchlists</td>
+                <td>Free</td>
                 <td class="mono">—</td>
                 <td>Your own watchlists and their items.</td>
+              </tr>
+              <tr>
+                <td class="mono">alerts</td>
+                <td>Free</td>
+                <td class="mono">—</td>
+                <td>Your own price alerts — condition, target price, whether it's active, when it last fired. Read-only for now.</td>
               </tr>
             </tbody>
           </table>
         </div>
         <div class="api-note">
-          <p><code>portfolio</code> and <code>watchlists</code> are scoped to the account that owns the key. The other three are market data and identical for everyone.</p>
+          <p><code>portfolio</code>, <code>watchlists</code> and <code>alerts</code> are scoped to the account that owns the key. <code>news</code> needs an active Premium or Pro subscription on that account — the same gate the in-app news page uses, re-checked on every request. <code>vol_cone</code>, <code>roll_scanner</code> and <code>term_structure</code> need Pro. Everything else is market data, identical for everyone, on the free tier.</p>
+          <p><strong>vol_cone / roll_scanner / term_structure</strong> take a short product slug — <code>wti brent gold silver copper platinum palladium corn wheat soybeans cattle hogs lumber</code> — not the full display name (<code>"WTI Crude Oil"</code>) that <code>prices</code> and <code>cot</code> use. They also never compute on demand: each one reads a cache the app itself keeps warm, refreshed roughly every 6 hours by real usage. That means a product nobody has opened in the app recently can return <code>404 snapshot_not_available</code> — open the equivalent page in the app once to seed it — and a successful response can carry <code>"stale": true</code> if the cache is older than 6 hours. This is deliberate: it keeps a public API key from being able to trigger cost on our paid market-data provider just by being polled.</p>
         </div>
       </section>
 
@@ -167,11 +209,16 @@ curl -H <span class="k">"Authorization: Bearer ch_live_YOUR_KEY"</span> \
             <tbody>
               <tr><td class="mono">401</td><td class="mono">api_key_required</td><td>No bearer token, or it does not start with <code>ch_live_</code>.</td></tr>
               <tr><td class="mono">401</td><td class="mono">invalid_api_key</td><td>The key is not recognised or has been revoked.</td></tr>
-              <tr><td class="mono">400</td><td class="mono">commodity_required</td><td><code>cot</code> was called without a <code>commodity</code>.</td></tr>
+              <tr><td class="mono">400</td><td class="mono">commodity_required</td><td><code>cot</code>, <code>vol_cone</code>, or <code>term_structure</code> was called without a <code>commodity</code>.</td></tr>
+              <tr><td class="mono">400</td><td class="mono">invalid_commodity</td><td><code>vol_cone</code>/<code>term_structure</code> commodity wasn't one of the short slugs — the response lists the valid ones.</td></tr>
+              <tr><td class="mono">400</td><td class="mono">invalid_months_ahead</td><td><code>term_structure</code> <code>months_ahead</code> must be an integer from 3 to 18.</td></tr>
               <tr><td class="mono">400</td><td class="mono">invalid_timeframe</td><td>Unsupported <code>timeframe</code>; the response lists the valid values.</td></tr>
+              <tr><td class="mono">403</td><td class="mono">premium_required</td><td><code>news</code> needs an active Premium or Pro subscription.</td></tr>
+              <tr><td class="mono">403</td><td class="mono">pro_required</td><td><code>vol_cone</code>, <code>roll_scanner</code> or <code>term_structure</code> needs an active Pro subscription.</td></tr>
               <tr><td class="mono">404</td><td class="mono">commodity_not_found</td><td>No live price for that commodity name.</td></tr>
               <tr><td class="mono">404</td><td class="mono">series_not_found</td><td>No fundamentals series with that <code>series_id</code>.</td></tr>
-              <tr><td class="mono">404</td><td class="mono">unknown_resource</td><td>The <code>resource</code> parameter is not one of the five above.</td></tr>
+              <tr><td class="mono">404</td><td class="mono">snapshot_not_available</td><td>No cached value exists yet for that <code>vol_cone</code>/<code>roll_scanner</code>/<code>term_structure</code> request — see the Resources note above.</td></tr>
+              <tr><td class="mono">404</td><td class="mono">unknown_resource</td><td>The <code>resource</code> parameter did not match a known value.</td></tr>
               <tr><td class="mono">429</td><td class="mono">rate_limited</td><td>More than 60 requests in the current 60-second window for this key.</td></tr>
               <tr><td class="mono">429</td><td class="mono">trial_daily_limit_exceeded</td><td>A free key passed 50 requests today. Upgrade to remove the cap.</td></tr>
               <tr><td class="mono">500</td><td class="mono">data_unavailable</td><td>Upstream data problem on our side. Retry.</td></tr>
@@ -189,7 +236,7 @@ curl -H <span class="k">"Authorization: Bearer ch_live_YOUR_KEY"</span> \
             <ul>
               <li>1 API key</li>
               <li>50 requests per day</li>
-              <li>All five resources</li>
+              <li>prices, cot, fundamentals, sentiment, portfolio, watchlists, alerts</li>
               <li>No card required</li>
             </ul>
           </div>
@@ -200,12 +247,14 @@ curl -H <span class="k">"Authorization: Bearer ch_live_YOUR_KEY"</span> \
               <li>Unlimited keys</li>
               <li>No monthly request cap</li>
               <li>60 requests/minute per key</li>
+              <li>Every resource, including vol_cone, roll_scanner, and term_structure</li>
               <li>Everything in the Pro app tier</li>
             </ul>
           </div>
         </div>
         <div class="api-note">
           <p><strong>No per-request billing at either tier.</strong> The price is flat — you will never receive a surprise invoice for a backfill.</p>
+          <p>The <code>news</code> resource is the one exception to the two tiers above: it needs an active <strong>Premium</strong> subscription on the account, not just a paid API key — Premium is the app's $6.99/mo tier, sold separately from API access. See the Resources table for exactly which resource needs which tier.</p>
         </div>
       </section>
 

@@ -30,6 +30,8 @@ type Resource = {
   id: string;
   title: string;
   description: string;
+  /** Unset = available on the free trial. Set = gated the same as the app itself. */
+  tier?: 'premium' | 'pro';
   params: { name: string; required?: boolean; note: string }[];
   example: string;
   response: string;
@@ -169,15 +171,163 @@ curl "${BASE_URL}?resource=fundamentals&series_id=PET.WCESTUS1.W" \\
   "generated_at": "2026-08-27T12:00:00.000Z"
 }`,
   },
+  {
+    id: 'alerts',
+    title: 'resource=alerts',
+    description: 'Your saved price alerts.',
+    params: [],
+    example: `curl "${BASE_URL}?resource=alerts" \\
+  -H "Authorization: Bearer ch_live_..."`,
+    response: `{
+  "data": [
+    {
+      "id": "b7c1...",
+      "commodity_name": "WTI Crude Oil",
+      "commodity_symbol": "CL",
+      "condition": "below",
+      "target_price": 75,
+      "is_active": true,
+      "last_triggered_at": null,
+      "cooldown_minutes": 60,
+      "note": null,
+      "created_at": "2026-07-02T10:00:00.000Z"
+    }
+  ],
+  "generated_at": "2026-08-29T12:00:00.000Z"
+}`,
+  },
+  {
+    id: 'sentiment',
+    title: 'resource=sentiment',
+    description: 'Community bullish/bearish votes per commodity. Free — same as the in-app sentiment page.',
+    params: [
+      { name: 'commodity', note: "e.g. 'WTI Crude Oil'. Omit to get every commodity's aggregate." },
+    ],
+    example: `curl "${BASE_URL}?resource=sentiment&commodity=WTI%20Crude%20Oil" \\
+  -H "Authorization: Bearer ch_live_..."`,
+    response: `{
+  "data": [
+    {
+      "commodity_name": "WTI Crude Oil",
+      "bullish_votes": 412,
+      "bearish_votes": 287,
+      "total_votes": 699,
+      "average_confidence": 3.4,
+      "last_updated": "2026-08-29T09:00:00.000Z"
+    }
+  ],
+  "generated_at": "2026-08-29T12:00:00.000Z"
+}`,
+  },
+  {
+    id: 'news',
+    title: 'resource=news',
+    description: 'The RSS-based commodity news feed, filterable by category.',
+    tier: 'premium',
+    params: [
+      { name: 'category', note: 'One of energy, metals, grains, livestock, softs, economic, geopolitical, general.' },
+      { name: 'limit', note: 'Articles to return. Default 20, max 100.' },
+    ],
+    example: `curl "${BASE_URL}?resource=news&category=energy&limit=10" \\
+  -H "Authorization: Bearer ch_live_..."`,
+    response: `{
+  "data": [
+    {
+      "title": "EIA cuts 2027 crude production forecast",
+      "description": "...",
+      "url": "https://...",
+      "source_name": "OilPrice.com",
+      "category": "energy",
+      "published_at": "2026-08-29T08:12:00.000Z"
+    }
+  ],
+  "generated_at": "2026-08-29T12:00:00.000Z"
+}`,
+  },
+  {
+    id: 'vol_cone',
+    title: 'resource=vol_cone',
+    description: 'Historical realized volatility cone — annualized vol over rolling 10/20/60/120-day windows, with percentile ranks against the last ~5 years.',
+    tier: 'pro',
+    params: [
+      { name: 'commodity', required: true, note: "A short slug — wti, brent, gold, silver, copper, platinum, palladium, corn, wheat, soybeans, cattle, hogs, or lumber. NOT the full display name prices/cot use." },
+    ],
+    example: `curl "${BASE_URL}?resource=vol_cone&commodity=wti" \\
+  -H "Authorization: Bearer ch_live_..."`,
+    response: `{
+  "data": {
+    "commodity": "wti",
+    "label": "WTI Crude",
+    "asOf": "2026-08-28",
+    "currentVol": 31.2,
+    "percentile1y": 64,
+    "headlineWindow": 20,
+    "cone": [
+      { "window": 10, "current": 29.8, "min": 14.1, "p25": 21.3, "median": 27.6, "p75": 34.9, "max": 61.2 }
+    ],
+    "stale": false
+  },
+  "generated_at": "2026-08-29T12:00:00.000Z"
+}`,
+  },
+  {
+    id: 'roll_scanner',
+    title: 'resource=roll_scanner',
+    description: 'Roll yield across every Massive-covered contract in one call — ranked by contango/backwardation. No commodity param; always the full universe.',
+    tier: 'pro',
+    params: [],
+    example: `curl "${BASE_URL}?resource=roll_scanner" \\
+  -H "Authorization: Bearer ch_live_..."`,
+    response: `{
+  "data": {
+    "generatedAt": "2026-08-29T06:00:00.000Z",
+    "results": [
+      { "id": "wti", "label": "WTI Crude", "structure": "contango", "rollM1M2": 0.42, "annualizedRoll": 5.04 }
+    ],
+    "stale": false
+  },
+  "generated_at": "2026-08-29T12:00:00.000Z"
+}`,
+  },
+  {
+    id: 'term_structure',
+    title: 'resource=term_structure',
+    description: 'The forward curve for a product, plus the same contracts priced 1 week and 1 month ago — so you can see how the curve shape shifted.',
+    tier: 'pro',
+    params: [
+      { name: 'commodity', required: true, note: 'Short slug — same set as vol_cone.' },
+      { name: 'months_ahead', note: 'How far out the curve extends. 3–18, default 12.' },
+    ],
+    example: `curl "${BASE_URL}?resource=term_structure&commodity=brent&months_ahead=9" \\
+  -H "Authorization: Bearer ch_live_..."`,
+    response: `{
+  "data": {
+    "commodity": "brent",
+    "monthsAhead": 9,
+    "label": "Brent Crude",
+    "asOf": "2026-08-28",
+    "points": [
+      { "symbol": "BZU26", "expiry": "2026-09-30", "monthIdx": 0, "current": 82.14, "weekAgo": 81.90, "monthAgo": 80.55 }
+    ],
+    "stale": false
+  },
+  "generated_at": "2026-08-29T12:00:00.000Z"
+}`,
+  },
 ];
 
 const ERRORS: { status: string; error: string; meaning: string }[] = [
   { status: '401', error: 'api_key_required', meaning: 'No `Authorization: Bearer ch_live_...` header sent.' },
   { status: '401', error: 'invalid_api_key', meaning: 'Key not found, or revoked.' },
-  { status: '400', error: 'commodity_required', meaning: '`resource=cot` was called without a `commodity` param.' },
+  { status: '400', error: 'commodity_required', meaning: 'A `commodity` param is required for cot, vol_cone, and term_structure, and none was sent.' },
+  { status: '400', error: 'invalid_commodity', meaning: '`vol_cone`/`term_structure` commodity must be one of the short slugs listed on that resource.' },
+  { status: '400', error: 'invalid_months_ahead', meaning: '`resource=term_structure` months_ahead must be an integer from 3 to 18.' },
   { status: '400', error: 'invalid_timeframe', meaning: '`resource=prices` timeframe must be one of 1d, 1m, 3m, 6m, 1y, 2y.' },
+  { status: '403', error: 'premium_required', meaning: '`resource=news` needs an active Premium or Pro subscription.' },
+  { status: '403', error: 'pro_required', meaning: '`vol_cone`/`roll_scanner`/`term_structure` need an active Pro subscription.' },
   { status: '404', error: 'commodity_not_found', meaning: '`resource=prices` commodity name didn’t match anything.' },
   { status: '404', error: 'series_not_found', meaning: '`series_id` does not match any fundamentals series.' },
+  { status: '404', error: 'snapshot_not_available', meaning: 'No cached value exists yet for that vol_cone/roll_scanner/term_structure request — these never compute live on-demand (see the note on those resources). Open the equivalent page in the app once to seed it, then retry.' },
   { status: '404', error: 'unknown_resource', meaning: '`resource` was missing/invalid and did not match a known value.' },
   { status: '429', error: 'rate_limited', meaning: 'More than 60 requests in the current 60-second window for this key (all tiers).' },
   { status: '429', error: 'trial_daily_limit_exceeded', meaning: 'Free-trial key made more than 50 requests today. Upgrade to Pro to remove it.' },
@@ -208,9 +358,10 @@ const DeveloperDocs: React.FC = () => {
             <h1 className="text-3xl font-bold tracking-tight">Commodity Hub Data API</h1>
             <p className="max-w-2xl text-muted-foreground">
               Live and historical commodity prices, CFTC Commitments of Traders positioning,
-              EIA/USDA/FRED fundamentals series, and your own saved portfolio and watchlist data.
-              JSON in, JSON out, one header for auth. Free to start — no card, no per-request
-              billing at any tier.
+              EIA/USDA/FRED fundamentals, news, community sentiment, your own portfolio/watchlist/
+              alert data — plus the curve analytics (volatility cone, roll scanner, term structure)
+              that don't exist anywhere else. JSON in, JSON out, one header for auth. Free to start
+              — no card, no per-request billing at any tier.
             </p>
           </div>
 
@@ -293,10 +444,23 @@ const DeveloperDocs: React.FC = () => {
             {RESOURCES.map((r) => (
               <Card key={r.id}>
                 <CardHeader>
-                  <CardTitle className="font-mono text-base">{r.title}</CardTitle>
+                  <CardTitle className="flex flex-wrap items-center gap-2 font-mono text-base">
+                    {r.title}
+                    {r.tier === 'premium' && <Badge variant="secondary">Premium+</Badge>}
+                    {r.tier === 'pro' && <Badge variant="secondary">Pro</Badge>}
+                  </CardTitle>
                   <CardDescription>{r.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {(r.id === 'vol_cone' || r.id === 'roll_scanner' || r.id === 'term_structure') && (
+                    <p className="rounded-md border bg-muted/50 p-3 text-xs text-muted-foreground">
+                      Reads a cache the app itself keeps warm — it never computes live on request, so a
+                      product nobody has opened in the app recently can 404 with{' '}
+                      <code className="rounded bg-muted px-1 py-0.5">snapshot_not_available</code>, and a
+                      successful response can carry <code className="rounded bg-muted px-1 py-0.5">stale: true</code>{' '}
+                      if it's more than 6 hours old. This is deliberate — see the Errors table.
+                    </p>
+                  )}
                   {r.params.length > 0 && (
                     <Table>
                       <TableHeader>
