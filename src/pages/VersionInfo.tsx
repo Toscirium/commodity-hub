@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Copy, Check } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ArrowLeft, Copy, Check, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface InfoRow {
@@ -16,6 +16,7 @@ const VersionInfo: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  const [showTechnical, setShowTechnical] = useState(false);
   const [platform, setPlatform] = useState<string>("web");
   const [nativeAppVersion, setNativeAppVersion] = useState<string | null>(null);
   const [nativeBuild, setNativeBuild] = useState<string | null>(null);
@@ -55,12 +56,26 @@ const VersionInfo: React.FC = () => {
     }
   })();
 
-  const rows: InfoRow[] = [
-    { label: "App Name", value: __APP_NAME__ },
-    ...(nativeAppName ? [{ label: "Native App Name", value: nativeAppName }] : []),
-    { label: "Web Version", value: __APP_VERSION__ },
+  // What a normal user or a support conversation actually needs: which app,
+  // which version, on what. Everything else is diagnostic detail and lives
+  // behind the disclosure below — it used to all be on screen at once, which
+  // read as a debug dump rather than an About page.
+  const primaryRows: InfoRow[] = [
+    { label: "App", value: nativeAppName ?? __APP_NAME__ },
+    {
+      label: "Version",
+      value: nativeAppVersion ?? __APP_VERSION__,
+      mono: true,
+    },
+    { label: "Platform", value: platform },
+  ];
+
+  const technicalRows: InfoRow[] = [
+    // On native the primary "Version" row shows the store version, so the web
+    // bundle version is still worth surfacing here — the two move independently
+    // (an OTA web update ships without a new native build).
     ...(nativeAppVersion
-      ? [{ label: "Native Version", value: nativeAppVersion }]
+      ? [{ label: "Web Bundle Version", value: __APP_VERSION__, mono: true }]
       : []),
     ...(nativeBuild
       ? [{ label: "Native Build Number", value: nativeBuild, mono: true }]
@@ -77,12 +92,15 @@ const VersionInfo: React.FC = () => {
     { label: "Build Mode", value: __BUILD_MODE__ },
     { label: "Build Time", value: buildTime },
     { label: "Commit", value: __BUILD_COMMIT__, mono: true },
-    { label: "Platform", value: platform },
     { label: "User Agent", value: navigator.userAgent, mono: true },
   ];
 
+  // Copy always includes the technical rows even when collapsed — the whole
+  // point of the button is handing a support conversation everything at once.
   const handleCopy = async () => {
-    const text = rows.map((r) => `${r.label}: ${r.value}`).join("\n");
+    const text = [...primaryRows, ...technicalRows]
+      .map((r) => `${r.label}: ${r.value}`)
+      .join("\n");
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -92,6 +110,18 @@ const VersionInfo: React.FC = () => {
       toast({ title: "Copy failed", variant: "destructive" });
     }
   };
+
+  const renderRow = (r: InfoRow) => (
+    <div
+      key={r.label}
+      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 border-b border-border/50 pb-2 last:border-0"
+    >
+      <span className="text-sm text-muted-foreground">{r.label}</span>
+      <span className={`text-sm break-all ${r.mono ? "font-mono" : ""}`}>
+        {r.value}
+      </span>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-6">
@@ -107,33 +137,34 @@ const VersionInfo: React.FC = () => {
 
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Version & Build Info</CardTitle>
-                <CardDescription>
-                  Confirm you're running the latest build.
-                </CardDescription>
-              </div>
-              <Badge variant="secondary">{__BUILD_MODE__}</Badge>
-            </div>
+            <CardTitle>About</CardTitle>
+            <CardDescription>
+              Confirm you're running the latest version.
+            </CardDescription>
             <p className="mt-2 text-xs text-muted-foreground/70">
               © 2026 Consilair OÜ. All rights reserved. This application is the property of Consilair OÜ.
             </p>
           </CardHeader>
           <CardContent className="space-y-3">
-            {rows.map((r) => (
-              <div
-                key={r.label}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 border-b border-border/50 pb-2 last:border-0"
-              >
-                <span className="text-sm text-muted-foreground">{r.label}</span>
-                <span
-                  className={`text-sm break-all ${r.mono ? "font-mono" : ""}`}
+            {primaryRows.map(renderRow)}
+
+            <Collapsible open={showTechnical} onOpenChange={setShowTechnical}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-between px-0 text-muted-foreground hover:text-foreground"
                 >
-                  {r.value}
-                </span>
-              </div>
-            ))}
+                  Technical details
+                  <ChevronDown
+                    className={`h-4 w-4 transition-transform ${showTechnical ? "rotate-180" : ""}`}
+                  />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-3 pt-3">
+                {technicalRows.map(renderRow)}
+              </CollapsibleContent>
+            </Collapsible>
 
             <Button onClick={handleCopy} variant="outline" className="w-full mt-4">
               {copied ? (

@@ -59,7 +59,11 @@ export default defineConfig(({ mode }) => ({
   },
   define: {
     __APP_VERSION__: JSON.stringify(APP_VERSION),
-    __APP_NAME__: JSON.stringify(pkg.name || "commodity-hub"),
+    // Product display name, NOT pkg.name — package.json is still the Lovable
+    // scaffold's "vite_react_shadcn_ts", which was leaking onto the
+    // user-facing About screen. Kept in sync with capacitor.config.ts's
+    // appName by hand (two build systems, no shared source of truth).
+    __APP_NAME__: JSON.stringify("Commodity Hub"),
     __BUILD_TIME__: JSON.stringify(BUILD_TIME),
     __BUILD_COMMIT__: JSON.stringify(GIT_COMMIT),
     __BUILD_MODE__: JSON.stringify(mode),
