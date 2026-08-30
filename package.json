@@ -29,7 +29,8 @@
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "build:addin": "ADDIN_ENTRY=functions vite build --config excel-addin/vite.config.ts && ADDIN_ENTRY=taskpane vite build --config excel-addin/vite.config.ts"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^2.0.48",

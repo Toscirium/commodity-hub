@@ -1,0 +1,30 @@
+{
+  "buildCommand": "npm run build:addin",
+  "outputDirectory": "excel-addin/dist",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "comment": "Office renders the task pane in an iframe in Excel on the web, so this host must NOT send X-Frame-Options: DENY the way the app and landing hosts do. That is the whole reason this deploys separately.",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' https://appsforoffice.microsoft.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src https://kcxhsmlqqyarhlmcapmj.supabase.co; frame-ancestors https://*.officeapps.live.com https://*.office.com https://*.microsoft.com https://*.sharepoint.com; base-uri 'none'" }
+      ]
+    },
+    {
+      "source": "/functions.json",
+      "comment": "Excel fetches metadata cross-origin from its own runtime origin.",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Content-Type", "value": "application/json; charset=utf-8" }
+      ]
+    },
+    {
+      "source": "/manifest.xml",
+      "headers": [
+        { "key": "Content-Type", "value": "text/xml; charset=utf-8" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Commodity Hub</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <link rel="stylesheet" href="./taskpane.css" />
+</head>
+<body>
+  <main class="pane">
+    <header>
+      <h1>Commodity Hub</h1>
+      <p class="sub">Commodity data as Excel formulas.</p>
+    </header>
+
+    <section class="card">
+      <h2>API key</h2>
+      <p class="hint">
+        Create one at <a href="https://app.commodity-hub.eu/exports" target="_blank" rel="noopener">app.commodity-hub.eu/exports</a>.
+        Free tier: 1 key, 50 requests/day, no card.
+      </p>
+      <label for="key">Key</label>
+      <input id="key" type="password" placeholder="ch_live_..." autocomplete="off" spellcheck="false" />
+      <div class="row">
+        <button id="save" type="button">Save key</button>
+        <button id="test" type="button" class="secondary">Test</button>
+        <button id="clear" type="button" class="ghost">Clear</button>
+      </div>
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+      <p class="hint small">
+        Stored in Excel's per-user add-in storage on this device only — never written into the
+        workbook, so sharing the file does not share your key.
+      </p>
+    </section>
+
+    <section class="card">
+      <h2>Formulas</h2>
+      <p class="hint">Type <code>=CH.</code> in a cell to see these with inline help.</p>
+      <dl class="fns">
+        <dt><code>=CH.PRICE("Corn Futures")</code></dt>
+        <dd>Current price, in the exchange's own quote.</dd>
+
+        <dt><code>=CH.PRICE_IN("Corn Futures","USD/t")</code></dt>
+        <dd>Price restated per tonne. CBOT grains quote in <em>cents per bushel</em>, so this is not a cosmetic change.</dd>
+
+        <dt><code>=CH.BASIS("Corn Futures",195,"EUR/t",0.92)</code></dt>
+        <dd>Your cash price minus futures, both in the same unit.</dd>
+
+        <dt><code>=CH.CONVERT("Corn Futures",550.75,"EUR/t",0.92)</code></dt>
+        <dd>Restate a price you already have. No API call, no quota used.</dd>
+
+        <dt><code>=CH.COT("Corn Futures","net_position")</code></dt>
+        <dd>Latest CFTC positioning. Also <code>CH.COT_DATE</code>.</dd>
+
+        <dt><code>=CH.HISTORY("Corn Futures","6m")</code></dt>
+        <dd>Spills a date/close range. One call, many rows.</dd>
+
+        <dt><code>=CH.LOTS_FOR("Corn Futures",1000,"tonne")</code></dt>
+        <dd>Lots needed to hedge that quantity. No API call.</dd>
+
+        <dt><code>=CH.CONTRACT_TONNES("Corn Futures")</code></dt>
+        <dd>Tonnes per contract — 127.01 for corn, 136.08 for wheat.</dd>
+      </dl>
+    </section>
+
+    <section class="card subtle">
+      <h2>Quota</h2>
+      <p class="hint small">
+        Responses are cached for 60 seconds, and identical simultaneous calls share one request —
+        so filling a column doesn't multiply your usage. <code>CONVERT</code>,
+        <code>LOTS_FOR</code>, <code>LOTS_TO_QTY</code> and <code>CONTRACT_TONNES</code>
+        are pure maths and never call the API at all.
+      </p>
+    </section>
+  </main>
+  <script type="module" src="./taskpane.js"></script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/office-js/custom-functions.schema.json",
+  "functions": [
+    {
+      "id": "PRICE",
+      "name": "PRICE",
+      "description": "Current price for a commodity, in its native exchange quote.",
+      "helpUrl": "https://commodity-hub.eu/api",
+      "result": { "type": "number" },
+      "parameters": [
+        { "name": "commodity", "description": "Commodity name, e.g. \"Corn Futures\".", "type": "string" }
+      ]
+    },
+    {
+      "id": "PRICE_IN",
+      "name": "PRICE_IN",
+      "description": "Current price converted into a chosen unit. CBOT grains quote in cents per bushel; USD/t restates that properly.",
+      "helpUrl": "https://commodity-hub.eu/api",
+      "result": { "type": "number" },
+      "parameters": [
+        { "name": "commodity", "description": "Commodity name, e.g. \"Corn Futures\".", "type": "string" },
+        { "name": "unit", "description": "native, USD/bu, USD/t or EUR/t.", "type": "string" },
+        { "name": "eurRate", "description": "USD to EUR rate. Required for EUR/t.", "type": "number", "optional": true }
+      ]
+    },
+    {
+      "id": "BASIS",
+      "name": "BASIS",
+      "description": "Cash price minus futures, both restated into the same unit before subtracting.",
+      "helpUrl": "https://commodity-hub.eu/api",
+      "result": { "type": "number" },
+      "parameters": [
+        { "name": "commodity", "description": "Commodity name, e.g. \"Corn Futures\".", "type": "string" },
+        { "name": "cashPrice", "description": "Your local cash price.", "type": "number" },
+        { "name": "unit", "description": "Unit your cash price is in: native, USD/bu, USD/t or EUR/t.", "type": "string" },
+        { "name": "eurRate", "description": "USD to EUR rate. Required for EUR/t.", "type": "number", "optional": true }
+      ]
+    },
+    {
+      "id": "CONVERT",
+      "name": "CONVERT",
+      "description": "Converts a price you already have between commodity units. No API call.",
+      "helpUrl": "https://commodity-hub.eu/api",
+      "result": { "type": "number" },
+      "parameters": [
+        { "name": "commodity", "description": "Commodity name, e.g. \"Corn Futures\".", "type": "string" },
+        { "name": "nativeQuote", "description": "A price in the exchange's native quote.", "type": "number" },
+        { "name": "unit", "description": "Target unit: native, USD/bu, USD/t or EUR/t.", "type": "string" },
+        { "name": "eurRate", "description": "USD to EUR rate. Required for EUR/t.", "type": "number", "optional": true }
+      ]
+    },
+    {
+      "id": "COT",
+      "name": "COT",
+      "description": "Latest CFTC Commitment of Traders figure for a commodity.",
+      "helpUrl": "https://commodity-hub.eu/api",
+      "result": { "type": "number" },
+      "parameters": [
+        { "name": "commodity", "description": "Commodity name, e.g. \"Corn Futures\".", "type": "string" },
+        { "name": "field", "description": "net_position, managed_money_long, managed_money_short, commercials_long, commercials_short or open_interest.", "type": "string" }
+      ]
+    },
+    {
+      "id": "COT_DATE",
+      "name": "COT_DATE",
+      "description": "Date of the latest COT report held for a commodity.",
+      "helpUrl": "https://commodity-hub.eu/api",
+      "result": { "type": "string" },
+      "parameters": [
+        { "name": "commodity", "description": "Commodity name, e.g. \"Corn Futures\".", "type": "string" }
+      ]
+    },
+    {
+      "id": "HISTORY",
+      "name": "HISTORY",
+      "description": "Historical prices as a spilled two-column range: date and close.",
+      "helpUrl": "https://commodity-hub.eu/api",
+      "result": { "type": "any", "dimensionality": "matrix" },
+      "parameters": [
+        { "name": "commodity", "description": "Commodity name, e.g. \"Corn Futures\".", "type": "string" },
+        { "name": "timeframe", "description": "1d, 1m, 3m, 6m, 1y or 2y.", "type": "string" }
+      ]
+    },
+    {
+      "id": "CONTRACT_TONNES",
+      "name": "CONTRACT_TONNES",
+      "description": "Size of one futures contract in metric tonnes. No API call.",
+      "helpUrl": "https://commodity-hub.eu/api",
+      "result": { "type": "number" },
+      "parameters": [
+        { "name": "commodity", "description": "Commodity name, e.g. \"Corn Futures\".", "type": "string" }
+      ]
+    },
+    {
+      "id": "LOTS_FOR",
+      "name": "LOTS_FOR",
+      "description": "How many futures lots hedge a given physical quantity. No API call.",
+      "helpUrl": "https://commodity-hub.eu/api",
+      "result": { "type": "number" },
+      "parameters": [
+        { "name": "commodity", "description": "Commodity name, e.g. \"Corn Futures\".", "type": "string" },
+        { "name": "quantity", "description": "Physical quantity to hedge.", "type": "number" },
+        { "name": "quantityUnit", "description": "tonne, bushel or short-ton.", "type": "string" }
+      ]
+    },
+    {
+      "id": "LOTS_TO_QTY",
+      "name": "LOTS_TO_QTY",
+      "description": "Physical quantity represented by a number of futures lots. No API call.",
+      "helpUrl": "https://commodity-hub.eu/api",
+      "result": { "type": "number" },
+      "parameters": [
+        { "name": "commodity", "description": "Commodity name, e.g. \"Corn Futures\".", "type": "string" },
+        { "name": "lots", "description": "Number of contracts.", "type": "number" },
+        { "name": "quantityUnit", "description": "tonne, bushel or short-ton.", "type": "string" }
+      ]
+    }
+  ]
+}
