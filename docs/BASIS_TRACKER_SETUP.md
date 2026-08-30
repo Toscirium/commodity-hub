@@ -68,6 +68,38 @@ Diff the result against what's there now — it should be a no-op for
 `basis_entries` if the hand-written version was correct, and will tell you
 immediately if it wasn't.
 
+## Status: applied 2026-08-30
+
+Both migrations are live on `kcxhsmlqqyarhlmcapmj`:
+- `20260830090000_basis_entries.sql`
+- `20260830120000_fix_pro_tier_gate_null_handling.sql` (see below)
+
+Types were regenerated and diffed: the hand-written `basis_entries` block in
+`src/integrations/supabase/types.ts` was **byte-identical** to what Supabase
+generates from the live schema, so it was left in place. The generated file
+does differ elsewhere (80 tables vs 41, adds the `graphql_public` schema,
+PostgrestVersion 14.1 -> 14.5) — that's unrelated pre-existing drift, worth a
+separate regeneration commit rather than bundling it here.
+
+## The fail-open bug this deploy surfaced
+
+Functionally testing the Pro gate immediately after applying the first
+migration — inserting as a user with no `profiles` row — showed the insert
+**succeeding** when it should have been blocked.
+
+`public.get_user_tier()` selects `FROM public.profiles WHERE id = _user_id`,
+so a user with no profile row yields NULL rather than `'free'` (the CASE's
+`ELSE 'free'` only applies to a row that exists). The trigger's
+`IF tier <> 'pro'` then evaluated `NULL <> 'pro'` -> NULL, not TRUE, so it
+never raised. `20260830120000` switches both this and the identically-affected
+`enforce_user_spreads_pro` to null-safe `IS DISTINCT FROM`.
+
+Re-tested after the fix: same insert now correctly fails with
+`23514: Basis tracking requires Pro tier`.
+
+**Worth noting for future tier gates:** any new `enforce_*_pro`-style trigger
+should use `IS DISTINCT FROM`, not `<>`, for exactly this reason.
+
 ## Verify
 
 ```sql
