@@ -232,9 +232,11 @@ export type Database = {
           created_at: string
           entry_date: string
           futures_price: number
+          fx_rate: number | null
           id: string
           location: string
           notes: string | null
+          price_unit: string
           updated_at: string
           user_id: string
         }
@@ -246,9 +248,11 @@ export type Database = {
           created_at?: string
           entry_date?: string
           futures_price: number
+          fx_rate?: number | null
           id?: string
           location: string
           notes?: string | null
+          price_unit?: string
           updated_at?: string
           user_id: string
         }
@@ -260,9 +264,74 @@ export type Database = {
           created_at?: string
           entry_date?: string
           futures_price?: number
+          fx_rate?: number | null
           id?: string
           location?: string
           notes?: string | null
+          price_unit?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      hedged_positions: {
+        Row: {
+          cash_price: number
+          closed_date: string | null
+          commodity_name: string
+          created_at: string
+          futures_contract_month: string | null
+          futures_lots: number
+          futures_price: number | null
+          fx_rate: number | null
+          id: string
+          location: string
+          notes: string | null
+          opened_date: string
+          physical_quantity: number
+          physical_side: string
+          physical_unit: string
+          price_unit: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cash_price: number
+          closed_date?: string | null
+          commodity_name: string
+          created_at?: string
+          futures_contract_month?: string | null
+          futures_lots?: number
+          futures_price?: number | null
+          fx_rate?: number | null
+          id?: string
+          location: string
+          notes?: string | null
+          opened_date?: string
+          physical_quantity: number
+          physical_side: string
+          physical_unit: string
+          price_unit?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cash_price?: number
+          closed_date?: string | null
+          commodity_name?: string
+          created_at?: string
+          futures_contract_month?: string | null
+          futures_lots?: number
+          futures_price?: number | null
+          fx_rate?: number | null
+          id?: string
+          location?: string
+          notes?: string | null
+          opened_date?: string
+          physical_quantity?: number
+          physical_side?: string
+          physical_unit?: string
+          price_unit?: string
           updated_at?: string
           user_id?: string
         }

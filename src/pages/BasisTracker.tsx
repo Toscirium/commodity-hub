@@ -14,10 +14,14 @@ import {
 } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAvailableCommodities } from '@/hooks/useCommodityData';
+import { useCurrency } from '@/hooks/useCurrency';
 import PremiumPaywall from '@/components/PremiumPaywall';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import {
+  availableUnits, convertFuturesQuote, unitLabel, type PriceUnit,
+} from '@/utils/commodityUnits';
 
 interface BasisEntry {
   id: string;
@@ -29,6 +33,8 @@ interface BasisEntry {
   basis: number;
   entry_date: string;
   notes: string | null;
+  price_unit: string;
+  fx_rate: number | null;
 }
 
 const fmtMoney = (v: number) => (Number.isFinite(v) ? v.toFixed(2) : '—');
@@ -53,25 +59,53 @@ const BasisTooltip = ({ active, payload, label }: any) => {
 
 const NewEntryForm: React.FC<{
   commodities: { name: string; price: number }[];
+  usdToEur: number | undefined;
   onSaved: () => void;
   onClose: () => void;
-}> = ({ commodities, onSaved, onClose }) => {
+}> = ({ commodities, usdToEur, onSaved, onClose }) => {
   const [commodityName, setCommodityName] = useState('');
   const [location, setLocation] = useState('');
   const [contractMonth, setContractMonth] = useState('');
   const [cashPrice, setCashPrice] = useState('');
+  const [priceUnit, setPriceUnit] = useState<PriceUnit>('native');
   const [entryDate, setEntryDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const liveFutures = commodities.find((c) => c.name === commodityName)?.price ?? null;
+  const nativeFutures = commodities.find((c) => c.name === commodityName)?.price ?? null;
+  const unitOptions = commodityName ? availableUnits(commodityName) : (['native'] as PriceUnit[]);
+
+  // If the selected commodity can't express the chosen unit (e.g. switching
+  // from corn to crude with EUR/t selected), fall back rather than showing a
+  // stale, wrong conversion.
+  const effectiveUnit: PriceUnit = unitOptions.includes(priceUnit) ? priceUnit : 'native';
+
+  // The futures quote restated into the same unit the cash price is in — this
+  // is the whole point of the conversion layer. Null means "can't express it",
+  // which must block saving rather than silently fall back to a raw subtraction.
+  const convertedFutures =
+    nativeFutures != null && commodityName
+      ? convertFuturesQuote(commodityName, nativeFutures, effectiveUnit, usdToEur)
+      : null;
+
+  const cash = Number(cashPrice);
+  const basisPreview =
+    convertedFutures != null && Number.isFinite(cash) && cashPrice !== ''
+      ? cash - convertedFutures
+      : null;
 
   const handleSave = async () => {
-    const cash = Number(cashPrice);
     if (!commodityName) return toast({ title: 'Pick a commodity', variant: 'destructive' });
     if (!location.trim()) return toast({ title: 'Location required', variant: 'destructive' });
     if (!Number.isFinite(cash) || cash <= 0) return toast({ title: 'Enter a valid cash price', variant: 'destructive' });
-    if (liveFutures == null) return toast({ title: 'No live futures price for that commodity right now', variant: 'destructive' });
+    if (nativeFutures == null) return toast({ title: 'No live futures price for that commodity right now', variant: 'destructive' });
+    if (convertedFutures == null) {
+      return toast({
+        title: 'Cannot convert to that unit',
+        description: `${commodityName} has no ${unitLabel(effectiveUnit, commodityName)} basis${effectiveUnit === 'EUR/t' ? ' — the FX rate may still be loading' : ''}.`,
+        variant: 'destructive',
+      });
+    }
 
     const { data: u } = await supabase.auth.getUser();
     if (!u.user) return toast({ title: 'Sign in required', variant: 'destructive' });
@@ -83,8 +117,13 @@ const NewEntryForm: React.FC<{
       location: location.trim(),
       contract_month: contractMonth.trim() || null,
       cash_price: cash,
-      futures_price: liveFutures,
-      basis: cash - liveFutures,
+      // Store the CONVERTED futures price, not the raw quote — so the row is
+      // internally consistent: all three numbers are in price_unit.
+      futures_price: convertedFutures,
+      basis: cash - convertedFutures,
+      price_unit: effectiveUnit,
+      // DB constraint requires the rate exactly when the unit is EUR-based.
+      fx_rate: effectiveUnit === 'EUR/t' ? (usdToEur ?? null) : null,
       entry_date: entryDate,
       notes: notes.trim() || null,
     });
@@ -121,15 +160,26 @@ const NewEntryForm: React.FC<{
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+          <div>
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Price basis</Label>
+            <Select value={effectiveUnit} onValueChange={(v) => setPriceUnit(v as PriceUnit)} disabled={!commodityName}>
+              <SelectTrigger className="h-9 font-mono text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {unitOptions.map((u) => (
+                  <SelectItem key={u} value={u}>{unitLabel(u, commodityName)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div>
             <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Cash price</Label>
             <Input type="number" step="any" value={cashPrice} onChange={(e) => setCashPrice(e.target.value)} placeholder="0.00" className="h-9 font-mono text-sm" />
           </div>
           <div>
-            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Live futures</Label>
+            <Label className="text-[11px] uppercase tracking-wider text-muted-foreground">Futures</Label>
             <div className="h-9 flex items-center px-3 rounded-md border border-border bg-muted/30 font-mono text-sm text-muted-foreground">
-              {liveFutures != null ? fmtMoney(liveFutures) : commodityName ? '—' : 'pick a commodity'}
+              {!commodityName ? 'pick one' : convertedFutures != null ? fmtMoney(convertedFutures) : '—'}
             </div>
           </div>
           <div>
@@ -137,6 +187,21 @@ const NewEntryForm: React.FC<{
             <Input type="date" value={entryDate} onChange={(e) => setEntryDate(e.target.value)} className="h-9 font-mono text-sm" />
           </div>
         </div>
+
+        {/* Show the conversion, don't hide it — a trader needs to see that the
+            futures quote was restated before trusting the basis. */}
+        {commodityName && nativeFutures != null && effectiveUnit !== 'native' && (
+          <p className="font-mono text-[11px] text-muted-foreground">
+            {fmtMoney(nativeFutures)} {unitLabel('native', commodityName)} → {convertedFutures != null ? fmtMoney(convertedFutures) : '—'} {unitLabel(effectiveUnit, commodityName)}
+            {effectiveUnit === 'EUR/t' && usdToEur ? ` · USD→EUR ${usdToEur.toFixed(4)}` : ''}
+          </p>
+        )}
+        {commodityName && nativeFutures != null && convertedFutures == null && (
+          <p className="font-mono text-[11px] text-destructive">
+            No {unitLabel(effectiveUnit, commodityName)} conversion available for {commodityName}
+            {effectiveUnit === 'EUR/t' ? ' — FX rate unavailable.' : '.'}
+          </p>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div>
@@ -149,11 +214,12 @@ const NewEntryForm: React.FC<{
           </div>
         </div>
 
-        {liveFutures != null && Number.isFinite(Number(cashPrice)) && cashPrice !== '' && (
+        {basisPreview != null && (
           <p className="font-mono text-xs text-muted-foreground">
-            Basis: <span className={cn('font-medium', Number(cashPrice) - liveFutures >= 0 ? 'text-success' : 'text-destructive')}>
-              {Number(cashPrice) - liveFutures >= 0 ? '+' : ''}{fmtMoney(Number(cashPrice) - liveFutures)}
-            </span>
+            Basis: <span className={cn('font-medium', basisPreview >= 0 ? 'text-success' : 'text-destructive')}>
+              {basisPreview >= 0 ? '+' : ''}{fmtMoney(basisPreview)}
+            </span>{' '}
+            <span className="text-muted-foreground/70">{unitLabel(effectiveUnit, commodityName)}</span>
           </p>
         )}
 
@@ -181,6 +247,8 @@ const BasisTracker: React.FC = () => {
   const userId = auth?.user?.id ?? null;
 
   const { data: commodities = [], isLoading: commoditiesLoading } = useAvailableCommodities({ lightweight: true });
+  const { rates } = useCurrency();
+  const usdToEur = rates?.EUR;
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [groupFilter, setGroupFilter] = useState<string | null>(null);
@@ -191,7 +259,7 @@ const BasisTracker: React.FC = () => {
     queryFn: async (): Promise<BasisEntry[]> => {
       const { data, error } = await supabase
         .from('basis_entries')
-        .select('id, commodity_name, location, contract_month, cash_price, futures_price, basis, entry_date, notes')
+        .select('id, commodity_name, location, contract_month, cash_price, futures_price, basis, entry_date, notes, price_unit, fx_rate')
         .order('entry_date', { ascending: false });
       if (error) throw error;
       return (data ?? []) as BasisEntry[];
@@ -211,13 +279,14 @@ const BasisTracker: React.FC = () => {
 
   const entries = useMemo(() => entriesQuery.data ?? [], [entriesQuery.data]);
 
-  // Group key = commodity + location, since that's the actual thing basis
-  // is tracked against — the same commodity has a different basis at every
-  // delivery point.
+  // Group key = commodity + location + unit. Commodity+location because the
+  // same commodity has a different basis at every delivery point; unit because
+  // plotting a EUR/tonne basis on the same axis as a cents/bushel one would
+  // reintroduce exactly the units bug this release fixes.
   const groups = useMemo(() => {
     const map = new Map<string, BasisEntry[]>();
     for (const e of entries) {
-      const key = `${e.commodity_name} · ${e.location}`;
+      const key = `${e.commodity_name} · ${e.location} · ${unitLabel(e.price_unit as PriceUnit, e.commodity_name)}`;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(e);
     }
@@ -282,6 +351,7 @@ const BasisTracker: React.FC = () => {
               {formOpen && (
                 <NewEntryForm
                   commodities={commodities.map((c) => ({ name: c.name, price: c.price }))}
+                  usdToEur={usdToEur}
                   onSaved={() => {
                     setFormOpen(false);
                     queryClient.invalidateQueries({ queryKey: ['basis_entries', userId] });
@@ -322,17 +392,18 @@ const BasisTracker: React.FC = () => {
                   )}
 
                   <div className="border border-border rounded-md overflow-hidden">
-                    <div className="grid grid-cols-[80px_1fr_1fr_70px_70px_70px_auto] gap-2 px-3 py-1.5 bg-muted/30 border-b border-border font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                    <div className="grid grid-cols-[80px_1fr_1fr_70px_70px_70px_72px_auto] gap-2 px-3 py-1.5 bg-muted/30 border-b border-border font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                       <span>Date</span>
                       <span>Commodity</span>
                       <span>Location</span>
                       <span className="text-right">Cash</span>
                       <span className="text-right">Fut.</span>
                       <span className="text-right">Basis</span>
+                      <span>Unit</span>
                       <span />
                     </div>
                     {entries.map((e) => (
-                      <div key={e.id} className="grid grid-cols-[80px_1fr_1fr_70px_70px_70px_auto] gap-2 px-3 py-2 border-b border-border/60 last:border-0 items-center hover:bg-muted/40 group">
+                      <div key={e.id} className="grid grid-cols-[80px_1fr_1fr_70px_70px_70px_72px_auto] gap-2 px-3 py-2 border-b border-border/60 last:border-0 items-center hover:bg-muted/40 group">
                         <span className="font-mono text-[11px] text-muted-foreground">{e.entry_date}</span>
                         <span className="text-sm truncate">{e.commodity_name}</span>
                         <span className="text-sm text-muted-foreground truncate">{e.location}</span>
@@ -340,6 +411,12 @@ const BasisTracker: React.FC = () => {
                         <span className="font-mono text-xs text-right tabular-nums text-muted-foreground">{fmtMoney(e.futures_price)}</span>
                         <span className={cn('font-mono text-xs text-right tabular-nums font-medium', e.basis >= 0 ? 'text-success' : 'text-destructive')}>
                           {e.basis >= 0 ? '+' : ''}{fmtMoney(e.basis)}
+                        </span>
+                        <span
+                          className="font-mono text-[10px] text-muted-foreground truncate"
+                          title={e.fx_rate ? `USD→EUR ${e.fx_rate} at entry` : undefined}
+                        >
+                          {unitLabel(e.price_unit as PriceUnit, e.commodity_name)}
                         </span>
                         <button
                           onClick={() => deleteMutation.mutate(e.id)}
