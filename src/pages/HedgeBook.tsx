@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Lock, Plus, Trash2, Shield, X, CheckCircle2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import PageShell from '@/components/PageShell';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -312,28 +313,13 @@ const HedgeBook: React.FC = () => {
   }, [positions]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-6xl">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Dashboard
-        </Button>
-
-        <div className="border border-border rounded-md overflow-hidden bg-card/40">
-          <div className="flex items-center justify-between px-3 py-2 bg-muted/40 border-b border-border">
-            <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider">
-              <Shield className="w-3.5 h-3.5 text-success" />
-              <span className="text-warning">HEDGE</span>
-              <span className="text-muted-foreground hidden sm:inline">› hedge.book</span>
-            </div>
-          </div>
-
-          <div className="px-3 py-3 sm:px-4">
-            <h1 className="font-mono text-xl sm:text-2xl font-semibold tracking-tight">HEDGE BOOK</h1>
-            <p className="text-xs text-muted-foreground mt-1">
-              Physical positions and the futures hedged against them. Shows hedge ratio and net unhedged
-              exposure — what's left after the futures leg offsets the physical.
-            </p>
-          </div>
+    <PageShell
+      eyebrow="HEDGE · hedge.book"
+      title="Hedge Book"
+      width="6xl"
+      description="Physical positions and the futures hedged against them. Shows hedge ratio and net unhedged exposure — what's left after the futures leg offsets the physical."
+    >
+      <div className="border border-border rounded-md overflow-hidden bg-card/40">
 
           {!isPro ? (
             <div className="p-4">
@@ -471,7 +457,6 @@ const HedgeBook: React.FC = () => {
             </div>
           )}
         </div>
-      </div>
       <TraderCsvImportDialog
         open={importOpen}
         onOpenChange={setImportOpen}
@@ -481,7 +466,7 @@ const HedgeBook: React.FC = () => {
         onImported={() => queryClient.invalidateQueries({ queryKey: ['hedged_positions', userId] })}
       />
       <PremiumPaywall open={paywallOpen} onOpenChange={setPaywallOpen} />
-    </div>
+    </PageShell>
   );
 };
 

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, CalendarRange, Download, Lock, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import PageShell from '@/components/PageShell';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
@@ -48,24 +49,12 @@ const Seasonality: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-5xl">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Dashboard
-        </Button>
-
-        <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <CalendarRange className="w-6 h-6 text-primary" />
-              Seasonality Heatmap
-              <Badge className="ml-1 bg-primary/15 text-primary border-transparent">Pro</Badge>
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Average monthly return and hit rate across up to 20 years of settled front-month data.
-            </p>
-          </div>
-        </div>
+    <PageShell
+      eyebrow="SEASON"
+      title="Seasonality Heatmap"
+      description="Average monthly return and hit rate across up to 20 years of settled front-month data."
+      badges={<Badge className="bg-primary/15 text-primary border-transparent">Pro</Badge>}
+    >
 
         {!isPro ? (
           <Card className="border-primary/30 bg-primary/5">
@@ -170,9 +159,8 @@ const Seasonality: React.FC = () => {
             )}
           </>
         )}
-      </div>
       <PremiumPaywall open={paywallOpen} onOpenChange={setPaywallOpen} />
-    </div>
+    </PageShell>
   );
 };
 

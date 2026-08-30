@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, TrendingUp, TrendingDown, Activity, Lock, Info, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import PageShell from '@/components/PageShell';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -61,27 +62,17 @@ const ForwardCurves: React.FC = () => {
     : 'No settlement curve available right now. The latest session may not be settled yet.';
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-5xl">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Dashboard
-        </Button>
-
-        <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Activity className="w-6 h-6 text-primary" />
-              Forward Curves
-              <Badge variant="default" className="ml-1 bg-primary/15 text-primary border-transparent">Pro</Badge>
-              {data?.source === 'market' && (
-                <Badge variant="outline" className="ml-1 border-emerald-500/40 text-emerald-600 dark:text-emerald-400">Live EOD</Badge>
-              )}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Real CME/CBOT/COMEX/NYMEX settlement strip across the next 12 monthly contracts.
-            </p>
-          </div>
-        </div>
+    <PageShell
+      eyebrow="CURVE"
+      title="Forward Curves"
+      description="Real CME/CBOT/COMEX/NYMEX settlement strip across the next 12 monthly contracts."
+      badges={<>
+            <Badge variant="default" className="bg-primary/15 text-primary border-transparent">Pro</Badge>
+            {data?.source === 'market' && (
+              <Badge variant="outline" className="border-emerald-500/40 text-emerald-600 dark:text-emerald-400">Live EOD</Badge>
+            )}
+          </>}
+    >
 
         {isPro && (
           <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 flex items-start gap-2 text-xs">
@@ -284,9 +275,8 @@ const ForwardCurves: React.FC = () => {
             )}
           </>
         )}
-      </div>
       <PremiumPaywall open={paywallOpen} onOpenChange={setPaywallOpen} />
-    </div>
+    </PageShell>
   );
 };
 

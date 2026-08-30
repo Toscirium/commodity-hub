@@ -6,6 +6,7 @@ import {
 } from 'recharts';
 import { ArrowLeft, Lock, Plus, Trash2, Scale, X, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import PageShell from '@/components/PageShell';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -307,28 +308,13 @@ const BasisTracker: React.FC = () => {
   }, [groups, activeGroup]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-5xl">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Dashboard
-        </Button>
-
-        <div className="border border-border rounded-md overflow-hidden bg-card/40">
-          <div className="flex items-center justify-between px-3 py-2 bg-muted/40 border-b border-border">
-            <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-wider">
-              <Scale className="w-3.5 h-3.5 text-success" />
-              <span className="text-warning">BASIS</span>
-              <span className="text-muted-foreground hidden sm:inline">› basis.tracker</span>
-            </div>
-          </div>
-
-          <div className="px-3 py-3 sm:px-4">
-            <h1 className="font-mono text-xl sm:text-2xl font-semibold tracking-tight">BASIS TRACKER</h1>
-            <p className="text-xs text-muted-foreground mt-1">
-              Cash price minus futures benchmark, by commodity and delivery point. Entered by hand — basis
-              is hyperlocal and isn't published data, unlike the futures price it's measured against.
-            </p>
-          </div>
+    <PageShell
+      eyebrow="BASIS · basis.tracker"
+      title="Basis Tracker"
+      width="5xl"
+      description="Cash price minus futures benchmark, by commodity and delivery point. Entered by hand — basis is hyperlocal and isn't published data, unlike the futures price it's measured against."
+    >
+      <div className="border border-border rounded-md overflow-hidden bg-card/40">
 
           {!isPro ? (
             <div className="p-4">
@@ -440,7 +426,6 @@ const BasisTracker: React.FC = () => {
             </div>
           )}
         </div>
-      </div>
       <TraderCsvImportDialog
         open={importOpen}
         onOpenChange={setImportOpen}
@@ -450,7 +435,7 @@ const BasisTracker: React.FC = () => {
         onImported={() => queryClient.invalidateQueries({ queryKey: ['basis_entries', userId] })}
       />
       <PremiumPaywall open={paywallOpen} onOpenChange={setPaywallOpen} />
-    </div>
+    </PageShell>
   );
 };
 

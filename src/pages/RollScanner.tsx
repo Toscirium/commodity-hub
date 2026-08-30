@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, TrendingUp, TrendingDown, Activity, Lock, RefreshCw, ArrowUpDown } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import PageShell from '@/components/PageShell';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRollScanner, type RollScannerRow } from '@/hooks/useMassiveAnalytics';
@@ -48,29 +49,17 @@ const RollScanner: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-5xl">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Dashboard
+    <PageShell
+      eyebrow="ROLL"
+      title="Roll Yield Scanner"
+      description={`Live front-month → next-month roll across ${data?.results.length ?? 14} futures. Spot contango vs backwardation at a glance.`}
+      badges={<Badge className="bg-primary/15 text-primary border-transparent">Pro</Badge>}
+      actions={isPro && (
+        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+          <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} /> Refresh
         </Button>
-
-        <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <ArrowUpDown className="w-6 h-6 text-primary" />
-              Roll Yield Scanner
-              <Badge className="ml-1 bg-primary/15 text-primary border-transparent">Pro</Badge>
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Live front-month → next-month roll across {data?.results.length ?? 14} futures. Spot contango vs backwardation at a glance.
-            </p>
-          </div>
-          {isPro && (
-            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-              <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} /> Refresh
-            </Button>
-          )}
-        </div>
+      )}
+    >
 
         {!isPro ? (
           <Card className="border-primary/30 bg-primary/5">
@@ -146,9 +135,8 @@ const RollScanner: React.FC = () => {
             )}
           </>
         )}
-      </div>
       <PremiumPaywall open={paywallOpen} onOpenChange={setPaywallOpen} />
-    </div>
+    </PageShell>
   );
 };
 

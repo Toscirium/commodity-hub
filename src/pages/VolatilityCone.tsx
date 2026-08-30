@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Activity, Lock, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import PageShell from '@/components/PageShell';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -29,24 +30,12 @@ const VolatilityCone: React.FC = () => {
   }));
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-5xl">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Dashboard
-        </Button>
-
-        <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Activity className="w-6 h-6 text-primary" />
-              Volatility Cone
-              <Badge className="ml-1 bg-primary/15 text-primary border-transparent">Pro</Badge>
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Annualized realized vol vs 5-year historical distribution across 10/20/60/120-day windows.
-            </p>
-          </div>
-        </div>
+    <PageShell
+      eyebrow="VOL"
+      title="Volatility Cone"
+      description="Annualized realized vol vs 5-year historical distribution across 10/20/60/120-day windows."
+      badges={<Badge className="bg-primary/15 text-primary border-transparent">Pro</Badge>}
+    >
 
         {!isPro ? (
           <Card className="border-primary/30 bg-primary/5">
@@ -164,9 +153,8 @@ const VolatilityCone: React.FC = () => {
             )}
           </>
         )}
-      </div>
       <PremiumPaywall open={paywallOpen} onOpenChange={setPaywallOpen} />
-    </div>
+    </PageShell>
   );
 };
 

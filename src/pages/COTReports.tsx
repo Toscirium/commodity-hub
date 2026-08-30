@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, Lock, AlertTriangle, Download, Radar, Activity } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import PageShell from '@/components/PageShell';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -72,22 +73,12 @@ const COTReports: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-5xl">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Dashboard
-        </Button>
-
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Users className="w-6 h-6 text-primary" />
-            COT Reports
-            <Badge variant="default" className="bg-primary/15 text-primary border-transparent">Pro</Badge>
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            CFTC Commitments of Traders — track managed-money positioning, commercial divergence, and positioning extremes.
-          </p>
-        </div>
+    <PageShell
+      eyebrow="COT"
+      title="COT Reports"
+      description="CFTC Commitments of Traders — track managed-money positioning, commercial divergence, and positioning extremes."
+      badges={<Badge className="bg-primary/15 text-primary border-transparent">Pro</Badge>}
+    >
 
         {!isPro ? (
           <Card className="border-primary/30 bg-primary/5">
@@ -287,9 +278,8 @@ const COTReports: React.FC = () => {
             </TabsContent>
           </Tabs>
         )}
-      </div>
       <PremiumPaywall open={paywallOpen} onOpenChange={setPaywallOpen} />
-    </div>
+    </PageShell>
   );
 };
 
