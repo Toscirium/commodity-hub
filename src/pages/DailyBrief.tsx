@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import PageShell from '@/components/PageShell';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Sparkles, Lock, TrendingUp, TrendingDown, CalendarDays } from 'lucide-react';
@@ -71,22 +72,12 @@ const DailyBrief: React.FC = () => {
   }, [latest?.id, latest?.read_at, qc]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Dashboard
-        </Button>
-
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-primary" />
-            Pro Daily Brief
-            <Badge className="ml-1 bg-primary/15 text-primary border-transparent">Pro</Badge>
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Every morning at 06:00 UTC: the most stretched spreads, seasonal biases, and market dislocations — auto-generated from your Pro analytics.
-          </p>
-        </div>
+    <PageShell
+      eyebrow="BRIEF"
+      title="Pro Daily Brief"
+      description="Every morning at 06:00 UTC: the most stretched spreads, seasonal biases, and market dislocations — auto-generated from your Pro analytics."
+      badges={<><Badge className="ml-1 bg-primary/15 text-primary border-transparent">Pro</Badge></>}
+    >
 
         {!isPro ? (
           <Card className="border-primary/30 bg-primary/5">
@@ -174,9 +165,8 @@ const DailyBrief: React.FC = () => {
             ))}
           </div>
         )}
-      </div>
       <PremiumPaywall open={paywallOpen} onOpenChange={setPaywallOpen} />
-    </div>
+    </PageShell>
   );
 };
 

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import PageShell from '@/components/PageShell';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, Landmark, Search, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -43,23 +44,11 @@ const Trade: React.FC = () => {
   }, [commodities, search]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Dashboard
-        </Button>
-
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Landmark className="w-6 h-6 text-primary" />
-            Trade
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Take a position on where a commodity's price is headed, through independent,
-            regulated brokers.
-          </p>
-        </div>
+    <PageShell
+      eyebrow="TRADE"
+      title="Trade"
+      description="Take a position on where a commodity's price is headed, through independent, regulated brokers."
+    >
 
         {isPaidTier ? (
           // TradeCTA itself already hides for Premium/Pro (see its own
@@ -142,8 +131,7 @@ const Trade: React.FC = () => {
             )}
           </>
         )}
-      </div>
-    </div>
+    </PageShell>
   );
 };
 

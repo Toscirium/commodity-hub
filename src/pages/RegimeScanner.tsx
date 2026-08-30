@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PageShell from '@/components/PageShell';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Radar, Lock, RefreshCw, Download, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardDescription } from '@/components/ui/card';
@@ -41,34 +42,23 @@ const RegimeScanner: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-6xl">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Dashboard
-        </Button>
-
-        <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Radar className="w-6 h-6 text-primary" />
-              Regime Scanner
-              <Badge className="ml-1 bg-primary/15 text-primary border-transparent">Pro</Badge>
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Trend (SMA stack + slope) and volatility regime (20d vs 1y percentile) for every tracked commodity. Spot rotations before they show up in price.
-            </p>
-          </div>
-          {isPro && data && (
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-                <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} /> Refresh
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleExport}>
-                <Download className="w-4 h-4 mr-2" /> CSV
-              </Button>
-            </div>
-          )}
-        </div>
+    <PageShell
+      eyebrow="REGIME"
+      title="Regime Scanner"
+      width="6xl"
+      description="Trend (SMA stack + slope) and volatility regime (20d vs 1y percentile) for every tracked commodity. Spot rotations before they show up in price."
+      badges={<Badge className="bg-primary/15 text-primary border-transparent">Pro</Badge>}
+      actions={isPro && data && (
+        <>
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} /> Refresh
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExport}>
+            <Download className="w-4 h-4 mr-2" /> CSV
+          </Button>
+        </>
+      )}
+    >
 
         {!isPro ? (
           <Card className="border-primary/30 bg-primary/5">
@@ -137,9 +127,8 @@ const RegimeScanner: React.FC = () => {
             ))}
           </div>
         )}
-      </div>
       <PremiumPaywall open={paywallOpen} onOpenChange={setPaywallOpen} />
-    </div>
+    </PageShell>
   );
 };
 

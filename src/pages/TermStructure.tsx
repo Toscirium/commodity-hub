@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import PageShell from '@/components/PageShell';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Layers, Lock, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardDescription } from '@/components/ui/card';
@@ -40,24 +41,12 @@ const TermStructure: React.FC = () => {
   }, [data]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-5xl">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Dashboard
-        </Button>
-
-        <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Layers className="w-6 h-6 text-primary" />
-              Term Structure Shift
-              <Badge className="ml-1 bg-primary/15 text-primary border-transparent">Pro</Badge>
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Current forward curve overlaid against 1-week-ago and 1-month-ago settlements per contract.
-            </p>
-          </div>
-        </div>
+    <PageShell
+      eyebrow="TERM"
+      title="Term Structure Shift"
+      description="Current forward curve overlaid against 1-week-ago and 1-month-ago settlements per contract."
+      badges={<><Badge className="ml-1 bg-primary/15 text-primary border-transparent">Pro</Badge></>}
+    >
 
         {!isPro ? (
           <Card className="border-primary/30 bg-primary/5">
@@ -149,9 +138,8 @@ const TermStructure: React.FC = () => {
             )}
           </>
         )}
-      </div>
       <PremiumPaywall open={paywallOpen} onOpenChange={setPaywallOpen} />
-    </div>
+    </PageShell>
   );
 };
 

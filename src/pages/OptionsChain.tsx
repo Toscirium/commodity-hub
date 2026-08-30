@@ -1,4 +1,5 @@
 import React from 'react';
+import PageShell from '@/components/PageShell';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Layers, Lock, RefreshCw, AlertCircle, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from '@/components/ui/card';
@@ -188,34 +189,23 @@ const OptionsChain: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-6xl">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Dashboard
-        </Button>
-
-        <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Layers className="w-6 h-6 text-primary" />
-              Options Chain
-              <Badge className="ml-1 bg-primary/15 text-primary border-transparent">Pro</Badge>
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              CME futures-options settlements, open interest, and implied volatility by strike.
-            </p>
-          </div>
-          {isPro && (
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
-                <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} /> Refresh
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={!data?.rows.length}>
-                <Download className="w-4 h-4 mr-2" /> CSV
-              </Button>
-            </div>
-          )}
-        </div>
+    <PageShell
+      eyebrow="OPTS"
+      title="Options Chain"
+      width="6xl"
+      description="CME futures-options settlements, open interest, and implied volatility by strike."
+      badges={<Badge className="bg-primary/15 text-primary border-transparent">Pro</Badge>}
+      actions={isPro && (
+        <>
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} /> Refresh
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={!data?.rows.length}>
+            <Download className="w-4 h-4 mr-2" /> CSV
+          </Button>
+        </>
+      )}
+    >
 
         {!isPro ? (
           <Card className="border-primary/30 bg-primary/5">
@@ -351,9 +341,8 @@ const OptionsChain: React.FC = () => {
             )}
           </>
         )}
-      </div>
       <PremiumPaywall open={paywallOpen} onOpenChange={setPaywallOpen} />
-    </div>
+    </PageShell>
   );
 };
 

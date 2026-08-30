@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePortfolioAnalytics } from '@/hooks/useProAnalytics';
 import { usePortfolio } from '@/hooks/usePortfolio';
 import PremiumPaywall from '@/components/PremiumPaywall';
+import PageShell from '@/components/PageShell';
 
 const Stat: React.FC<{ label: string; value: string; sub?: string; tone?: 'good' | 'bad' | 'warn' | 'neutral' }> = ({ label, value, sub, tone = 'neutral' }) => (
   <Card>
@@ -41,27 +42,20 @@ const PortfolioAnalytics: React.FC = () => {
   }, [positions]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-5xl">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Dashboard
-        </Button>
-
-        <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <PieIcon className="w-6 h-6 text-primary" />
-              Portfolio Analytics
-              <Badge className="ml-1 bg-primary/15 text-primary border-transparent">Pro</Badge>
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Value-at-Risk, max drawdown, volatility and crude-beta computed against ~1y of front-month history.
-            </p>
-          </div>
-          {isPro && (
-            <div className="flex gap-2"><Button variant="outline" size="sm" onClick={() => navigate('/stress-test')}>Stress test</Button><Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}><RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} /> Refresh</Button></div>
-          )}
-        </div>
+    <PageShell
+      eyebrow="PORT"
+      title="Portfolio Analytics"
+      description="Value-at-Risk, max drawdown, volatility and crude-beta computed against ~1y of front-month history."
+      badges={<Badge className="bg-primary/15 text-primary border-transparent">Pro</Badge>}
+      actions={isPro && (
+        <>
+          <Button variant="outline" size="sm" onClick={() => navigate('/stress-test')}>Stress test</Button>
+          <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} /> Refresh
+          </Button>
+        </>
+      )}
+    >
 
         {!isPro ? (
           <Card className="border-primary/30 bg-primary/5">
@@ -153,9 +147,8 @@ const PortfolioAnalytics: React.FC = () => {
             </Card>
           </>
         ) : null}
-      </div>
       <PremiumPaywall open={paywallOpen} onOpenChange={setPaywallOpen} />
-    </div>
+    </PageShell>
   );
 };
 

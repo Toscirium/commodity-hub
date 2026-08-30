@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import PageShell from '@/components/PageShell';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Factory, Flame, Droplets, RefreshCw, TrendingUp, TrendingDown, CloudSun, Sprout, Drill, Ship,
@@ -199,28 +200,17 @@ const Fundamentals: React.FC = () => {
   }, [data]);
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-6 max-w-6xl">
-        <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')} className="mb-4">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Dashboard
-        </Button>
-
-        <div className="mb-6 flex items-start justify-between gap-3 flex-wrap">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Factory className="w-6 h-6 text-primary" />
-              Physical Market Intelligence
-              <Badge variant="secondary" className="text-xs">Beta</Badge>
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
-              Weekly fundamentals that drive commodity prices — inventories, weather, crop progress, livestock, and rig activity.
-            </p>
-          </div>
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isFetching || refreshing}>
-            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${isFetching || refreshing ? 'animate-spin' : ''}`} />
-            {refreshing ? 'Refreshing…' : 'Refresh'}
-          </Button>
-        </div>
+    <PageShell
+      eyebrow="FUND"
+      title="Physical Market Intelligence"
+      width="6xl"
+      description="Weekly fundamentals that drive commodity prices — inventories, weather, crop progress, livestock, and rig activity."
+      badges={<Badge variant="secondary" className="text-xs">Beta</Badge>}
+      actions={<Button variant="outline" size="sm" onClick={handleRefresh} disabled={isFetching || refreshing}>
+          <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${isFetching || refreshing ? 'animate-spin' : ''}`} />
+          {refreshing ? 'Refreshing…' : 'Refresh'}
+        </Button>}
+    >
 
         {error && (
           <Card className="mb-4 border-destructive/30 bg-destructive/5">
@@ -293,8 +283,7 @@ const Fundamentals: React.FC = () => {
         <p className="text-xs text-muted-foreground mt-6">
           Data sources: U.S. Energy Information Administration (EIA), Open-Meteo, USDA NASS, Baker Hughes. Refreshed every 6 hours on the backend.
         </p>
-      </div>
-    </div>
+    </PageShell>
   );
 };
 
