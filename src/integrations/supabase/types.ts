@@ -223,6 +223,51 @@ export type Database = {
         }
         Relationships: []
       }
+      basis_entries: {
+        Row: {
+          basis: number
+          cash_price: number
+          commodity_name: string
+          contract_month: string | null
+          created_at: string
+          entry_date: string
+          futures_price: number
+          id: string
+          location: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          basis: number
+          cash_price: number
+          commodity_name: string
+          contract_month?: string | null
+          created_at?: string
+          entry_date?: string
+          futures_price: number
+          id?: string
+          location: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          basis?: number
+          cash_price?: number
+          commodity_name?: string
+          contract_month?: string | null
+          created_at?: string
+          entry_date?: string
+          futures_price?: number
+          id?: string
+          location?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       commodity_history_snapshots: {
         Row: {
           commodity_name: string

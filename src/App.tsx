@@ -31,6 +31,7 @@ import MobileBottomNavigation from '@/components/mobile/MobileBottomNavigation';
 // and route transitions only fetch what they need.
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const ProModeEntry = lazy(() => import('@/pages/ProModeEntry'));
+const BasisTracker = lazy(() => import('@/pages/BasisTracker'));
 const Portfolio = lazy(() => import('@/pages/Portfolio'));
 const MarketStatus = lazy(() => import('@/pages/MarketStatus'));
 const APIComparison = lazy(() => import('@/pages/APIComparison'));
@@ -168,6 +169,7 @@ const App = () => {
                 <Route path="/roll-scanner" element={<RollScanner />} />
                 <Route path="/volatility-cone" element={<VolatilityCone />} />
                 <Route path="/term-structure" element={<TermStructure />} />
+                <Route path="/basis-tracker" element={<BasisTracker />} />
                 <Route path="/copilot" element={<Copilot />} />
                 <Route path="/copilot/:threadId" element={<Copilot />} />
                 <Route path="/seasonality" element={<Seasonality />} />

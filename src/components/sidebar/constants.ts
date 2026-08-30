@@ -1,4 +1,4 @@
-import { Zap, Coins, Wheat, Beef, Milk, Briefcase, BarChart3, Star, Filter, Calendar, Lightbulb, GraduationCap, Users, Activity, Factory, Calculator, Bell, TrendingUp, GitCompare, ArrowUpDown, Gauge, Layers, Layers3, Bot, CalendarRange, GitCompareArrows, Sparkles, Radar, PieChart, FlaskConical, Droplets, MessageCircle, Landmark, Newspaper } from "lucide-react";
+import { Zap, Coins, Wheat, Beef, Milk, Briefcase, BarChart3, Star, Filter, Calendar, Lightbulb, GraduationCap, Users, Activity, Factory, Calculator, Bell, TrendingUp, GitCompare, ArrowUpDown, Gauge, Layers, Layers3, Bot, CalendarRange, GitCompareArrows, Sparkles, Radar, PieChart, FlaskConical, Droplets, MessageCircle, Landmark, Newspaper, Scale } from "lucide-react";
 import { CommodityGroup, MarketTool } from "./types";
 
 export const COMMODITY_GROUPS: CommodityGroup[] = [
@@ -39,6 +39,7 @@ export const PRO_TOOLS: MarketTool[] = [
   { id: "options-chain", label: "Options Chain", icon: Layers3, color: "text-foreground", path: "/options-chain" },
   { id: "vol-cone", label: "Volatility Cone", icon: Gauge, color: "text-foreground", path: "/volatility-cone" },
   { id: "term-structure", label: "Term Structure Shift", icon: Layers, color: "text-foreground", path: "/term-structure" },
+  { id: "basis-tracker", label: "Basis Tracker", icon: Scale, color: "text-foreground", path: "/basis-tracker" },
 ];
 
 export const COMMUNITY_TOOLS: MarketTool[] = [
