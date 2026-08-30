@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Lock, Plus, Trash2, Shield, X, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Lock, Plus, Trash2, Shield, X, CheckCircle2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAvailableCommodities } from '@/hooks/useCommodityData';
 import { useCurrency } from '@/hooks/useCurrency';
 import PremiumPaywall from '@/components/PremiumPaywall';
+import TraderCsvImportDialog from '@/components/TraderCsvImportDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -246,6 +247,7 @@ const HedgeBook: React.FC = () => {
   const usdToEur = rates?.EUR;
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [showClosed, setShowClosed] = useState(false);
 
   const positionsQuery = useQuery({
@@ -373,6 +375,11 @@ const HedgeBook: React.FC = () => {
                     <Plus className="w-3.5 h-3.5 mr-1" /> New position
                   </Button>
                 )}
+                {!formOpen && (
+                  <Button size="sm" variant="ghost" onClick={() => setImportOpen(true)} className="h-8 text-xs text-muted-foreground">
+                    <Upload className="w-3.5 h-3.5 mr-1" /> Import CSV
+                  </Button>
+                )}
                 <Button size="sm" variant="ghost" onClick={() => setShowClosed((s) => !s)} className="h-8 text-xs text-muted-foreground">
                   {showClosed ? 'Hide closed' : 'Show closed'}
                 </Button>
@@ -465,6 +472,14 @@ const HedgeBook: React.FC = () => {
           )}
         </div>
       </div>
+      <TraderCsvImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        kind="hedge"
+        knownCommodities={commodities.map((c) => c.name)}
+        usdToEur={usdToEur}
+        onImported={() => queryClient.invalidateQueries({ queryKey: ['hedged_positions', userId] })}
+      />
       <PremiumPaywall open={paywallOpen} onOpenChange={setPaywallOpen} />
     </div>
   );

@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { ArrowLeft, Lock, Plus, Trash2, Scale, X } from 'lucide-react';
+import { ArrowLeft, Lock, Plus, Trash2, Scale, X, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +16,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAvailableCommodities } from '@/hooks/useCommodityData';
 import { useCurrency } from '@/hooks/useCurrency';
 import PremiumPaywall from '@/components/PremiumPaywall';
+import TraderCsvImportDialog from '@/components/TraderCsvImportDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -251,6 +252,7 @@ const BasisTracker: React.FC = () => {
   const usdToEur = rates?.EUR;
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [groupFilter, setGroupFilter] = useState<string | null>(null);
 
   const entriesQuery = useQuery({
@@ -344,9 +346,14 @@ const BasisTracker: React.FC = () => {
           ) : (
             <div className="p-3 sm:p-4 space-y-4">
               {!formOpen && (
-                <Button size="sm" variant="ghost" onClick={() => setFormOpen(true)} className="h-8 text-xs">
-                  <Plus className="w-3.5 h-3.5 mr-1" /> New entry
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => setFormOpen(true)} className="h-8 text-xs">
+                    <Plus className="w-3.5 h-3.5 mr-1" /> New entry
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setImportOpen(true)} className="h-8 text-xs text-muted-foreground">
+                    <Upload className="w-3.5 h-3.5 mr-1" /> Import CSV
+                  </Button>
+                </div>
               )}
               {formOpen && (
                 <NewEntryForm
@@ -434,6 +441,14 @@ const BasisTracker: React.FC = () => {
           )}
         </div>
       </div>
+      <TraderCsvImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        kind="basis"
+        knownCommodities={commodities.map((c) => c.name)}
+        usdToEur={usdToEur}
+        onImported={() => queryClient.invalidateQueries({ queryKey: ['basis_entries', userId] })}
+      />
       <PremiumPaywall open={paywallOpen} onOpenChange={setPaywallOpen} />
     </div>
   );
