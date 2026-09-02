@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, Navigate, useSearchParams } from 'react-router-dom';
-import CommodityCard from '@/components/CommodityCard';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import VirtualizedCommodityList from '@/components/VirtualizedCommodityList';
 import UserProfile from '@/components/UserProfile';
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
@@ -15,15 +14,16 @@ import { OfflineIndicator } from '@/components/OfflineIndicator';
 import PremiumUpsellCard from '@/components/PremiumUpsellCard';
 import AlertNotificationBell from '@/components/AlertNotificationBell';
 import GetTheAppButton from '@/components/GetTheAppButton';
+import { commodityDetailPath } from '@/lib/commoditySlug';
 
 const Dashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [activeGroup, setActiveGroup] = useState("energy");
   const isMobile = useIsMobile();
   const auth = useAuth();
   const { isGuest, profile, loading: authLoading, isPremium } = (auth || { isGuest: true, profile: null, loading: false, isPremium: false }) as any;
   const { data: commodities, isLoading: commoditiesLoading, error: commoditiesError, refetch: refetchCommodities } = useAvailableCommodities();
-  const [highlightCommodity, setHighlightCommodity] = useState<string | null>(null);
 
   // Handle ?group= URL param — jump straight to a commodity group from other pages
   useEffect(() => {
@@ -36,20 +36,19 @@ const Dashboard = () => {
     }
   }, [searchParams]);
 
-  // Handle ?commodity= URL param — switch to correct group and highlight
+  // Back-compat for ?commodity= links. This used to expand the matching card
+  // in place; that card is now a row that navigates, so the param forwards to
+  // the detail route instead. Kept because the param is baked into shipped
+  // builds and any external/deep link that already exists.
   useEffect(() => {
     const commodityParam = searchParams.get('commodity');
     if (commodityParam && commodities && commodities.length > 0) {
       const found = commodities.find(c => c.name === commodityParam);
       if (found) {
-        setActiveGroup(found.category);
-        setHighlightCommodity(found.name);
-        // Clear the param so it doesn't persist on refresh
-        searchParams.delete('commodity');
-        setSearchParams(searchParams, { replace: true });
+        navigate(commodityDetailPath(found.name), { replace: true });
       }
     }
-  }, [searchParams, commodities]);
+  }, [searchParams, commodities, navigate]);
 
   // Show loading screen while auth is checking
   if (authLoading) {
@@ -77,7 +76,6 @@ const Dashboard = () => {
         loading={commoditiesLoading}
         error={commoditiesError?.message || null}
         onRetry={() => refetchCommodities()}
-        highlightCommodity={highlightCommodity}
         isPremium={!!isPremium}
       />
     </SidebarProvider>
@@ -93,7 +91,6 @@ const DashboardContent = ({
   loading, 
   error, 
   onRetry,
-  highlightCommodity,
   isPremium
 }: {
   activeGroup: string;
@@ -104,7 +101,6 @@ const DashboardContent = ({
   loading: boolean;
   error: string | null;
   onRetry: () => void;
-  highlightCommodity?: string | null;
   isPremium: boolean;
 }) => {
   const { setOpenMobile, toggleSidebar } = useSidebar();
@@ -277,7 +273,6 @@ const DashboardContent = ({
               <VirtualizedCommodityList 
                 commodities={filteredCommodities} 
                 loading={loading}
-                highlightCommodity={highlightCommodity}
               />
             )}
 

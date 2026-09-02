@@ -13,7 +13,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { formatPrice as formatCommodityPrice } from '@/lib/commodityUtils';
 import CurrencySelector from './CurrencySelector';
 import { Toggle } from '@/components/ui/toggle';
-import { X, ChartCandlestick, AlertTriangle } from 'lucide-react';
+import { X, ChartCandlestick, AlertTriangle, Maximize2 } from 'lucide-react';
 
 // A chart-rendering bug (e.g. a charting-library assertion failure) should
 // take down this one chart, not the whole app — there's no boundary above
@@ -49,9 +49,18 @@ interface CommodityChartProps {
   basePrice: number;
   selectedContract?: string;
   contractData?: FuturesContract;
+  /**
+   * 'card'  — the original boxed panel, chart sized to ~a third of the viewport.
+   * 'page'  — the chart IS the page (see CommodityDetail): no Card, no title
+   *           row, full bleed to the viewport edges, roughly half the screen
+   *           tall, with the timeframe strip as its own row underneath. This is
+   *           the layout every trading app uses and the reason the detail route
+   *           exists; the card variant survives for any embedded usage.
+   */
+  variant?: 'card' | 'page';
 }
 
-const CommodityChart = ({ name, basePrice, selectedContract, contractData }: CommodityChartProps) => {
+const CommodityChart = ({ name, basePrice, selectedContract, contractData, variant = 'card' }: CommodityChartProps) => {
   const [selectedTimeframe, setSelectedTimeframe] = React.useState<string>('1m');
   const [chartType, setChartType] = React.useState<'line' | 'candlestick'>('line');
   // Two independent triggers for the same full-screen overlay: rotating a
@@ -328,6 +337,102 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData }: Com
         </div>
       </div>,
       document.body
+    );
+  }
+
+  // Page variant — the chart owns the viewport width. Everything that isn't
+  // the plot itself is one slim row above (secondary controls) and one slim
+  // row below (timeframes), mirroring the full-screen overlay above so the two
+  // read as the same view at two sizes.
+  if (variant === 'page') {
+    return (
+      <div className="w-full min-w-0 max-w-full">
+        {/* Secondary controls. Deliberately above the chart and right-aligned:
+            the plot's own top-left corner is where PriceChart draws the MA
+            legend, so anything placed there would collide with it. */}
+        <div className="flex items-center justify-end gap-1.5 px-3 py-1.5">
+          <ChartToolbar
+            compact
+            trendlineMode={trendlineMode}
+            onTrendlineModeChange={setTrendlineMode}
+            trendlineCount={trendlines.length}
+            onClearTrendlines={clearTrendlines}
+            compareSymbol={compareSymbol}
+            onCompareSymbolChange={setCompareSymbol}
+            currentSymbol={name}
+          />
+          <CurrencySelector compact />
+          <Toggle
+            pressed={chartType === 'candlestick' && ohlcAvailable}
+            onPressedChange={(pressed) => setChartType(pressed ? 'candlestick' : 'line')}
+            disabled={!ohlcAvailable}
+            aria-label="Toggle candlestick chart"
+            size="sm"
+            className="shrink-0 data-[state=on]:bg-primary/20 data-[state=on]:text-primary disabled:opacity-40"
+          >
+            <ChartCandlestick className="w-4 h-4" />
+          </Toggle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setManualFullScreen(true)}
+            aria-label="Open full-screen chart"
+            className="h-8 w-8 p-0 shrink-0"
+          >
+            <Maximize2 className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {/* About half the viewport — big enough to read structure on, capped so
+            it can't push the timeframe strip off-screen on a tall desktop. */}
+        <div className="h-[48vh] min-h-[280px] max-h-[560px] w-full overflow-hidden">
+          <ErrorBoundary key={`${selectedTimeframe}-${chartType}`} fallback={<ChartErrorFallback />}>
+            <ChartContainer
+              data={data}
+              name={name}
+              selectedTimeframe={selectedTimeframe}
+              chartType={chartType}
+              loading={loading}
+              error={error}
+              isPositiveTrend={isPositiveTrend}
+              compareData={compareData}
+              onCompareRemove={() => setCompareSymbol(null)}
+              trendlinesEnabled={trendlineMode}
+              trendlines={trendlines}
+              bordered={false}
+              interactive={false}
+              selectedTrendlineId={selectedId}
+              onTrendlineCreate={(p1, p2) => addTrendline(p1, p2)}
+              onTrendlineSelect={setSelectedId}
+              onTrendlineDelete={removeTrendline}
+              onPendingTrendlineChange={setTrendlineDrawPending}
+            />
+          </ErrorBoundary>
+        </div>
+
+        {/* Timeframe strip — on a phone the options divide the full width
+            evenly, so each is the same generous tap target rather than a small
+            pill. On a wider screen that would make each button absurdly wide,
+            so they shrink to their own width and sit left. */}
+        <div className="flex border-y border-border bg-background sm:justify-start">
+          {TIMEFRAMES.map((tf) => (
+            <button
+              key={tf.value}
+              type="button"
+              onClick={() => setSelectedTimeframe(tf.value)}
+              disabled={loading}
+              aria-pressed={selectedTimeframe === tf.value}
+              className={`h-10 flex-1 text-xs font-semibold tracking-wide transition-colors disabled:opacity-50 sm:flex-none sm:px-7 ${
+                selectedTimeframe === tf.value
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+              }`}
+            >
+              {tf.label}
+            </button>
+          ))}
+        </div>
+      </div>
     );
   }
 

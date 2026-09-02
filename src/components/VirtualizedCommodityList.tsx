@@ -8,17 +8,16 @@ import { Anchor, Droplets, Flame, BarChart3 } from 'lucide-react';
 interface VirtualizedCommodityListProps {
   commodities: Commodity[];
   loading?: boolean;
-  highlightCommodity?: string | null;
 }
 
 const VirtualizedCommodityList: React.FC<VirtualizedCommodityListProps> = ({ 
   commodities, 
   loading = false,
-  highlightCommodity
 }) => {
   const isMobile = useIsMobile();
-  // Render every commodity — cards are lightweight and chart/news inside
-  // only mount when the card is expanded (LazyChart / LazyNews).
+  // Render every commodity — rows are static quote markup now that the chart
+  // and news live on the per-commodity detail route, so there's nothing heavy
+  // to defer and no virtualization needed.
 
   // Energy subsections. Marine fuels + LNG hubs + niche crude blends were
   // retired 2026-07-14 when we migrated to Massive Futures.
@@ -87,21 +86,13 @@ const VirtualizedCommodityList: React.FC<VirtualizedCommodityListProps> = ({
               <div className="flex-1 h-px bg-border/30" />
             </div>
           )}
-          <div className="grid grid-cols-[minmax(0,1fr)] gap-2.5 sm:gap-3 w-full min-w-0 max-w-full overflow-x-hidden">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-px w-full min-w-0 max-w-full overflow-x-hidden">
             {section.items.map((commodity) => {
               const idx = globalIndex++;
-              const availableContracts = undefined;
-              const isHighlighted = commodity.name === highlightCommodity;
               return (
                 <div 
                   key={`${commodity.symbol}-${idx}`}
-                  className={`w-full min-w-0 max-w-full overflow-x-hidden ${isHighlighted ? 'rounded-[2rem] bg-primary/10 p-1 shadow-[0_0_0_2px_hsl(var(--primary)/0.35),0_0_24px_hsl(var(--primary)/0.18)]' : ''}`}
-                  ref={isHighlighted ? (el) => {
-                    if (el && !el.dataset.scrolled) {
-                      el.dataset.scrolled = '1';
-                      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                  } : undefined}
+                  className="w-full min-w-0 max-w-full overflow-x-hidden"
                 >
                   <CommodityCard
                     name={commodity.name}
@@ -111,8 +102,6 @@ const VirtualizedCommodityList: React.FC<VirtualizedCommodityListProps> = ({
                     symbol={commodity.symbol}
                     venue={commodity.venue}
                     contractSize={commodity.contractSize}
-                    availableContracts={availableContracts}
-                    defaultOpen={commodity.name === highlightCommodity}
                   />
                 </div>
               );

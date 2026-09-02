@@ -19,9 +19,16 @@ interface NewsItem {
 
 interface CommodityNewsProps {
   commodity: string;
+  /**
+   * true when this is the whole content of a tab rather than one panel among
+   * several stacked on a page. The Card frame and the "<name> News" title row
+   * both restate what the tab label already says, so they're dropped — the
+   * articles get the full width instead.
+   */
+  embedded?: boolean;
 }
 
-const CommodityNews = ({ commodity }: CommodityNewsProps) => {
+const CommodityNews = ({ commodity, embedded = false }: CommodityNewsProps) => {
   const [news, setNews] = React.useState<EnhancedNewsItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -124,25 +131,27 @@ const CommodityNews = ({ commodity }: CommodityNewsProps) => {
     }
   };
 
-  return (
-    <Card className="box-border p-3 sm:p-6 mt-4 sm:mt-6 w-full min-w-0 max-w-full overflow-hidden bg-card border border-border animate-fade-in">
-      <div className="flex items-center justify-between mb-4 sm:mb-6 min-w-0 max-w-full overflow-hidden">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="p-2 sm:p-3 rounded-xl bg-blue-100 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400">
-            <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
-          </div>
-          <div className="min-w-0 max-w-full overflow-hidden">
-            <h4 className="text-sm sm:text-base font-bold text-foreground truncate">{commodity} News</h4>
-            <p className="text-xs sm:text-sm text-muted-foreground font-medium truncate">
-              {loading
-                ? 'Loading…'
-                : news.length === 1
-                  ? '1 recent article'
-                  : `${news.length} recent articles`}
-            </p>
+  const body = (
+    <>
+      {!embedded && (
+        <div className="flex items-center justify-between mb-4 sm:mb-6 min-w-0 max-w-full overflow-hidden">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2 sm:p-3 rounded-xl bg-blue-100 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400">
+              <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+            <div className="min-w-0 max-w-full overflow-hidden">
+              <h4 className="text-sm sm:text-base font-bold text-foreground truncate">{commodity} News</h4>
+              <p className="text-xs sm:text-sm text-muted-foreground font-medium truncate">
+                {loading
+                  ? 'Loading…'
+                  : news.length === 1
+                    ? '1 recent article'
+                    : `${news.length} recent articles`}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {loading && (
         <div className="flex items-center justify-center py-8">
@@ -180,6 +189,16 @@ const CommodityNews = ({ commodity }: CommodityNewsProps) => {
           ))}
         </div>
       )}
+    </>
+  );
+
+  if (embedded) {
+    return <div className="w-full min-w-0 max-w-full overflow-hidden">{body}</div>;
+  }
+
+  return (
+    <Card className="box-border p-3 sm:p-6 mt-4 sm:mt-6 w-full min-w-0 max-w-full overflow-hidden bg-card border border-border animate-fade-in">
+      {body}
     </Card>
   );
 };

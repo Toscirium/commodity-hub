@@ -10,6 +10,8 @@ const CommodityNews = React.lazy(() => import('./CommodityNews'));
 interface LazyNewsProps {
   commodity: string;
   className?: string;
+  /** Drops the Card frame and title row — see CommodityNews. */
+  embedded?: boolean;
 }
 
 // News skeleton component
@@ -45,7 +47,7 @@ const NewsSkeleton = () => (
   </Card>
 );
 
-const LazyNews: React.FC<LazyNewsProps> = ({ commodity, className = '' }) => {
+const LazyNews: React.FC<LazyNewsProps> = ({ commodity, className = '', embedded = false }) => {
   const { elementRef, isIntersecting } = useIntersectionObserver({
     rootMargin: '300px', // Load news when they're 300px away from viewport
     threshold: 0.1,
@@ -56,7 +58,7 @@ const LazyNews: React.FC<LazyNewsProps> = ({ commodity, className = '' }) => {
     <div ref={elementRef as React.RefObject<HTMLDivElement>} className={`box-border w-full min-w-0 max-w-[calc(100vw-1rem)] sm:max-w-full overflow-hidden ${className}`}>
       {isIntersecting ? (
         <React.Suspense fallback={<NewsSkeleton />}>
-          <CommodityNews commodity={commodity} />
+          <CommodityNews commodity={commodity} embedded={embedded} />
         </React.Suspense>
       ) : (
         <NewsSkeleton />

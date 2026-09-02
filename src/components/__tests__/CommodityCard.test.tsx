@@ -66,16 +66,14 @@ describe('CommodityCard Component', () => {
     expect(card).toHaveAttribute('tabIndex', '0')
   })
 
-  it('should handle click events', async () => {
+  it('should navigate to the commodity detail route on click', async () => {
     const { user } = renderWithProviders(
       <CommodityCard {...mockCommodityProps} />
     )
-    
-    const card = screen.getByRole('button')
-    await user.click(card)
-    
-    // Should toggle expanded state
-    expect(card).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button'))
+
+    expect(window.location.pathname).toBe('/commodity/gold')
   })
 
   it('should show loading state for null price', () => {

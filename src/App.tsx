@@ -29,6 +29,7 @@ import MobileBottomNavigation from '@/components/mobile/MobileBottomNavigation';
 
 // Lazy-load every non-critical route so initial Dashboard paint stays fast
 // and route transitions only fetch what they need.
+const CommodityDetail = lazy(() => import('@/pages/CommodityDetail'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 const ProModeEntry = lazy(() => import('@/pages/ProModeEntry'));
 const BasisTracker = lazy(() => import('@/pages/BasisTracker'));
@@ -115,6 +116,7 @@ const App = () => {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/today" element={<Today />} />
                 <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/commodity/:slug" element={<CommodityDetail />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/auth/confirm" element={<AuthConfirm />} />

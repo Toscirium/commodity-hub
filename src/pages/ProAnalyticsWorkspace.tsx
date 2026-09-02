@@ -4,6 +4,7 @@ import {
   ChevronRight, Clock3, Layers, Layers3, Lock, Radar, RefreshCw, Scale, Sparkles, TrendingDown, TrendingUp,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { commodityDetailPath } from '@/lib/commoditySlug';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { MarketDataProvenance } from '@/components/MarketDataProvenance';
@@ -66,7 +67,7 @@ const ProAnalyticsWorkspace = () => {
         <section className="grid gap-4 xl:grid-cols-[1.35fr_1fr_1fr]">
           <WorkspacePanel title="Focus list" subtitle="Cross-asset front-month monitor" icon={Activity} action="Open watchlists" onAction={() => navigate('/watchlists')} className="xl:row-span-2">
             <div className="divide-y divide-border">
-              {focusMarkets.length > 0 ? focusMarkets.map((market) => <QuoteRow key={market.name} market={market} onClick={() => navigate(`/dashboard?commodity=${encodeURIComponent(market.name)}`)} />) : <LoadingRows />}
+              {focusMarkets.length > 0 ? focusMarkets.map((market) => <QuoteRow key={market.name} market={market} onClick={() => navigate(commodityDetailPath(market.name))} />) : <LoadingRows />}
             </div>
           </WorkspacePanel>
 

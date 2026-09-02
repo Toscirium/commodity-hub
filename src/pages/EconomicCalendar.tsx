@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { commodityDetailPath } from '@/lib/commoditySlug';
 import { MobilePageHeader } from '@/components/mobile/MobilePageHeader';
 
 interface EconomicEvent {
@@ -253,7 +254,7 @@ const EconomicCalendar = () => {
                                       key={commodity} 
                                       variant="outline" 
                                       className="text-xs cursor-pointer hover:bg-primary/10 hover:border-primary/50 transition-colors"
-                                      onClick={() => navigate(`/?commodity=${encodeURIComponent(commodity)}`)}
+                                      onClick={() => navigate(commodityDetailPath(commodity))}
                                     >
                                       {commodity} ↗
                                     </Badge>

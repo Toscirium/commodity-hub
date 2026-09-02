@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Bell, ChevronRight, CircleAlert, Crown, Search, Star, TrendingDown, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { commodityDetailPath } from '@/lib/commoditySlug';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -39,7 +40,7 @@ const Today: React.FC = () => {
     return commodities.filter((commodity) => commodity.name.toLowerCase().includes(term) || commodity.symbol.toLowerCase().includes(term)).slice(0, 5);
   }, [commodities, search]);
 
-  const openCommodity = (name: string) => navigate(`/dashboard?commodity=${encodeURIComponent(name)}`);
+  const openCommodity = (name: string) => navigate(commodityDetailPath(name));
   const togglePin = (name: string, symbol: string) => {
     const exists = pinned.some((pin) => pin.name === name);
     setPinned(exists ? pinned.filter((pin) => pin.name !== name) : [...pinned, { name, symbol }].slice(0, 5));

@@ -74,6 +74,61 @@ export const getPriceUnit = (commodityName: string): string => {
 };
 
 /**
+ * Long-form pricing unit shown next to a headline price ("$/barrel"), as
+ * opposed to getPriceUnit()'s terse suffix ("/bbl") used inline after a
+ * number. Lived inside CommodityCard until the detail page needed the same
+ * label in its price header.
+ */
+export const getPriceUnitLabel = (commodityName: string): string => {
+  const lower = commodityName.toLowerCase();
+  // Marine fuels (VLSFO, HFO, MGO)
+  if (lower.includes('vlsfo') || lower.includes('hfo') || lower.includes('mgo')) return '$/MT';
+  if (lower.includes('gasoil') || lower.includes('naphtha')) return '$/tonne';
+  // Refined products sold per gallon
+  if (
+    lower.includes('jet fuel') || lower.includes('ulsd') || lower.includes('diesel') ||
+    lower.includes('heating oil') || lower.includes('gasoline') || lower.includes('rbob')
+  ) return '$/gallon';
+  if (lower.includes('gas storage')) return 'Bcf';
+  if (lower.includes('dutch ttf')) return '€/MWh';
+  if (lower.includes('lng')) return '$/MMBtu';
+  // Crude oils per barrel
+  if (
+    lower.includes('oil') || lower.includes('crude') || lower.includes('wti') ||
+    lower.includes('brent') || lower.includes('tapis') || lower.includes('urals') ||
+    lower.includes('canadian select') || lower.includes('opec')
+  ) return '$/barrel';
+  if (lower.includes('natural gas uk')) return 'GBp/therm';
+  if (lower.includes('gas')) return '$/MMBtu';
+  if (lower.includes('gold') || lower.includes('silver')) return '$/oz';
+  if (lower.includes('corn') || lower.includes('wheat')) return '¢/bushel';
+  return '$/unit';
+};
+
+/**
+ * Currency prefix for a headline price. Most commodities quote in USD; a few
+ * European/UK benchmarks don't, and gas storage is a volume, not a price.
+ */
+export const getPricePrefix = (commodityName: string): string => {
+  const lower = commodityName.toLowerCase();
+  if (lower.includes('gas storage')) return '';
+  if (lower.includes('dutch ttf')) return '€';
+  if (lower.includes('natural gas uk')) return '£';
+  return '$';
+};
+
+/** Headline price formatting: thousands separators above 1,000, else 2dp. */
+export const formatHeadlinePrice = (priceValue: number): string => {
+  if (priceValue >= 10000) {
+    return priceValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  }
+  if (priceValue >= 1000) {
+    return priceValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  return priceValue.toFixed(2);
+};
+
+/**
  * Format price with appropriate currency symbol, decimals, and unit suffix.
  * Pass `withUnit=false` for dense numeric layouts (chart axes, CSV exports).
  */
