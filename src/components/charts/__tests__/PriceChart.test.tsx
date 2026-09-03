@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import PriceChart, { toSortedSeriesData } from '../PriceChart'
 import type { UTCTimestamp } from 'lightweight-charts'
 
@@ -512,19 +512,98 @@ describe('PriceChart — zoom, pan and reset controls', () => {
     expect(to - from).toBeCloseTo(120)
   })
 
-  it('pans a quarter of the visible window per arrow press, and a full window with shift', () => {
+  it('does not move on the keypress itself, and eases up from a standstill', () => {
     visibleLogicalRange = { from: 20, to: 60 }
     const { container } = render(<PriceChart {...props} />)
     const chart = container.firstElementChild as HTMLElement
 
     fireEvent.keyDown(chart, { key: 'ArrowRight' })
-    settle()
-    expectRange(lastRange(), 30, 70)
+    // Nothing lands on the keypress itself — the loop starts next frame.
+    expect(setVisibleLogicalRange).not.toHaveBeenCalled()
 
-    // Shift pans a whole window (40 bars) back from where the first press left off.
-    fireEvent.keyDown(chart, { key: 'ArrowLeft', shiftKey: true })
+    advanceFrame()
+    const afterOneFrame = lastRange().from - 20
+    expect(afterOneFrame).toBeGreaterThan(0)
+    // Panning moves the window; it must never resize it.
+    expect(lastRange().to - lastRange().from).toBeCloseTo(40)
+
+    advanceFrame()
+    const afterTwoFrames = lastRange().from - 20
+    // Velocity is still ramping up: the second frame alone covers more
+    // ground than the first did.
+    expect(afterTwoFrames - afterOneFrame).toBeGreaterThan(afterOneFrame)
+
+    fireEvent.keyUp(chart, { key: 'ArrowRight' })
     settle()
-    expectRange(lastRange(), -10, 30)
+  })
+
+  it('keeps panning for as long as a key is held, without needing further keydown events', () => {
+    // This is the core fix: the browser's own key-repeat has a long initial
+    // delay (400-600ms on most platforms) before repeats start. Motion here
+    // must not depend on those events at all — a single keydown, followed by
+    // nothing but animation frames, has to keep moving smoothly the whole
+    // time a key is down.
+    visibleLogicalRange = { from: 20, to: 60 }
+    const { container } = render(<PriceChart {...props} />)
+    const chart = container.firstElementChild as HTMLElement
+
+    fireEvent.keyDown(chart, { key: 'ArrowRight' })
+    const positions: number[] = []
+    for (let i = 0; i < 40; i++) {
+      advanceFrame()
+      positions.push(lastRange().from)
+    }
+
+    // Strictly increasing throughout — no stall waiting on a second keydown.
+    for (let i = 1; i < positions.length; i++) {
+      expect(positions[i]).toBeGreaterThan(positions[i - 1])
+    }
+    // 40 * 16ms = 640ms of continuous motion from one keypress, well past
+    // where the OS repeat delay alone would have produced anything.
+    expect(pendingFrames()).toBeGreaterThan(0)
+
+    fireEvent.keyUp(chart, { key: 'ArrowRight' })
+    settle()
+  })
+
+  it('coasts to a stop after keyup instead of stopping dead', () => {
+    visibleLogicalRange = { from: 20, to: 60 }
+    const { container } = render(<PriceChart {...props} />)
+    const chart = container.firstElementChild as HTMLElement
+
+    fireEvent.keyDown(chart, { key: 'ArrowRight' })
+    for (let i = 0; i < 10; i++) advanceFrame()
+    const atRelease = lastRange().from
+
+    fireEvent.keyUp(chart, { key: 'ArrowRight' })
+    advanceFrame()
+    // Still moving forward right after release — a coast, not a snap.
+    expect(lastRange().from).toBeGreaterThan(atRelease)
+
+    settle()
+    expect(pendingFrames()).toBe(0)
+  })
+
+  it('pans faster with Shift held than without, over the same hold duration', () => {
+    visibleLogicalRange = { from: 20, to: 60 }
+    const { container } = render(<PriceChart {...props} />)
+    const chart = container.firstElementChild as HTMLElement
+
+    fireEvent.keyDown(chart, { key: 'ArrowRight' })
+    for (let i = 0; i < 10; i++) advanceFrame()
+    const normalDistance = lastRange().from - 20
+    fireEvent.keyUp(chart, { key: 'ArrowRight' })
+    settle()
+
+    visibleLogicalRange = { from: 20, to: 60 }
+    setVisibleLogicalRange.mockClear()
+    fireEvent.keyDown(chart, { key: 'ArrowRight', shiftKey: true })
+    for (let i = 0; i < 10; i++) advanceFrame()
+    const fastDistance = lastRange().from - 20
+    fireEvent.keyUp(chart, { key: 'ArrowRight', shiftKey: true })
+    settle()
+
+    expect(fastDistance).toBeGreaterThan(normalDistance * 2)
   })
 
   it('keeps half the window over the series when panning past either end', () => {
@@ -533,69 +612,15 @@ describe('PriceChart — zoom, pan and reset controls', () => {
     const chart = container.firstElementChild as HTMLElement
 
     fireEvent.keyDown(chart, { key: 'ArrowRight', shiftKey: true })
-    settle()
+    for (let i = 0; i < 80; i++) advanceFrame(32)
     // Clamped to barCount - span / 2 = 120 - 20, not 140.
     expectRange(lastRange(), 100, 140)
-  })
 
-  it('eases the move out over several frames instead of jumping the range', () => {
-    visibleLogicalRange = { from: 20, to: 60 }
-    const { container } = render(<PriceChart {...props} />)
-    const chart = container.firstElementChild as HTMLElement
-
-    fireEvent.keyDown(chart, { key: 'ArrowRight' })
-    // Nothing lands on the keypress itself — the glide starts next frame.
-    expect(setVisibleLogicalRange).not.toHaveBeenCalled()
-
-    advanceFrame()
-    const first = lastRange()
-    expect(first.from).toBeGreaterThan(20)
-    expect(first.from).toBeLessThan(30)
-    // Panning moves the window; it must never resize it.
-    expect(first.to - first.from).toBeCloseTo(40)
-
-    // Ease-out: the first frame covers more ground than a later one.
-    const firstStep = first.from - 20
-    advanceFrame()
-    expect(lastRange().from - first.from).toBeLessThan(firstStep)
-
+    fireEvent.keyUp(chart, { key: 'ArrowRight', shiftKey: true })
     settle()
-    expectRange(lastRange(), 30, 70)
   })
 
-  it('covers the same distance per unit time whatever the display refresh rate', () => {
-    visibleLogicalRange = { from: 20, to: 60 }
-    const { container } = render(<PriceChart {...props} />)
-    fireEvent.keyDown(container.firstElementChild as HTMLElement, { key: 'ArrowRight' })
-    // Two 8ms frames (120Hz) must land where one 16ms frame (60Hz) would.
-    advanceFrame(8)
-    advanceFrame(8)
-    const at120Hz = lastRange().from
-
-    cleanup()
-    visibleLogicalRange = { from: 20, to: 60 }
-    const second = render(<PriceChart {...props} />)
-    fireEvent.keyDown(second.container.firstElementChild as HTMLElement, { key: 'ArrowRight' })
-    advanceFrame(16)
-    expect(lastRange().from).toBeCloseTo(at120Hz, 5)
-  })
-
-  it('accumulates a held arrow into one continuous glide rather than restarting it', () => {
-    visibleLogicalRange = { from: 20, to: 60 }
-    const { container } = render(<PriceChart {...props} />)
-    const chart = container.firstElementChild as HTMLElement
-
-    fireEvent.keyDown(chart, { key: 'ArrowRight' })
-    advanceFrame()
-    // The repeat arrives mid-glide. It must extend the pending target (30 → 40)
-    // rather than re-measure the part-way range and aim at ~32.
-    fireEvent.keyDown(chart, { key: 'ArrowRight', repeat: true })
-    settle()
-
-    expectRange(lastRange(), 40, 80)
-  })
-
-  it('applies the move outright for a viewer who prefers reduced motion', () => {
+  it('applies the move outright, with no animation, for a viewer who prefers reduced motion', () => {
     window.matchMedia = ((query: string) =>
       ({
         matches: query.includes('prefers-reduced-motion'),
@@ -623,6 +648,25 @@ describe('PriceChart — zoom, pan and reset controls', () => {
     const afterZoom = lastRange()
     settle()
     expect(lastRange()).toEqual(afterZoom)
+  })
+
+  it('stops panning immediately if the chart loses focus mid-hold', () => {
+    // The one path a keyup can't be relied on to arrive on: clicking away,
+    // or the tab itself losing focus, while an arrow is still physically down
+    // — keyboard events from here on route to whatever now has focus, not
+    // back to this chart, so nothing will ever tell it the key was released.
+    visibleLogicalRange = { from: 20, to: 60 }
+    const { container } = render(<PriceChart {...props} />)
+    const chart = container.firstElementChild as HTMLElement
+
+    fireEvent.keyDown(chart, { key: 'ArrowRight' })
+    advanceFrame()
+    fireEvent.blur(chart)
+
+    // No animation left running; the range stays exactly where the blur caught it.
+    expect(pendingFrames()).toBe(0)
+    const afterBlur = lastRange()
+    expect(lastRange()).toEqual(afterBlur)
   })
 
   it('resets the range on the reset button, on "0" and on double-click', () => {

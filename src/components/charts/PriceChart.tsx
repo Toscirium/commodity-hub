@@ -87,16 +87,31 @@ const ZOOM_OUT_FACTOR = 1 / ZOOM_IN_FACTOR;
 // Below a handful of bars the chart stops saying anything — mostly empty pane
 // with a candle in it — and there is no gesture back out except reset.
 const MIN_VISIBLE_BARS = 5;
-// One arrow press moves a quarter of the visible window: far enough to make
-// progress holding the key, short enough to keep your place. Shift pans a
-// full window instead.
-const PAN_STEP_FRACTION = 0.25;
-// Time constant of the pan glide's exponential ease-out — roughly two thirds
-// of the distance per 80ms, so a step settles in about a quarter second.
-const PAN_TIME_CONSTANT_MS = 80;
-// Under a hundredth of a bar the remaining travel is sub-pixel at any zoom, so
-// snap to the target and stop burning frames.
-const PAN_SETTLE_BARS = 0.01;
+// Keyboard panning is a small physics sim, not a per-keypress animation: a
+// held key drives a velocity that eases up to full speed and coasts back to
+// zero on release, entirely on our own requestAnimationFrame loop. It is
+// deliberately NOT driven by keydown/its `repeat` events — the OS's own
+// key-repeat has a long initial delay (400-600ms on most platforms) before
+// repeats start, then repeats at whatever rate the user's OS is configured
+// for. An earlier version re-targeted a short ease on every repeat event,
+// which read as "glide, go dead still for the repeat delay, then a burst of
+// further glides" rather than one continuous motion — keydown/keyup here
+// only toggle which direction is held; the loop supplies its own timing.
+//
+// Window-fractions crossed per second once fully up to speed. ~0.9 means a
+// hold long enough to fully ramp up crosses most of the visible window in a
+// second — brisk without being hard to stop precisely on a bar.
+const PAN_SPEED_WINDOWS_PER_SEC = 0.9;
+// Shift pans fast, for covering a lot of ground.
+const PAN_FAST_SPEED_MULTIPLIER = 3;
+// Time constant of the velocity ramp — how quickly panning eases up to full
+// speed on press, and back down to zero on release. Applied to velocity
+// rather than position, so both the start and the stop of a hold read as a
+// glide instead of a jerk, for a hold of any length.
+const PAN_VELOCITY_TIME_CONSTANT_MS = 140;
+// Below this the residual velocity is imperceptible; once here with no key
+// held, the animation loop stops rather than scheduling frames forever.
+const PAN_VELOCITY_EPSILON = 0.01;
 // A backgrounded tab or one stalled frame hands back a huge delta; clamping it
 // keeps the chart from lurching when the page comes back.
 const MAX_PAN_FRAME_MS = 50;
@@ -618,21 +633,39 @@ const PriceChart: React.FC<PriceChartProps> = ({
     }
   }, [compareData, chartVersion]);
 
-  // Drives the pan glide below. Kept entirely in refs: it retargets and
-  // repaints the chart imperatively every frame, and routing that through
-  // state would re-render the whole component 60+ times a second.
-  const panAnimationRef = React.useRef<{ targetFrom: number; lastTime: number; frame: number | null } | null>(null);
+  // Which arrow direction(s) are currently held, and at what speed — read by
+  // the rAF loop below, written only by the keyboard handlers. Kept in refs
+  // rather than state: the loop reads and repaints the chart imperatively
+  // every frame, and routing that through state would re-render the whole
+  // component 60+ times a second.
+  const heldPanDirectionsRef = React.useRef<Set<-1 | 1>>(new Set());
+  const panFastRef = React.useRef(false);
+  const panVelocityRef = React.useRef(0); // window-fractions per second, signed
+  const panFrameRef = React.useRef<number | null>(null);
+  const panLastTimeRef = React.useRef(0);
 
-  const cancelPanAnimation = React.useCallback(() => {
-    const frame = panAnimationRef.current?.frame;
-    if (frame !== null && frame !== undefined) cancelAnimationFrame(frame);
-    panAnimationRef.current = null;
+  // Stops the animation only — the held-direction set is left alone, so a
+  // key physically still held resumes on its very next (real, OS-timed)
+  // repeat event. Used where the range is being repositioned some other way
+  // (zoom, reset, a chart recreate) and a coasting glide would fight it.
+  const stopPanMotion = React.useCallback(() => {
+    if (panFrameRef.current !== null) cancelAnimationFrame(panFrameRef.current);
+    panFrameRef.current = null;
+    panVelocityRef.current = 0;
   }, []);
 
+  // Full stop: also forgets which keys are held, for when a keyup may never
+  // arrive to clear them (focus leaving the chart, or the tab losing focus
+  // entirely while a key is down).
+  const releaseAllPanKeys = React.useCallback(() => {
+    heldPanDirectionsRef.current.clear();
+    stopPanMotion();
+  }, [stopPanMotion]);
+
   const handleResetZoom = React.useCallback(() => {
-    cancelPanAnimation();
+    stopPanMotion();
     chartRef.current?.timeScale().fitContent();
-  }, [cancelPanAnimation]);
+  }, [stopPanMotion]);
 
   // How many bars the active series holds — the bound both the zoom and the
   // pan clamp against, so neither can leave the series off-screen.
@@ -652,106 +685,104 @@ const PriceChart: React.FC<PriceChartProps> = ({
       const range = timeScale?.getVisibleLogicalRange();
       if (!timeScale || !range) return;
 
-      cancelPanAnimation();
+      stopPanMotion();
       const minSpan = Math.min(MIN_VISIBLE_BARS, barCount);
       const maxSpan = Math.max(barCount, minSpan);
       const span = Math.min(Math.max((range.to - range.from) * factor, minSpan), maxSpan);
       const center = (range.from + range.to) / 2;
       timeScale.setVisibleLogicalRange({ from: center - span / 2, to: center + span / 2 });
     },
-    [barCount, cancelPanAnimation]
+    [barCount, stopPanMotion]
   );
 
-  const startPanAnimation = React.useCallback(() => {
-    const step = (now: number) => {
-      const animation = panAnimationRef.current;
+  // The continuous pan loop. Runs for as long as a direction is held (or
+  // until its coast-to-stop settles after release), independent of how often
+  // — or whether at all, past the first press — keydown fires. Velocity
+  // chases its target (full speed while held, zero once released) with the
+  // same exponential ease used for the earlier position-based glide, just
+  // applied one derivative up; integrating it every frame is what makes an
+  // arbitrarily long hold read as one continuous motion instead of a chain of
+  // discrete steps.
+  const stepPan = React.useCallback(
+    (now: number) => {
       const timeScale = chartRef.current?.timeScale();
       const range = timeScale?.getVisibleLogicalRange();
-      if (!animation || !timeScale || !range) {
-        cancelPanAnimation();
+      if (!timeScale || !range) {
+        panFrameRef.current = null;
         return;
       }
 
-      const elapsed = Math.min(now - animation.lastTime, MAX_PAN_FRAME_MS);
-      animation.lastTime = now;
+      const elapsedMs = Math.min(now - panLastTimeRef.current, MAX_PAN_FRAME_MS);
+      panLastTimeRef.current = now;
+
+      const directions = heldPanDirectionsRef.current;
+      const net = (directions.has(1) ? 1 : 0) - (directions.has(-1) ? 1 : 0);
+      const maxSpeed = PAN_SPEED_WINDOWS_PER_SEC * (panFastRef.current ? PAN_FAST_SPEED_MULTIPLIER : 1);
+      const targetVelocity = net * maxSpeed;
+
+      const alpha = 1 - Math.exp(-elapsedMs / PAN_VELOCITY_TIME_CONSTANT_MS);
+      panVelocityRef.current += (targetVelocity - panVelocityRef.current) * alpha;
+
+      if (net === 0 && Math.abs(panVelocityRef.current) < PAN_VELOCITY_EPSILON) {
+        panVelocityRef.current = 0;
+        panFrameRef.current = null;
+        return;
+      }
 
       const span = range.to - range.from;
-      const remaining = animation.targetFrom - range.from;
-      if (Math.abs(remaining) < PAN_SETTLE_BARS) {
-        timeScale.setVisibleLogicalRange({ from: animation.targetFrom, to: animation.targetFrom + span });
-        cancelPanAnimation();
-        return;
-      }
-
-      // Exponential ease-out integrated over the real frame time, so the glide
-      // takes the same wall-clock duration on a 60Hz and a 144Hz display
-      // rather than running proportionally faster the more frames it gets.
-      const from = range.from + remaining * (1 - Math.exp(-elapsed / PAN_TIME_CONSTANT_MS));
+      const deltaBars = panVelocityRef.current * (elapsedMs / 1000) * span;
+      // Keep at least half the window over real bars, so a hold can't strand
+      // the view in the empty space either side of the series.
+      const from = Math.min(Math.max(range.from + deltaBars, -span / 2), barCount - span / 2);
       timeScale.setVisibleLogicalRange({ from, to: from + span });
-      animation.frame = requestAnimationFrame(step);
-    };
 
-    const animation = panAnimationRef.current;
-    if (animation && animation.frame === null) {
-      animation.lastTime = performance.now();
-      animation.frame = requestAnimationFrame(step);
+      panFrameRef.current = requestAnimationFrame(stepPan);
+    },
+    [barCount]
+  );
+
+  const ensurePanLoopRunning = React.useCallback(() => {
+    if (panFrameRef.current === null) {
+      panLastTimeRef.current = performance.now();
+      panFrameRef.current = requestAnimationFrame(stepPan);
     }
-  }, [cancelPanAnimation]);
+  }, [stepPan]);
 
-  // Panning by keyboard. The keyboard story previously stopped at zoom: you
-  // could narrow the window but never move it, so once zoomed in everything
-  // outside the window was reachable only by mouse drag.
-  //
-  // The move is eased rather than applied outright. A keypress used to jump
-  // the range instantly, so holding an arrow produced the OS key-repeat
-  // pattern verbatim — one jump, a long pause, then a burst of them — with no
-  // continuity between frames to read the movement against. Dragging and
-  // wheel-zooming are animated by lightweight-charts itself; this brings the
-  // keyboard up to the same standard.
-  const handlePan = React.useCallback(
+  // An instant, unanimated nudge — the reduced-motion equivalent of holding
+  // an arrow, since there is no glide to hold "into". Shift still means "go
+  // further", matching what it means for the animated glide.
+  const applyInstantPan = React.useCallback(
     (direction: number, fraction: number) => {
       const timeScale = chartRef.current?.timeScale();
       const range = timeScale?.getVisibleLogicalRange();
       if (!timeScale || !range) return;
-
       const span = range.to - range.from;
-      // Repeats while a key is held extend the pending target instead of
-      // re-measuring the mid-glide range, so a held arrow reads as one
-      // continuous movement rather than an ease that restarts every repeat.
-      const base = panAnimationRef.current?.targetFrom ?? range.from;
-      // Keep at least half the window over real bars, so holding an arrow key
-      // can't strand the view in the empty space either side of the series.
-      const targetFrom = Math.min(
-        Math.max(base + span * fraction * direction, -span / 2),
-        barCount - span / 2
-      );
-
-      if (prefersReducedMotion()) {
-        cancelPanAnimation();
-        timeScale.setVisibleLogicalRange({ from: targetFrom, to: targetFrom + span });
-        return;
-      }
-
-      if (panAnimationRef.current) {
-        panAnimationRef.current.targetFrom = targetFrom;
-      } else {
-        panAnimationRef.current = { targetFrom, lastTime: performance.now(), frame: null };
-      }
-      startPanAnimation();
+      const from = Math.min(Math.max(range.from + span * fraction * direction, -span / 2), barCount - span / 2);
+      timeScale.setVisibleLogicalRange({ from, to: from + span });
     },
-    [barCount, cancelPanAnimation, startPanAnimation]
+    [barCount]
   );
 
   // A chart recreate (theme or series-type switch) — and unmount — leaves any
   // in-flight glide aimed at a logical range that no longer means anything.
-  React.useEffect(() => cancelPanAnimation, [chartVersion, cancelPanAnimation]);
+  // The held-key state itself is left alone: the same DOM node stays
+  // mounted, so a key still physically down keeps working once the new
+  // chart is up, picked up by that key's next real repeat event.
+  React.useEffect(() => stopPanMotion, [chartVersion, stopPanMotion]);
+
+  // Safety net for keyup never arriving: if the tab loses focus while a key
+  // is held, no keyup fires on return, and the chart would otherwise resume
+  // "holding" that direction as soon as it's focused again.
+  React.useEffect(() => {
+    window.addEventListener('blur', releaseAllPanKeys);
+    return () => window.removeEventListener('blur', releaseAllPanKeys);
+  }, [releaseAllPanKeys]);
 
   const handleChartKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
       // Let the visible controls retain their normal keyboard behavior.
       if (event.target !== event.currentTarget) return;
 
-      const panFraction = event.shiftKey ? 1 : PAN_STEP_FRACTION;
       switch (event.key) {
         case '+':
         case '=':
@@ -762,11 +793,17 @@ const PriceChart: React.FC<PriceChartProps> = ({
           handleZoom(ZOOM_OUT_FACTOR);
           break;
         case 'ArrowLeft':
-          handlePan(-1, panFraction);
+        case 'ArrowRight': {
+          const direction = event.key === 'ArrowLeft' ? -1 : 1;
+          if (prefersReducedMotion()) {
+            applyInstantPan(direction, event.shiftKey ? 1 : 0.25);
+          } else {
+            panFastRef.current = event.shiftKey;
+            heldPanDirectionsRef.current.add(direction);
+            ensurePanLoopRunning();
+          }
           break;
-        case 'ArrowRight':
-          handlePan(1, panFraction);
-          break;
+        }
         case '0':
         case 'Home':
           handleResetZoom();
@@ -777,8 +814,15 @@ const PriceChart: React.FC<PriceChartProps> = ({
       }
       event.preventDefault();
     },
-    [handlePan, handleResetZoom, handleZoom]
+    [applyInstantPan, ensurePanLoopRunning, handleResetZoom, handleZoom]
   );
+
+  // Releases a held direction on keyup, so the loop coasts to a stop rather
+  // than panning forever once the last real key-repeat event has passed.
+  const handleChartKeyUp = React.useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'ArrowLeft') heldPanDirectionsRef.current.delete(-1);
+    else if (event.key === 'ArrowRight') heldPanDirectionsRef.current.delete(1);
+  }, []);
 
   if ((chartType === 'candlestick' && candlestickData.length === 0) || (chartType === 'line' && lineData.length === 0)) {
     return (
@@ -801,6 +845,11 @@ const PriceChart: React.FC<PriceChartProps> = ({
       tabIndex={0}
       role="application"
       onKeyDown={handleChartKeyDown}
+      onKeyUp={handleChartKeyUp}
+      // Losing focus mid-hold is the one path a keyup can't be relied on to
+      // cover (e.g. clicking straight from a held arrow onto another
+      // control) — stop outright rather than leave the loop running.
+      onBlur={releaseAllPanKeys}
       // Double-click to reset is the near-universal chart idiom, and costs no
       // screen space. Suppressed while drawing, where a double-click is two
       // meaningful trendline clicks rather than one gesture.
