@@ -70,8 +70,15 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
     }));
   }, [data, selectedCurrency, convertPrice]);
 
-  // Apply data smoothing only for line charts
-  const smoothedData = chartType === 'line' ? smoothPriceData(convertedData, name) : convertedData;
+  // Apply data smoothing only for line charts. Memoised because this is the
+  // `lineData` prop identity: for the grains that actually get smoothed it
+  // returns a fresh array, so recomputing it per render made PriceChart's
+  // data effect refire on every parent render and call fitContent(), quietly
+  // throwing away whatever the user had zoomed or panned to.
+  const smoothedData = React.useMemo(
+    () => (chartType === 'line' ? smoothPriceData(convertedData, name) : convertedData),
+    [chartType, convertedData, name]
+  );
 
   const filteredOhlcData = React.useMemo(
     () =>
