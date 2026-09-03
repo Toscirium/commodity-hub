@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import PriceChart, { toSortedSeriesData } from '../PriceChart'
 import type { UTCTimestamp } from 'lightweight-charts'
 
@@ -12,6 +12,10 @@ const attachPrimitive = vi.fn()
 const detachPrimitive = vi.fn()
 const fitContent = vi.fn()
 const timeToCoordinate = vi.fn()
+const setVisibleLogicalRange = vi.fn()
+// Overwritten per-test to stand in for whatever the user has zoomed/panned to.
+let visibleLogicalRange: { from: number; to: number } | null = { from: 0, to: 100 }
+const getVisibleLogicalRange = vi.fn(() => visibleLogicalRange)
 const createPriceLine = vi.fn(() => ({}))
 const removePriceLine = vi.fn()
 
@@ -34,7 +38,7 @@ const mockChart = {
   unsubscribeClick: vi.fn(),
   subscribeCrosshairMove: vi.fn(),
   unsubscribeCrosshairMove: vi.fn(),
-  timeScale: () => ({ fitContent, timeToCoordinate }),
+  timeScale: () => ({ fitContent, timeToCoordinate, getVisibleLogicalRange, setVisibleLogicalRange }),
   priceScale: () => ({ applyOptions: vi.fn() }),
   removeSeries: vi.fn(),
 }
@@ -395,5 +399,113 @@ describe('PriceChart — resilience to a setData failure', () => {
 
     expect(errorSpy).toHaveBeenCalled()
     errorSpy.mockRestore()
+  })
+})
+
+describe('PriceChart — zoom, pan and reset controls', () => {
+  // 120 bars, so the clamps below have a real bar count to work against.
+  const lineData = Array.from({ length: 120 }, (_, i) => ({
+    date: `2024-01-${String((i % 28) + 1).padStart(2, '0')}T00:00:00.000Z`,
+    price: 100 + i,
+  }))
+  const props = { ...baseProps, lineData, candlestickData: [], chartType: 'line' as const }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    addSeries.mockReturnValue(mockSeries)
+    visibleLogicalRange = { from: 0, to: 100 }
+  })
+
+  const lastRange = () => setVisibleLogicalRange.mock.calls.at(-1)?.[0] as { from: number; to: number }
+
+  it('narrows the visible range around its centre when zooming in', () => {
+    render(<PriceChart {...props} />)
+    fireEvent.click(screen.getByLabelText('Zoom in'))
+
+    const { from, to } = lastRange()
+    expect(to - from).toBeCloseTo(70)
+    // Centre held at 50, so the window stays put rather than sliding.
+    expect((from + to) / 2).toBeCloseTo(50)
+  })
+
+  it('widens the visible range when zooming out, by the exact inverse of a zoom in', () => {
+    render(<PriceChart {...props} />)
+    fireEvent.click(screen.getByLabelText('Zoom in'))
+    visibleLogicalRange = lastRange()
+    fireEvent.click(screen.getByLabelText('Zoom out'))
+
+    const { from, to } = lastRange()
+    expect(from).toBeCloseTo(0)
+    expect(to).toBeCloseTo(100)
+  })
+
+  it('stops zooming in once a handful of bars are visible instead of collapsing to nothing', () => {
+    visibleLogicalRange = { from: 49, to: 51 }
+    render(<PriceChart {...props} />)
+    fireEvent.click(screen.getByLabelText('Zoom in'))
+
+    const { from, to } = lastRange()
+    expect(to - from).toBeCloseTo(5)
+  })
+
+  it('stops zooming out at the full series rather than shrinking it to a sliver', () => {
+    visibleLogicalRange = { from: 0, to: 119 }
+    render(<PriceChart {...props} />)
+    fireEvent.click(screen.getByLabelText('Zoom out'))
+
+    const { from, to } = lastRange()
+    expect(to - from).toBeCloseTo(120)
+  })
+
+  it('pans a quarter of the visible window per arrow press, and a full window with shift', () => {
+    visibleLogicalRange = { from: 20, to: 60 }
+    const { container } = render(<PriceChart {...props} />)
+    const chart = container.firstElementChild as HTMLElement
+
+    fireEvent.keyDown(chart, { key: 'ArrowRight' })
+    expect(lastRange()).toEqual({ from: 30, to: 70 })
+
+    fireEvent.keyDown(chart, { key: 'ArrowLeft', shiftKey: true })
+    expect(lastRange()).toEqual({ from: -20, to: 20 })
+  })
+
+  it('keeps half the window over the series when panning past either end', () => {
+    visibleLogicalRange = { from: 100, to: 140 }
+    const { container } = render(<PriceChart {...props} />)
+    const chart = container.firstElementChild as HTMLElement
+
+    fireEvent.keyDown(chart, { key: 'ArrowRight', shiftKey: true })
+    // Clamped to barCount - span / 2 = 120 - 20, not 140.
+    expect(lastRange()).toEqual({ from: 100, to: 140 })
+  })
+
+  it('resets the range on the reset button, on "0" and on double-click', () => {
+    const { container } = render(<PriceChart {...props} />)
+    const chart = container.firstElementChild as HTMLElement
+    // The data effect fits content once on mount; count only what follows.
+    const baseline = fitContent.mock.calls.length
+
+    fireEvent.click(screen.getByLabelText('Reset zoom and pan'))
+    fireEvent.keyDown(chart, { key: '0' })
+    fireEvent.doubleClick(chart)
+    expect(fitContent.mock.calls.length).toBe(baseline + 3)
+  })
+
+  it('leaves double-click to the trendline tool while drawing is enabled', () => {
+    const { container } = render(<PriceChart {...props} trendlinesEnabled />)
+    const chart = container.firstElementChild as HTMLElement
+    const baseline = fitContent.mock.calls.length
+
+    fireEvent.doubleClick(chart)
+    expect(fitContent.mock.calls.length).toBe(baseline)
+  })
+
+  it('ignores keys it does not handle, so tabbing and typing still work', () => {
+    const { container } = render(<PriceChart {...props} />)
+    const chart = container.firstElementChild as HTMLElement
+
+    fireEvent.keyDown(chart, { key: 'Tab' })
+    fireEvent.keyDown(chart, { key: 'a' })
+    expect(setVisibleLogicalRange).not.toHaveBeenCalled()
   })
 })

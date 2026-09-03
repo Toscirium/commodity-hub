@@ -14,7 +14,7 @@ import {
   type Time,
   type UTCTimestamp,
 } from 'lightweight-charts';
-import { TrendingUp, RotateCcw, X } from 'lucide-react';
+import { TrendingUp, RotateCcw, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatPrice as formatCommodityPrice } from '@/lib/commodityUtils';
@@ -78,6 +78,18 @@ type MainSeries = ISeriesApi<'Candlestick'> | ISeriesApi<'Area'>;
 // Distinct from trendlineColor (purple) and compareColor (amber) so all the
 // overlays stay visually separable on the same chart.
 const MA_COLORS = ['#f97316', '#eab308', '#6366f1'];
+
+// Exact reciprocals, so a zoom in immediately followed by a zoom out lands
+// back on the range you started from rather than drifting a little each time.
+const ZOOM_IN_FACTOR = 0.7;
+const ZOOM_OUT_FACTOR = 1 / ZOOM_IN_FACTOR;
+// Below a handful of bars the chart stops saying anything — mostly empty pane
+// with a candle in it — and there is no gesture back out except reset.
+const MIN_VISIBLE_BARS = 5;
+// One arrow press moves a quarter of the visible window: far enough to make
+// progress holding the key, short enough to keep your place. Shift pans a
+// full window instead.
+const PAN_STEP_FRACTION = 0.25;
 
 const formatVolume = (value: number): string => {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
@@ -188,7 +200,10 @@ const PriceChart: React.FC<PriceChartProps> = ({
       },
       handleScale: {
         axisPressedMouseMove: false,
-        mouseWheel: false,
+        // In the immersive chart there is no page scroll to preserve, so a
+        // mouse wheel is an intuitive, precise way to inspect a time range.
+        // Inline charts leave it off, allowing normal page scrolling.
+        mouseWheel: interactive,
         pinch: true,
       },
       timeScale: {
@@ -593,7 +608,89 @@ const PriceChart: React.FC<PriceChartProps> = ({
     }
   }, [compareData, chartVersion]);
 
-  const handleResetZoom = () => chartRef.current?.timeScale().fitContent();
+  const handleResetZoom = React.useCallback(() => chartRef.current?.timeScale().fitContent(), []);
+
+  // How many bars the active series holds — the bound both the zoom and the
+  // pan clamp against, so neither can leave the series off-screen.
+  const barCount = chartType === 'candlestick' ? candlestickData.length : lineData.length;
+
+  // lightweight-charts deliberately keeps its navigation UI minimal. These
+  // controls make the otherwise-hidden zoom gesture discoverable, work on
+  // touch devices, and give keyboard users an equivalent interaction.
+  //
+  // The span is clamped at both ends. Repeated zoom-in ran the visible range
+  // down towards zero bars, and repeated zoom-out shrank the series into an
+  // unreadable sliver mid-pane; both were dead ends you could only leave via
+  // the reset button.
+  const handleZoom = React.useCallback(
+    (factor: number) => {
+      const timeScale = chartRef.current?.timeScale();
+      const range = timeScale?.getVisibleLogicalRange();
+      if (!timeScale || !range) return;
+
+      const minSpan = Math.min(MIN_VISIBLE_BARS, barCount);
+      const maxSpan = Math.max(barCount, minSpan);
+      const span = Math.min(Math.max((range.to - range.from) * factor, minSpan), maxSpan);
+      const center = (range.from + range.to) / 2;
+      timeScale.setVisibleLogicalRange({ from: center - span / 2, to: center + span / 2 });
+    },
+    [barCount]
+  );
+
+  // Panning by keyboard. The keyboard story previously stopped at zoom: you
+  // could narrow the window but never move it, so once zoomed in everything
+  // outside the window was reachable only by mouse drag.
+  const handlePan = React.useCallback(
+    (direction: number, fraction: number) => {
+      const timeScale = chartRef.current?.timeScale();
+      const range = timeScale?.getVisibleLogicalRange();
+      if (!timeScale || !range) return;
+
+      const span = range.to - range.from;
+      // Keep at least half the window over real bars, so holding an arrow key
+      // can't strand the view in the empty space either side of the series.
+      const from = Math.min(
+        Math.max(range.from + span * fraction * direction, -span / 2),
+        barCount - span / 2
+      );
+      timeScale.setVisibleLogicalRange({ from, to: from + span });
+    },
+    [barCount]
+  );
+
+  const handleChartKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      // Let the visible controls retain their normal keyboard behavior.
+      if (event.target !== event.currentTarget) return;
+
+      const panFraction = event.shiftKey ? 1 : PAN_STEP_FRACTION;
+      switch (event.key) {
+        case '+':
+        case '=':
+          handleZoom(ZOOM_IN_FACTOR);
+          break;
+        case '-':
+        case '_':
+          handleZoom(ZOOM_OUT_FACTOR);
+          break;
+        case 'ArrowLeft':
+          handlePan(-1, panFraction);
+          break;
+        case 'ArrowRight':
+          handlePan(1, panFraction);
+          break;
+        case '0':
+        case 'Home':
+          handleResetZoom();
+          break;
+        default:
+          // Anything else keeps its default behaviour (tabbing out included).
+          return;
+      }
+      event.preventDefault();
+    },
+    [handlePan, handleResetZoom, handleZoom]
+  );
 
   if ((chartType === 'candlestick' && candlestickData.length === 0) || (chartType === 'line' && lineData.length === 0)) {
     return (
@@ -612,7 +709,16 @@ const PriceChart: React.FC<PriceChartProps> = ({
 
   return (
     <div
-      className={`relative w-full h-full bg-card overflow-hidden ${bordered ? 'rounded-lg border border-border/50' : ''}`}
+      className={`relative w-full h-full bg-card overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset ${bordered ? 'rounded-lg border border-border/50' : ''}`}
+      tabIndex={0}
+      role="application"
+      onKeyDown={handleChartKeyDown}
+      // Double-click to reset is the near-universal chart idiom, and costs no
+      // screen space. Suppressed while drawing, where a double-click is two
+      // meaningful trendline clicks rather than one gesture.
+      onDoubleClick={trendlinesEnabled ? undefined : handleResetZoom}
+      aria-label={`${commodityName} price chart. Arrow keys pan, plus and minus zoom, zero resets the visible range.`}
+      aria-keyshortcuts="ArrowLeft ArrowRight + - 0"
     >
       {/* Legend — one consolidated block rather than a separately-bordered
           chip per piece of info. Compare + MA together used to stack 3-4
@@ -657,11 +763,40 @@ const PriceChart: React.FC<PriceChartProps> = ({
         )}
       </div>
 
-      {/* Reset zoom — icon-only, so it needs a tooltip/aria-label to be
-          discoverable at all; there was previously no way to tell what this
-          button did without clicking it first. */}
-      <div className="absolute top-2 right-2 z-10">
+      {/* Zoom/reset — icon-only, so each needs a tooltip/aria-label to be
+          discoverable at all; there was previously no way to tell what these
+          buttons did without clicking one first. The tooltips double as the
+          only place the keyboard shortcuts are advertised. */}
+      <div className="absolute top-2 right-2 z-10 flex items-center gap-1">
         <TooltipProvider delayDuration={150}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleZoom(ZOOM_IN_FACTOR)}
+                aria-label="Zoom in"
+                className="h-8 w-8 p-0 bg-background/80 backdrop-blur-sm hover:bg-muted/80 border border-border/50"
+              >
+                <ZoomIn className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Zoom in (+)</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleZoom(ZOOM_OUT_FACTOR)}
+                aria-label="Zoom out"
+                className="h-8 w-8 p-0 bg-background/80 backdrop-blur-sm hover:bg-muted/80 border border-border/50"
+              >
+                <ZoomOut className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Zoom out (−)</TooltipContent>
+          </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -669,12 +804,12 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 size="sm"
                 onClick={handleResetZoom}
                 aria-label="Reset zoom and pan"
-                className="h-7 w-7 p-0 bg-background/80 backdrop-blur-sm hover:bg-muted/80 border border-border/50"
+                className="h-8 w-8 p-0 bg-background/80 backdrop-blur-sm hover:bg-muted/80 border border-border/50"
               >
                 <RotateCcw className="h-3 w-3" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">Reset zoom &amp; pan</TooltipContent>
+            <TooltipContent side="bottom">Reset zoom &amp; pan (0, or double-click)</TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>
@@ -685,7 +820,9 @@ const PriceChart: React.FC<PriceChartProps> = ({
         <div
           className="absolute z-20 bg-background/95 backdrop-blur-sm border border-border/50 rounded-xl p-3 shadow-xl pointer-events-none text-xs max-w-[220px]"
           style={{
-            left: Math.min(tooltip.x + 12, (containerRef.current?.clientWidth ?? 0) - 190),
+            // 228 = the box's 220px max-width plus an 8px margin; the outer
+            // max() keeps it on-screen when the chart is narrower than that.
+            left: Math.max(8, Math.min(tooltip.x + 12, (containerRef.current?.clientWidth ?? 0) - 228)),
             top: Math.max(tooltip.y - 90, 4),
           }}
         >
