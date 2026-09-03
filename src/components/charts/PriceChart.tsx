@@ -18,6 +18,7 @@ import { TrendingUp, RotateCcw, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatPrice as formatCommodityPrice } from '@/lib/commodityUtils';
+import { prefersReducedMotion } from '@/utils/accessibility';
 import { useIsDarkMode, getLightweightChartColors, toUtcTimestamp, CHART_FONT_FAMILY } from './lightweightChartTheme';
 import { TrendlinePrimitive } from './trendlinePrimitive';
 import type { Trendline, TrendlinePoint } from '@/hooks/useTrendlines';
@@ -90,6 +91,15 @@ const MIN_VISIBLE_BARS = 5;
 // progress holding the key, short enough to keep your place. Shift pans a
 // full window instead.
 const PAN_STEP_FRACTION = 0.25;
+// Time constant of the pan glide's exponential ease-out — roughly two thirds
+// of the distance per 80ms, so a step settles in about a quarter second.
+const PAN_TIME_CONSTANT_MS = 80;
+// Under a hundredth of a bar the remaining travel is sub-pixel at any zoom, so
+// snap to the target and stop burning frames.
+const PAN_SETTLE_BARS = 0.01;
+// A backgrounded tab or one stalled frame hands back a huge delta; clamping it
+// keeps the chart from lurching when the page comes back.
+const MAX_PAN_FRAME_MS = 50;
 
 const formatVolume = (value: number): string => {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(2)}M`;
@@ -608,7 +618,21 @@ const PriceChart: React.FC<PriceChartProps> = ({
     }
   }, [compareData, chartVersion]);
 
-  const handleResetZoom = React.useCallback(() => chartRef.current?.timeScale().fitContent(), []);
+  // Drives the pan glide below. Kept entirely in refs: it retargets and
+  // repaints the chart imperatively every frame, and routing that through
+  // state would re-render the whole component 60+ times a second.
+  const panAnimationRef = React.useRef<{ targetFrom: number; lastTime: number; frame: number | null } | null>(null);
+
+  const cancelPanAnimation = React.useCallback(() => {
+    const frame = panAnimationRef.current?.frame;
+    if (frame !== null && frame !== undefined) cancelAnimationFrame(frame);
+    panAnimationRef.current = null;
+  }, []);
+
+  const handleResetZoom = React.useCallback(() => {
+    cancelPanAnimation();
+    chartRef.current?.timeScale().fitContent();
+  }, [cancelPanAnimation]);
 
   // How many bars the active series holds — the bound both the zoom and the
   // pan clamp against, so neither can leave the series off-screen.
@@ -628,18 +652,62 @@ const PriceChart: React.FC<PriceChartProps> = ({
       const range = timeScale?.getVisibleLogicalRange();
       if (!timeScale || !range) return;
 
+      cancelPanAnimation();
       const minSpan = Math.min(MIN_VISIBLE_BARS, barCount);
       const maxSpan = Math.max(barCount, minSpan);
       const span = Math.min(Math.max((range.to - range.from) * factor, minSpan), maxSpan);
       const center = (range.from + range.to) / 2;
       timeScale.setVisibleLogicalRange({ from: center - span / 2, to: center + span / 2 });
     },
-    [barCount]
+    [barCount, cancelPanAnimation]
   );
+
+  const startPanAnimation = React.useCallback(() => {
+    const step = (now: number) => {
+      const animation = panAnimationRef.current;
+      const timeScale = chartRef.current?.timeScale();
+      const range = timeScale?.getVisibleLogicalRange();
+      if (!animation || !timeScale || !range) {
+        cancelPanAnimation();
+        return;
+      }
+
+      const elapsed = Math.min(now - animation.lastTime, MAX_PAN_FRAME_MS);
+      animation.lastTime = now;
+
+      const span = range.to - range.from;
+      const remaining = animation.targetFrom - range.from;
+      if (Math.abs(remaining) < PAN_SETTLE_BARS) {
+        timeScale.setVisibleLogicalRange({ from: animation.targetFrom, to: animation.targetFrom + span });
+        cancelPanAnimation();
+        return;
+      }
+
+      // Exponential ease-out integrated over the real frame time, so the glide
+      // takes the same wall-clock duration on a 60Hz and a 144Hz display
+      // rather than running proportionally faster the more frames it gets.
+      const from = range.from + remaining * (1 - Math.exp(-elapsed / PAN_TIME_CONSTANT_MS));
+      timeScale.setVisibleLogicalRange({ from, to: from + span });
+      animation.frame = requestAnimationFrame(step);
+    };
+
+    const animation = panAnimationRef.current;
+    if (animation && animation.frame === null) {
+      animation.lastTime = performance.now();
+      animation.frame = requestAnimationFrame(step);
+    }
+  }, [cancelPanAnimation]);
 
   // Panning by keyboard. The keyboard story previously stopped at zoom: you
   // could narrow the window but never move it, so once zoomed in everything
   // outside the window was reachable only by mouse drag.
+  //
+  // The move is eased rather than applied outright. A keypress used to jump
+  // the range instantly, so holding an arrow produced the OS key-repeat
+  // pattern verbatim — one jump, a long pause, then a burst of them — with no
+  // continuity between frames to read the movement against. Dragging and
+  // wheel-zooming are animated by lightweight-charts itself; this brings the
+  // keyboard up to the same standard.
   const handlePan = React.useCallback(
     (direction: number, fraction: number) => {
       const timeScale = chartRef.current?.timeScale();
@@ -647,16 +715,36 @@ const PriceChart: React.FC<PriceChartProps> = ({
       if (!timeScale || !range) return;
 
       const span = range.to - range.from;
+      // Repeats while a key is held extend the pending target instead of
+      // re-measuring the mid-glide range, so a held arrow reads as one
+      // continuous movement rather than an ease that restarts every repeat.
+      const base = panAnimationRef.current?.targetFrom ?? range.from;
       // Keep at least half the window over real bars, so holding an arrow key
       // can't strand the view in the empty space either side of the series.
-      const from = Math.min(
-        Math.max(range.from + span * fraction * direction, -span / 2),
+      const targetFrom = Math.min(
+        Math.max(base + span * fraction * direction, -span / 2),
         barCount - span / 2
       );
-      timeScale.setVisibleLogicalRange({ from, to: from + span });
+
+      if (prefersReducedMotion()) {
+        cancelPanAnimation();
+        timeScale.setVisibleLogicalRange({ from: targetFrom, to: targetFrom + span });
+        return;
+      }
+
+      if (panAnimationRef.current) {
+        panAnimationRef.current.targetFrom = targetFrom;
+      } else {
+        panAnimationRef.current = { targetFrom, lastTime: performance.now(), frame: null };
+      }
+      startPanAnimation();
     },
-    [barCount]
+    [barCount, cancelPanAnimation, startPanAnimation]
   );
+
+  // A chart recreate (theme or series-type switch) — and unmount — leaves any
+  // in-flight glide aimed at a logical range that no longer means anything.
+  React.useEffect(() => cancelPanAnimation, [chartVersion, cancelPanAnimation]);
 
   const handleChartKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {

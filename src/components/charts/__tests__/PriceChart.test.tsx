@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import PriceChart, { toSortedSeriesData } from '../PriceChart'
 import type { UTCTimestamp } from 'lightweight-charts'
 
@@ -12,9 +12,12 @@ const attachPrimitive = vi.fn()
 const detachPrimitive = vi.fn()
 const fitContent = vi.fn()
 const timeToCoordinate = vi.fn()
-const setVisibleLogicalRange = vi.fn()
-// Overwritten per-test to stand in for whatever the user has zoomed/panned to.
+// Seeded per-test to stand in for whatever the user has zoomed/panned to, then
+// kept up to date by setVisibleLogicalRange the way the real time scale is.
 let visibleLogicalRange: { from: number; to: number } | null = { from: 0, to: 100 }
+const setVisibleLogicalRange = vi.fn((range: { from: number; to: number }) => {
+  visibleLogicalRange = range
+})
 const getVisibleLogicalRange = vi.fn(() => visibleLogicalRange)
 const createPriceLine = vi.fn(() => ({}))
 const removePriceLine = vi.fn()
@@ -410,13 +413,65 @@ describe('PriceChart — zoom, pan and reset controls', () => {
   }))
   const props = { ...baseProps, lineData, candlestickData: [], chartType: 'line' as const }
 
+  // A deterministic clock in place of the browser's, so the eased pan can be
+  // stepped frame by frame and asserted on rather than waited out.
+  let clock = 0
+  let frames = new Map<number, FrameRequestCallback>()
+  let nextFrameId = 1
+
+  // Restored individually rather than via restoreAllMocks(), which would also
+  // strip the implementations off the shared ResizeObserver/matchMedia mocks
+  // that src/test/setup.ts installs once for the whole run.
+  const spies: { mockRestore: () => void }[] = []
+  const realMatchMedia = window.matchMedia
+
+  const advanceFrame = (ms = 16) => {
+    clock += ms
+    const due = [...frames.values()]
+    frames.clear()
+    due.forEach((cb) => cb(clock))
+  }
+  const pendingFrames = () => frames.size
+  const settle = (limit = 500) => {
+    let guard = 0
+    while (frames.size > 0 && guard++ < limit) advanceFrame()
+    expect(guard).toBeLessThan(limit)
+  }
+
   beforeEach(() => {
     vi.clearAllMocks()
     addSeries.mockReturnValue(mockSeries)
     visibleLogicalRange = { from: 0, to: 100 }
+
+    clock = 0
+    frames = new Map()
+    nextFrameId = 1
+    spies.push(vi.spyOn(performance, 'now').mockImplementation(() => clock))
+    vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+      const id = nextFrameId++
+      frames.set(id, cb)
+      return id
+    })
+    vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+      frames.delete(id)
+    })
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    window.matchMedia = realMatchMedia
+    spies.forEach((spy) => spy.mockRestore())
+    spies.length = 0
   })
 
   const lastRange = () => setVisibleLogicalRange.mock.calls.at(-1)?.[0] as { from: number; to: number }
+  // The glide re-derives the span from the live range every frame, so it can
+  // land a floating-point hair off an exact bar index. Position is what these
+  // assert; sub-picometre drift is not.
+  const expectRange = (actual: { from: number; to: number }, from: number, to: number) => {
+    expect(actual.from).toBeCloseTo(from, 6)
+    expect(actual.to).toBeCloseTo(to, 6)
+  }
 
   it('narrows the visible range around its centre when zooming in', () => {
     render(<PriceChart {...props} />)
@@ -463,10 +518,13 @@ describe('PriceChart — zoom, pan and reset controls', () => {
     const chart = container.firstElementChild as HTMLElement
 
     fireEvent.keyDown(chart, { key: 'ArrowRight' })
-    expect(lastRange()).toEqual({ from: 30, to: 70 })
+    settle()
+    expectRange(lastRange(), 30, 70)
 
+    // Shift pans a whole window (40 bars) back from where the first press left off.
     fireEvent.keyDown(chart, { key: 'ArrowLeft', shiftKey: true })
-    expect(lastRange()).toEqual({ from: -20, to: 20 })
+    settle()
+    expectRange(lastRange(), -10, 30)
   })
 
   it('keeps half the window over the series when panning past either end', () => {
@@ -475,8 +533,96 @@ describe('PriceChart — zoom, pan and reset controls', () => {
     const chart = container.firstElementChild as HTMLElement
 
     fireEvent.keyDown(chart, { key: 'ArrowRight', shiftKey: true })
+    settle()
     // Clamped to barCount - span / 2 = 120 - 20, not 140.
-    expect(lastRange()).toEqual({ from: 100, to: 140 })
+    expectRange(lastRange(), 100, 140)
+  })
+
+  it('eases the move out over several frames instead of jumping the range', () => {
+    visibleLogicalRange = { from: 20, to: 60 }
+    const { container } = render(<PriceChart {...props} />)
+    const chart = container.firstElementChild as HTMLElement
+
+    fireEvent.keyDown(chart, { key: 'ArrowRight' })
+    // Nothing lands on the keypress itself — the glide starts next frame.
+    expect(setVisibleLogicalRange).not.toHaveBeenCalled()
+
+    advanceFrame()
+    const first = lastRange()
+    expect(first.from).toBeGreaterThan(20)
+    expect(first.from).toBeLessThan(30)
+    // Panning moves the window; it must never resize it.
+    expect(first.to - first.from).toBeCloseTo(40)
+
+    // Ease-out: the first frame covers more ground than a later one.
+    const firstStep = first.from - 20
+    advanceFrame()
+    expect(lastRange().from - first.from).toBeLessThan(firstStep)
+
+    settle()
+    expectRange(lastRange(), 30, 70)
+  })
+
+  it('covers the same distance per unit time whatever the display refresh rate', () => {
+    visibleLogicalRange = { from: 20, to: 60 }
+    const { container } = render(<PriceChart {...props} />)
+    fireEvent.keyDown(container.firstElementChild as HTMLElement, { key: 'ArrowRight' })
+    // Two 8ms frames (120Hz) must land where one 16ms frame (60Hz) would.
+    advanceFrame(8)
+    advanceFrame(8)
+    const at120Hz = lastRange().from
+
+    cleanup()
+    visibleLogicalRange = { from: 20, to: 60 }
+    const second = render(<PriceChart {...props} />)
+    fireEvent.keyDown(second.container.firstElementChild as HTMLElement, { key: 'ArrowRight' })
+    advanceFrame(16)
+    expect(lastRange().from).toBeCloseTo(at120Hz, 5)
+  })
+
+  it('accumulates a held arrow into one continuous glide rather than restarting it', () => {
+    visibleLogicalRange = { from: 20, to: 60 }
+    const { container } = render(<PriceChart {...props} />)
+    const chart = container.firstElementChild as HTMLElement
+
+    fireEvent.keyDown(chart, { key: 'ArrowRight' })
+    advanceFrame()
+    // The repeat arrives mid-glide. It must extend the pending target (30 → 40)
+    // rather than re-measure the part-way range and aim at ~32.
+    fireEvent.keyDown(chart, { key: 'ArrowRight', repeat: true })
+    settle()
+
+    expectRange(lastRange(), 40, 80)
+  })
+
+  it('applies the move outright for a viewer who prefers reduced motion', () => {
+    window.matchMedia = ((query: string) =>
+      ({
+        matches: query.includes('prefers-reduced-motion'),
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })) as unknown as typeof window.matchMedia
+    visibleLogicalRange = { from: 20, to: 60 }
+    const { container } = render(<PriceChart {...props} />)
+
+    fireEvent.keyDown(container.firstElementChild as HTMLElement, { key: 'ArrowRight' })
+    expectRange(lastRange(), 30, 70)
+    expect(pendingFrames()).toBe(0)
+  })
+
+  it('drops an in-flight glide when zooming, so the two do not fight over the range', () => {
+    visibleLogicalRange = { from: 20, to: 60 }
+    const { container } = render(<PriceChart {...props} />)
+
+    fireEvent.keyDown(container.firstElementChild as HTMLElement, { key: 'ArrowRight' })
+    advanceFrame()
+    fireEvent.click(screen.getByLabelText('Zoom in'))
+    expect(pendingFrames()).toBe(0)
+
+    const afterZoom = lastRange()
+    settle()
+    expect(lastRange()).toEqual(afterZoom)
   })
 
   it('resets the range on the reset button, on "0" and on double-click', () => {
