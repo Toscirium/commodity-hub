@@ -30,7 +30,12 @@ const mockChart = {
   unsubscribeClick: vi.fn(),
   subscribeCrosshairMove: vi.fn(),
   unsubscribeCrosshairMove: vi.fn(),
-  timeScale: () => ({ fitContent: vi.fn(), timeToCoordinate: vi.fn() }),
+  timeScale: () => ({
+    fitContent: vi.fn(),
+    timeToCoordinate: vi.fn(),
+    getVisibleLogicalRange: vi.fn(() => ({ from: 0, to: 100 })),
+    setVisibleLogicalRange: vi.fn(),
+  }),
   priceScale: () => ({ applyOptions: vi.fn() }),
   removeSeries: vi.fn(),
 }

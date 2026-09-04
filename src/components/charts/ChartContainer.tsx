@@ -2,7 +2,7 @@ import React from 'react';
 import { Loader, AlertCircle } from 'lucide-react';
 import { CommodityHistoricalData } from '@/hooks/useCommodityData';
 import { isCentPriced } from '@/lib/commodityUtils';
-import { formatXAxisTick, formatTooltipLabel, smoothPriceData, calculateSMA } from './chartUtils';
+import { formatXAxisTick, formatTooltipLabel, smoothPriceData, calculateSMA, sliceToTimeframe } from './chartUtils';
 import PriceChart, { type PriceChartCompareData } from './PriceChart';
 import { useCurrency } from '@/hooks/useCurrency';
 import type { Trendline, TrendlinePoint } from '@/hooks/useTrendlines';
@@ -26,7 +26,7 @@ interface ChartContainerProps {
   onPendingTrendlineChange?: (pending: boolean) => void;
   /** false for an edge-to-edge chart with no visible frame around it. Defaults to true. */
   bordered?: boolean;
-  /** false disables single-finger touch panning so the chart doesn't fight page scroll — see PriceChart. Defaults to true. */
+  /** false turns off mouse-wheel zoom so an inline chart doesn't swallow page scroll — touch/drag panning stay on. See PriceChart. Defaults to true. */
   interactive?: boolean;
 }
 
@@ -112,10 +112,23 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
 
   // Moving averages, computed from closing price regardless of chart type —
   // smoothedData already resolves to "price = close" for candlestick data.
+  // Computed over the whole loaded series (not just the framed window) so the
+  // MA line stays drawn as you pan back into older bars.
   const maData = React.useMemo(() => {
     const closes = smoothedData.map((d) => ({ date: d.date, price: d.price }));
     return [5, 10, 20].map((period) => ({ period, data: calculateSMA(closes, period) }));
   }, [smoothedData]);
+
+  // The dashed period-open reference line is pinned to the first bar of the
+  // *framed* timeframe (not the first bar of the whole ~2-year series), so it
+  // keeps matching the header's %-change baseline. PriceChart falls back to
+  // its own first bar when this is undefined.
+  const referencePrice = React.useMemo(() => {
+    if (chartType === 'candlestick') {
+      return sliceToTimeframe(filteredOhlcData, selectedTimeframe)[0]?.open;
+    }
+    return sliceToTimeframe(smoothedData, selectedTimeframe)[0]?.price;
+  }, [chartType, filteredOhlcData, smoothedData, selectedTimeframe]);
 
   if (loading) {
     return (
@@ -158,6 +171,8 @@ const ChartContainer: React.FC<ChartContainerProps> = ({
       volumeData={volumeData}
       maData={maData}
       chartType={chartType}
+      selectedTimeframe={selectedTimeframe}
+      referencePrice={referencePrice}
       formatXAxisTick={(date) => formatXAxisTick(date, selectedTimeframe)}
       formatTooltipLabel={(label) => formatTooltipLabel(label, selectedTimeframe)}
       formatPrice={formatPrice}

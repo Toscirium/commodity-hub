@@ -20,6 +20,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { formatPrice as formatCommodityPrice } from '@/lib/commodityUtils';
 import { prefersReducedMotion } from '@/utils/accessibility';
 import { useIsDarkMode, getLightweightChartColors, toUtcTimestamp, CHART_FONT_FAMILY } from './lightweightChartTheme';
+import { TIMEFRAME_DAYS, countTrailingBarsWithinDays } from './chartUtils';
 import { TrendlinePrimitive } from './trendlinePrimitive';
 import type { Trendline, TrendlinePoint } from '@/hooks/useTrendlines';
 
@@ -47,6 +48,19 @@ interface PriceChartProps {
   /** SMA overlays (e.g. 5/10/20-period), line-chart mode only. Empty entries (not enough bars yet) are skipped. */
   maData?: PriceChartMovingAverage[];
   chartType: 'line' | 'candlestick';
+  /**
+   * The active timeframe button (`1d`/`1m`/`3m`/`6m`/`1y`/`2y`). The series
+   * itself now holds one continuous ~2-year window regardless; this only
+   * decides how much of it is framed on screen initially, so panning past the
+   * edge reveals more history instead of blank space.
+   */
+  selectedTimeframe: string;
+  /**
+   * Price the dashed period-open reference line is pinned to — the first bar
+   * of the framed timeframe, passed in so it matches the header's %-change
+   * baseline. Falls back to the first bar of the whole series when omitted.
+   */
+  referencePrice?: number;
   formatXAxisTick: (date: string) => string;
   formatTooltipLabel: (label: string) => string;
   formatPrice: (price: number) => string;
@@ -65,11 +79,12 @@ interface PriceChartProps {
   bordered?: boolean;
   /**
    * false for a chart embedded inline in a scrollable page (e.g. the
-   * dashboard card preview) — disables single-finger touch panning so a
-   * vertical swipe that starts on the chart still scrolls the page instead
-   * of getting captured as a chart pan. Pinch-zoom and desktop click-drag
-   * stay on either way. Defaults to true (full-screen view, where page
-   * scroll is locked anyway, always wants this on).
+   * dashboard card preview) — turns off mouse-wheel zoom, which on a
+   * non-immersive chart would swallow the page scroll. Touch panning
+   * (horizontal only), pinch-zoom, desktop click-drag and the on-screen
+   * zoom buttons stay on either way, so the inline chart is still fully
+   * navigable. Defaults to true (the full-screen view, where body scroll is
+   * locked, wants the wheel too).
    */
   interactive?: boolean;
 }
@@ -156,6 +171,8 @@ const PriceChart: React.FC<PriceChartProps> = ({
   volumeData = [],
   maData = [],
   chartType,
+  selectedTimeframe,
+  referencePrice: referencePriceProp,
   formatXAxisTick,
   formatTooltipLabel,
   formatPrice,
@@ -210,17 +227,16 @@ const PriceChart: React.FC<PriceChartProps> = ({
       // stay on; the accidental-looking ones are off. The reset-zoom button
       // (top-right) always undoes whatever this leaves in place.
       //
-      // horzTouchDrag additionally follows `interactive`: when this chart is
-      // embedded inline in a scrollable page (interactive=false), a
-      // single-finger drag that starts on the chart falls through to the
-      // page's own vertical scroll instead of being captured as a chart pan
-      // — that capture was the "fights the page scroll" bug. Full-screen
-      // (interactive=true) has no competing page scroll to fight (body
-      // scroll is locked there), so it keeps touch panning.
+      // horzTouchDrag is on everywhere now, inline charts included: a
+      // *horizontal* finger drag pans the chart, while a vertical one still
+      // falls through to the page because vertTouchDrag stays off — so the
+      // inline chart is finally draggable on touch without hijacking page
+      // scroll. (The earlier "fights the page scroll" bug was a single flag
+      // gating both axes; splitting them is what makes this safe.)
       handleScroll: {
         mouseWheel: false,
         pressedMouseMove: true,
-        horzTouchDrag: interactive,
+        horzTouchDrag: true,
         vertTouchDrag: false,
       },
       handleScale: {
@@ -374,7 +390,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
             }))
         );
         (series as ISeriesApi<'Candlestick'>).setData(sorted);
-        referencePrice = sorted[0]?.open;
+        referencePrice = referencePriceProp ?? sorted[0]?.open;
       } else {
         const sorted = toSortedSeriesData(
           lineData
@@ -382,9 +398,11 @@ const PriceChart: React.FC<PriceChartProps> = ({
             .map((d) => ({ time: toUtcTimestamp(d.date), value: d.price }))
         );
         (series as ISeriesApi<'Area'>).setData(sorted);
-        referencePrice = sorted[0]?.value;
+        referencePrice = referencePriceProp ?? sorted[0]?.value;
       }
-      chartRef.current?.timeScale().fitContent();
+      // Framing the visible window is the timeframe effect's job now (below):
+      // fitContent() here would fight it, and would also yank the view back on
+      // every background refetch instead of leaving the user where they panned.
 
       if (referenceLineRef.current) {
         series.removePriceLine(referenceLineRef.current);
@@ -403,7 +421,48 @@ const PriceChart: React.FC<PriceChartProps> = ({
     } catch (err) {
       console.error('PriceChart: failed to update main series/reference line, leaving prior chart state in place', err);
     }
-  }, [chartType, candlestickData, lineData, colors.referenceLineColor, chartVersion]);
+  }, [chartType, candlestickData, lineData, colors.referenceLineColor, referencePriceProp, chartVersion]);
+
+  // Frame the initial visible window to the selected timeframe. The series
+  // holds one continuous ~2-year span; this shows just its tail (the last
+  // month for "1M", etc.) and lets a pan past the left edge glide into the
+  // older bars that are already loaded — the fix for the chart looking like
+  // it "runs out of data" at the timeframe boundary.
+  //
+  // Deliberately NOT re-run on every data change: it keys on the timeframe,
+  // the commodity, the chart type, a chart recreate, and a one-way
+  // false→true "data has arrived" latch — so a user's pan/zoom survives a
+  // background refetch, but switching timeframe or commodity re-frames.
+  const activeDates = chartType === 'candlestick' ? candlestickData : lineData;
+  const hasData = activeDates.length > 0;
+  React.useEffect(() => {
+    const timeScale = chartRef.current?.timeScale();
+    if (!timeScale || !hasData) return;
+
+    // Unique + sorted so `total` matches the deduped series the chart actually
+    // holds (provider data occasionally repeats a date — see toSortedSeriesData).
+    const dates = Array.from(new Set(activeDates.map((d) => d.date))).sort();
+    const total = dates.length;
+    const windowDays = TIMEFRAME_DAYS[selectedTimeframe] ?? TIMEFRAME_DAYS['1m'];
+    const visibleBars = Math.max(
+      MIN_VISIBLE_BARS,
+      Math.min(total, countTrailingBarsWithinDays(dates, windowDays))
+    );
+
+    // Timeframe already spans the whole loaded series (e.g. "2Y" on a 2-year
+    // fetch): just show all of it. Also the reset path when switching back to
+    // a wide timeframe from a narrow, panned one.
+    if (visibleBars >= total) {
+      timeScale.fitContent();
+      return;
+    }
+
+    // A few bars of empty space on the right, the way a trading app leaves
+    // room ahead of the last print.
+    const rightPad = Math.max(1, Math.round(visibleBars * 0.04));
+    timeScale.setVisibleLogicalRange({ from: total - visibleBars, to: total - 1 + rightPad });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTimeframe, commodityName, chartType, chartVersion, hasData]);
 
   // Push volume histogram data, colored per-bar by ChartContainer.
   React.useEffect(() => {

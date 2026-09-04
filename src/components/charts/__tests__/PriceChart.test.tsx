@@ -61,6 +61,7 @@ const baseProps = {
   formatTooltipLabel: (d: string) => d,
   formatPrice: (p: number) => `$${p.toFixed(2)}`,
   commodityName: 'Gold',
+  selectedTimeframe: '1m',
   isPositiveTrend: true,
   trendlines: [],
   selectedTrendlineId: null,
@@ -679,6 +680,34 @@ describe('PriceChart — zoom, pan and reset controls', () => {
     fireEvent.keyDown(chart, { key: '0' })
     fireEvent.doubleClick(chart)
     expect(fitContent.mock.calls.length).toBe(baseline + 3)
+  })
+
+  it('frames the initial view to the selected timeframe, leaving the rest of the series to pan into', () => {
+    // 200 consecutive daily bars; "1M" should show only the last ~30 and let
+    // the other ~170 be reached by panning — the fix for the chart looking
+    // like it runs out of data at the timeframe edge.
+    const wide = Array.from({ length: 200 }, (_, i) => ({
+      date: new Date(Date.UTC(2023, 0, 1) + i * 86_400_000).toISOString(),
+      price: 100 + i,
+    }))
+    render(<PriceChart {...props} lineData={wide} selectedTimeframe="1m" />)
+
+    const { from, to } = lastRange()
+    expect(200 - from).toBeGreaterThan(25)
+    expect(200 - from).toBeLessThan(40)
+    expect(to).toBeGreaterThanOrEqual(199)
+  })
+
+  it('shows the whole series rather than a sub-window when the timeframe spans all of it', () => {
+    const wide = Array.from({ length: 200 }, (_, i) => ({
+      date: new Date(Date.UTC(2023, 0, 1) + i * 86_400_000).toISOString(),
+      price: 100 + i,
+    }))
+    render(<PriceChart {...props} lineData={wide} selectedTimeframe="2y" />)
+
+    // Nothing narrower than the full series was pushed — fitContent handles it.
+    expect(setVisibleLogicalRange).not.toHaveBeenCalled()
+    expect(fitContent).toHaveBeenCalled()
   })
 
   it('leaves double-click to the trendline tool while drawing is enabled', () => {

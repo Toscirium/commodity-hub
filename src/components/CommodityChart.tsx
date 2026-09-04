@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useCommodityHistoricalData, useCommodityPrice } from '@/hooks/useCommodityData';
 import { useTrendlines } from '@/hooks/useTrendlines';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { smoothPriceData, TIMEFRAMES } from './charts/chartUtils';
+import { smoothPriceData, sliceToTimeframe, timeframeFetchBucket, TIMEFRAMES } from './charts/chartUtils';
 import ChartHeader from './charts/ChartHeader';
 import ChartToolbar from './charts/ChartToolbar';
 import ChartContainer from './charts/ChartContainer';
@@ -18,13 +18,16 @@ import { X, ChartCandlestick, AlertTriangle, Maximize2 } from 'lucide-react';
 // A chart-rendering bug (e.g. a charting-library assertion failure) should
 // take down this one chart, not the whole app — there's no boundary above
 // this in the tree, so an uncaught error here otherwise unmounts everything.
-// Keyed by timeframe/type at each call site so switching away from whatever
-// triggered it gets a fresh mount instead of staying stuck on the fallback.
+// Keyed by chart type + fetch bucket (intraday vs. the shared daily series)
+// at each call site, so switching either gets a fresh mount instead of
+// staying stuck on the fallback. Reframing among the daily timeframes no
+// longer remounts — it's the same series — so it can't clear this; toggling
+// candlestick or 1D can.
 const ChartErrorFallback = () => (
   <div className="flex items-center justify-center h-full text-center p-4">
     <div className="space-y-2">
       <AlertTriangle className="w-6 h-6 text-destructive mx-auto" />
-      <p className="text-sm text-muted-foreground">Chart failed to render. Try a different timeframe.</p>
+      <p className="text-sm text-muted-foreground">Chart failed to render. Try switching chart type or timeframe.</p>
     </div>
   </div>
 );
@@ -82,9 +85,17 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData, varia
   const [compareSymbol, setCompareSymbol] = React.useState<string | null>(null);
   const isMobile = useIsMobile();
 
-  const { data: queryData, isLoading: loading, error: queryError } = useCommodityHistoricalData(name, selectedTimeframe, chartType, selectedContract);
+  // One wide fetch backs every non-intraday timeframe: '1d' pulls its own
+  // intraday series, everything else shares a single ~2-year daily series that
+  // the timeframe buttons just reframe (see the viewport effect in PriceChart).
+  // This is what makes the chart continuous when you pan past the visible
+  // window — the old per-timeframe fetch ran out of bars at the edge — and
+  // makes switching among 1M/3M/6M/1Y/2Y instant, with no refetch.
+  const fetchTimeframe = timeframeFetchBucket(selectedTimeframe);
+
+  const { data: queryData, isLoading: loading, error: queryError } = useCommodityHistoricalData(name, fetchTimeframe, chartType, selectedContract);
   const { data: currentPrice } = useCommodityPrice(name);
-  const { data: compareQueryData } = useCommodityHistoricalData(compareSymbol ?? '', selectedTimeframe, 'line');
+  const { data: compareQueryData } = useCommodityHistoricalData(compareSymbol ?? '', fetchTimeframe, 'line');
   const { trendlines, addTrendline, removeTrendline, clearTrendlines, selectedId, setSelectedId } = useTrendlines(name);
 
   // Trendlines/compare are session-scoped per commodity — don't leak across navigation.
@@ -158,8 +169,16 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData, varia
     };
   }, [isFullScreen]);
 
-  // Extract data from query result
-  const data = queryData?.data || [];
+  // Extract data from query result. `data` is the full wide series handed to
+  // the chart so panning has somewhere to go; `timeframeData` is just the
+  // trailing slice the selected timeframe frames — everything the header
+  // reports (%-change, trend direction, point count) is measured over that
+  // slice so "1M" still means "the last month", not "the last two years".
+  const data = React.useMemo(() => queryData?.data ?? [], [queryData?.data]);
+  const timeframeData = React.useMemo(
+    () => sliceToTimeframe(data, selectedTimeframe),
+    [data, selectedTimeframe],
+  );
   const error = queryError?.message || queryData?.error || null;
   const ohlcAvailable = !!queryData?.ohlcAvailable;
 
@@ -170,8 +189,9 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData, varia
     }
   }, [chartType, loading, ohlcAvailable, data.length]);
   
-  // Use smoothed data for trend calculation to avoid spiky data issues
-  const trendData = chartType === 'line' ? smoothPriceData(data, name) : data;
+  // Use smoothed data for trend calculation to avoid spiky data issues —
+  // over the framed slice only, so the trend/%-change track the timeframe.
+  const trendData = chartType === 'line' ? smoothPriceData(timeframeData, name) : timeframeData;
   
   // Use current price from API if available, otherwise use base price
   const displayPrice = currentPrice?.price || basePrice;
@@ -287,7 +307,7 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData, varia
             flex chain (flex-1 min-h-0 → h-full) rather than a fixed
             viewport calc, so it's always exactly "whatever's left". */}
         <div className="flex-1 min-h-0 p-1">
-          <ErrorBoundary key={`${selectedTimeframe}-${chartType}`} fallback={<ChartErrorFallback />}>
+          <ErrorBoundary key={`${chartType}-${fetchTimeframe}`} fallback={<ChartErrorFallback />}>
             <ChartContainer
               data={data}
               name={name}
@@ -386,7 +406,7 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData, varia
         {/* About half the viewport — big enough to read structure on, capped so
             it can't push the timeframe strip off-screen on a tall desktop. */}
         <div className="h-[48vh] min-h-[280px] max-h-[560px] w-full overflow-hidden">
-          <ErrorBoundary key={`${selectedTimeframe}-${chartType}`} fallback={<ChartErrorFallback />}>
+          <ErrorBoundary key={`${chartType}-${fetchTimeframe}`} fallback={<ChartErrorFallback />}>
             <ChartContainer
               data={data}
               name={name}
@@ -446,7 +466,7 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData, varia
           onTimeframeChange={setSelectedTimeframe}
           chartType={chartType}
           onChartTypeChange={setChartType}
-          dataPoints={data.length}
+          dataPoints={timeframeData.length}
           loading={loading}
           isPositiveTrend={isPositiveTrend}
           priceChange={priceChange}
@@ -473,7 +493,7 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData, varia
           the card itself). Matches a dedicated trading app's chart, which
           is never boxed in with a border/background of its own. */}
       <div className="h-[33vh] min-h-[240px] max-h-[480px] -mx-3 sm:-mx-6 overflow-hidden">
-        <ErrorBoundary key={`${selectedTimeframe}-${chartType}`} fallback={<ChartErrorFallback />}>
+        <ErrorBoundary key={`${chartType}-${fetchTimeframe}`} fallback={<ChartErrorFallback />}>
           <ChartContainer
             data={data}
             name={name}

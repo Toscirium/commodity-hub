@@ -19,6 +19,59 @@ export const TIMEFRAMES: TimeframeOption[] = [
   { label: '2Y', value: '2y' },
 ];
 
+// How many days of history each timeframe *frames* on screen. The chart now
+// always holds one continuous ~2-year series (see CommodityChart) so panning
+// never runs off the end of the data mid-timeframe the way it used to — these
+// only decide the initial visible window and what the header's %-change is
+// measured over, not how much is fetched.
+export const TIMEFRAME_DAYS: Record<string, number> = {
+  '1d': 1,
+  '1m': 30,
+  '3m': 91,
+  '6m': 182,
+  '1y': 365,
+  '2y': 730,
+};
+
+// The single wide fetch that backs every non-intraday timeframe. '1d' stays a
+// separate (intraday) series — it can't be sliced out of daily bars.
+export const timeframeFetchBucket = (timeframe: string): string =>
+  timeframe === '1d' ? '1d' : '2y';
+
+/**
+ * The trailing slice of `data` covering the last `TIMEFRAME_DAYS[timeframe]`
+ * days, measured back from the most recent bar (not "now" — provider data can
+ * lag a few days, and the header %-change should still line up with the first
+ * bar actually on screen). Assumes `data` is ascending by date, which is what
+ * every caller here passes. Returns the whole array when it's shorter than the
+ * requested window or the timeframe is unknown.
+ */
+export const sliceToTimeframe = <T extends { date: string }>(data: T[], timeframe: string): T[] => {
+  const days = TIMEFRAME_DAYS[timeframe];
+  if (!days || data.length === 0) return data;
+  const lastMs = new Date(data[data.length - 1].date).getTime();
+  const cutoff = lastMs - days * 24 * 60 * 60 * 1000;
+  const startIndex = data.findIndex((d) => new Date(d.date).getTime() >= cutoff);
+  return startIndex <= 0 ? data : data.slice(startIndex);
+};
+
+/**
+ * How many bars at the tail of `dates` (ascending ISO date strings) fall
+ * within the last `days` days — i.e. how wide the initial visible window
+ * should be for a timeframe, in bar count.
+ */
+export const countTrailingBarsWithinDays = (dates: string[], days: number): number => {
+  if (dates.length === 0) return 0;
+  const lastMs = new Date(dates[dates.length - 1]).getTime();
+  const cutoff = lastMs - days * 24 * 60 * 60 * 1000;
+  let count = 0;
+  for (let i = dates.length - 1; i >= 0; i--) {
+    if (new Date(dates[i]).getTime() < cutoff) break;
+    count++;
+  }
+  return count;
+};
+
 /**
  * Smooth out unrealistic price data (especially for grains)
  */

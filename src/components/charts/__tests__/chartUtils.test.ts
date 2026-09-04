@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { TIMEFRAMES, formatTooltipLabel, formatXAxisTick, calculateSMA } from '../chartUtils';
+import {
+  TIMEFRAMES,
+  formatTooltipLabel,
+  formatXAxisTick,
+  calculateSMA,
+  sliceToTimeframe,
+  countTrailingBarsWithinDays,
+  timeframeFetchBucket,
+} from '../chartUtils';
 
 describe('5Y chart utilities', () => {
   it('does not expose a 5Y timeframe — no provider backs more than ~2y of daily history', () => {
@@ -18,6 +26,42 @@ describe('2Y chart utilities', () => {
 
   it('keeps the full date in a 2Y tooltip', () => {
     expect(formatTooltipLabel('2024-07-15T00:00:00.000Z', '2y')).toContain('2024');
+  });
+});
+
+describe('continuous-history helpers', () => {
+  // 400 daily bars, one per calendar day, ascending.
+  const bars = Array.from({ length: 400 }, (_, i) => ({
+    date: new Date(Date.UTC(2023, 0, 1) + i * 86_400_000).toISOString(),
+    price: 100 + i,
+  }));
+
+  it('every non-intraday timeframe shares one wide fetch bucket, so switching among them never refetches', () => {
+    expect(timeframeFetchBucket('1d')).toBe('1d');
+    for (const tf of ['1m', '3m', '6m', '1y', '2y']) {
+      expect(timeframeFetchBucket(tf)).toBe('2y');
+    }
+  });
+
+  it('sliceToTimeframe returns only the trailing window, measured from the last bar', () => {
+    const monthSlice = sliceToTimeframe(bars, '1m');
+    expect(monthSlice.length).toBeGreaterThan(25);
+    expect(monthSlice.length).toBeLessThanOrEqual(31);
+    // Ends on the same last bar; only the head is trimmed.
+    expect(monthSlice[monthSlice.length - 1]).toBe(bars[bars.length - 1]);
+    expect(monthSlice[0]).not.toBe(bars[0]);
+  });
+
+  it('sliceToTimeframe returns the whole series when it is shorter than the window', () => {
+    expect(sliceToTimeframe(bars, '2y')).toBe(bars);
+    expect(sliceToTimeframe([], '1m')).toEqual([]);
+  });
+
+  it('countTrailingBarsWithinDays counts bars at the tail within N days of the last one', () => {
+    const dates = bars.map((b) => b.date);
+    expect(countTrailingBarsWithinDays(dates, 30)).toBe(31); // last bar + 30 days back
+    expect(countTrailingBarsWithinDays(dates, 1)).toBe(2);
+    expect(countTrailingBarsWithinDays([], 30)).toBe(0);
   });
 });
 
