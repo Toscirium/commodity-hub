@@ -6,8 +6,7 @@ Commodity Hub is a data and analytics product, not a broker — it does not exec
 
 ## Live data
 
-- [Live Positioning](https://commodity-hub.eu/now): current CFTC Commitment of Traders managed-money positioning per commodity, updated weekly (Fridays, CFTC's own publication schedule)
-- [Commodities](https://commodity-hub.eu/commodities): live price, exchange, ticker, and contract specs per commodity
+- [Commodities](https://commodity-hub.eu/commodities): live front-month futures price per commodity, plus a full explainer for each — price drivers, forward-curve behaviour, seasonality, how to read CFTC positioning, and the recurring reports that move it. Current CFTC Commitment of Traders positioning per commodity is in the app, updated weekly (Fridays, CFTC's own publication schedule).
 
 ## Data API
 
@@ -15,8 +14,8 @@ Commodity Hub is a data and analytics product, not a broker — it does not exec
 
 ## Reference
 
-- [Glossary](https://commodity-hub.eu/glossary): short, precise definitions of futures-market concepts — contango/backwardation, COT report, crack spread, seasonality
-- [Learn](https://commodity-hub.eu/learn): longer guides on reading curves, positioning, and seasonal patterns
+- [Glossary](https://commodity-hub.eu/glossary): short, precise definitions of futures-market concepts — contango/backwardation, COT report, crack spread, seasonality, roll yield, open interest
+- [Learn](https://commodity-hub.eu/learn): longer guides on reading curves, positioning, and seasonal patterns, including a market-by-market guide to CFTC positioning
 - [Market Data Calendar](https://commodity-hub.eu/calendar): when the recurring reports that move commodity prices (COT, EIA petroleum, EIA natural gas storage, WASDE, OPEC+) are actually released
 
 ## Tools

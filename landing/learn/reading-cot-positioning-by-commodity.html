@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>How to Read CFTC Positioning, Commodity by Commodity — Commodity Hub</title>
+<meta name="description" content="The same COT net-long number means different things in gold, crude, and wheat. A market-by-market guide to reading CFTC Commitment of Traders positioning." />
+<meta name="theme-color" content="#0d0d0f" />
+<link rel="canonical" href="https://commodity-hub.eu/learn/reading-cot-positioning-by-commodity" />
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="Commodity Hub" />
+<meta property="og:url" content="https://commodity-hub.eu/learn/reading-cot-positioning-by-commodity" />
+<meta property="og:title" content="How to Read CFTC Positioning, Commodity by Commodity — Commodity Hub" />
+<meta property="og:description" content="The same COT net-long number means different things in gold, crude, and wheat. A market-by-market guide to reading CFTC Commitment of Traders positioning." />
+<meta property="og:image" content="https://commodity-hub.eu/assets/app-icon.png" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="How to Read CFTC Positioning, Commodity by Commodity — Commodity Hub" />
+<meta name="twitter:description" content="The same COT net-long number means different things in gold, crude, and wheat. A market-by-market guide to reading CFTC Commitment of Traders positioning." />
+<meta name="twitter:image" content="https://commodity-hub.eu/assets/app-icon.png" />
+<link rel="icon" href="/assets/app-icon.png" />
+<link rel="apple-touch-icon" href="/assets/app-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/styles.css" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "How to Read CFTC Positioning, Commodity by Commodity",
+  "description": "The same COT net-long number means different things in gold, crude, and wheat. A market-by-market guide to reading CFTC Commitment of Traders positioning.",
+  "datePublished": "2026-09-04",
+  "dateModified": "2026-09-04",
+  "author": { "@type": "Organization", "name": "Commodity Hub" },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Commodity Hub",
+    "logo": { "@type": "ImageObject", "url": "https://commodity-hub.eu/assets/logo.png" }
+  },
+  "mainEntityOfPage": "https://commodity-hub.eu/learn/reading-cot-positioning-by-commodity"
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Does a large managed-money net long mean a commodity is going up?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Not by itself. Speculators are net long most commodities most of the time, so the level of net length is only informative relative to its own history. Net length in the top decile of its multi-year range is better read as a crowded, fragile position than as a bullish endorsement, because the pool of remaining new buyers is thin."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is the difference between commercial and non-commercial positioning?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Commercials are hedgers with an underlying business exposure to the physical commodity, such as producers and consumers. Non-commercials, including the managed-money category, are financial traders with no physical exposure. Commercials are usually on the opposite side of the speculative position, and their hedging pressure often builds near price extremes."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "When is the COT report released?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The CFTC publishes the Commitment of Traders report every Friday at 3:30 p.m. Eastern, reflecting positions held as of the close of business the previous Tuesday. The three-day lag means the data describes where positioning was, not necessarily where it is after a big move later in the week."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Why does the same net-long figure mean different things in different markets?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Each market has its own normal range and its own structure. A net-short managed-money position is routine in CBOT wheat and unusual in gold. Some markets, like crude oil, carry a large index-fund long that is not a directional bet. Positioning has to be judged against each market's own history and the role of the participants in it."
+      }
+    }
+  ]
+}
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8597609154479605"
+     crossorigin="anonymous"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="/">
+      <img src="/assets/logo.png" alt="" />
+      <span class="brand-word">Commodity Hub</span>
+    </a>
+    <div class="nav-links">
+      <a href="/#coverage">Coverage</a>
+      <a href="/#toolkit">Toolkit</a>
+      <a href="/api">API</a>
+      <a href="/#pricing">Pricing</a>
+    </div>
+    <div class="nav-right">
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme">☾/☀</button>
+      <a class="nav-cta" href="https://app.commodity-hub.eu">Open the app</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero hero-doc">
+  <div class="container">
+    <div class="doc">
+      <h1>How to Read CFTC Positioning, Commodity by Commodity</h1>
+      <div class="doc-updated">COT positioning · A market-by-market guide</div>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="container">
+    <div class="doc">
+      <section>
+<p>The CFTC's weekly <a href="/glossary/cot-report">Commitment of Traders report</a> tells you who is positioned which way in every U.S. futures market. The trap is treating the headline number the same everywhere. "Managed money is net long 150,000 contracts" is a warning sign in one market, business as usual in another, and not even a directional bet in a third. This guide covers the reading method that travels across markets, then the specifics for the commodities Commodity Hub tracks.</p>
+      </section>
+      <section>
+<h2>The method that works everywhere</h2>
+<p>Four questions do most of the work, whatever the commodity:</p>
+<ol>
+<li><strong>Where is positioning in its own range?</strong> The absolute contract count is meaningless without context. Convert managed-money net position to a percentile of its trailing multi-year range. The 90th percentile and above is crowded; the 10th and below is washed out. Extremes matter; the middle rarely does.</li>
+<li><strong>Which way is it moving?</strong> A net long that has been shrinking for a month is telling you something different from one that is still growing, even at the same level. The direction of change often leads the price of the underlying spread or curve.</li>
+<li><strong>Does it agree with price?</strong> Price rising on growing net length is a trend with fuel behind it but rising fragility. Price rising on <em>falling</em> net length is a market climbing a wall of worry — shorts covering rather than new conviction. Divergences between price and positioning are where the report earns its keep.</li>
+<li><strong>Who is on the other side?</strong> Every speculative long is someone else's short. If commercials — hedgers with a physical business — are taking the other side aggressively, that hedging pressure tends to cap or floor the move.</li>
+</ol>
+<p>Positioning is a conditioning variable, not a trigger. It tells you how much room a move has and how violent an unwind could be. It does not tell you when.</p>
+      </section>
+      <section>
+<h2>Energy: crude oil and natural gas</h2>
+<p><strong>WTI and Brent crude.</strong> Speculators are structurally long crude, so the signal is the extreme, not the sign. Combined managed-money length across NYMEX and ICE WTI near multi-year highs has repeatedly preceded pullbacks, because a thin pool of new buyers makes the position vulnerable to a fast, self-reinforcing unwind. Read WTI and Brent positioning together — when they diverge, it usually flags a regional story (a Cushing bottleneck, a North Sea supply issue) rather than a global one. See the <a href="/commodities/wti-crude-oil">WTI</a> and <a href="/commodities/brent-crude-oil">Brent</a> pages for the fundamentals behind the flows.</p>
+<p><strong>Natural gas.</strong> Henry Hub positioning swings between large net long and large net short far more than oil, tracking the two-week weather narrative. Because it turns so fast, the useful read is spotting crowding just before it breaks: a heavy net short into a forecast that turns cold, or crowded length into a mild winter outlook, is where a positioning squeeze amplifies the fundamental move. Always pair it with the storage surplus or deficit to the five-year average. More on the <a href="/commodities/natural-gas">natural gas</a> page.</p>
+      </section>
+      <section>
+<h2>Metals: gold, silver and copper</h2>
+<p><strong>Gold.</strong> COMEX gold has one of the deepest and most-watched speculative positions in the complex. Extended net length near the top of its range marks a crowded trade exposed to any hawkish surprise on rates; unusually low or net-short positioning has often marked durable lows. Cross-check against gold-backed ETF holdings, which move slower and capture a longer-term investor. Background on the <a href="/commodities/gold">gold</a> page.</p>
+<p><strong>Silver.</strong> A smaller, more concentrated position than gold, so each contract of speculative flow moves price more and extremes are sharper. Crowded length warns of a violent unwind; deep net shorts have repeatedly marked lows. Because silver is periodically the target of retail-driven squeezes, read COT next to exchange inventory and lease rates. See the <a href="/commodities/silver">silver</a> page.</p>
+<p><strong>Copper.</strong> Managed-money copper positioning is widely used as a proxy for the market's global-growth view. Crowded net length near a cycle high is a classic late-cycle warning; a swing to a heavy net short has accompanied growth scares and marked capitulation lows. Positioning plus falling exchange stocks is a stronger tightness signal than either alone. More on the <a href="/commodities/copper">copper</a> page.</p>
+      </section>
+      <section>
+<h2>Grains: corn and wheat</h2>
+<p><strong>Corn.</strong> Funds swing between large net long and large net short, usually trending with the weather and the USDA balance sheet. Positioning extremes matter most around the report calendar: a heavily net-short fund community into a bullish WASDE, or a crowded net long into a benign forecast, sets up a positioning move on top of the fundamental surprise. See the <a href="/commodities/corn">corn</a> page.</p>
+<p><strong>Wheat.</strong> Managed money has spent long stretches heavily net short CBOT wheat, reflecting a structural surplus and the cost of carrying a long in a contangoed market. That makes the risk asymmetric: a bullish shock into a crowded short can force a rapid short-covering rally out of proportion to the news. Watch the size of the fund short versus its historical range, and note that Kansas City wheat can tell a different story when milling-quality supply is the one under stress. More on the <a href="/commodities/wheat">wheat</a> page.</p>
+      </section>
+      <section>
+<h2>Five mistakes to avoid</h2>
+<ul>
+<li><strong>Reading net long as bullish.</strong> It is a starting condition, not a forecast. Crowded long positioning is a headwind for further gains, not a tailwind.</li>
+<li><strong>Ignoring the commercials.</strong> The hedger side of the report often shows where physical-market participants think value lies.</li>
+<li><strong>Judging one week in isolation.</strong> A single print is noise. The percentile and the multi-week trend carry the information.</li>
+<li><strong>Forgetting the index roll.</strong> Part of the long in markets like crude and grains is passive index money with a fixed roll schedule, not a directional view. Some data series separate it; be aware it is there.</li>
+<li><strong>Trusting stale data after a big move.</strong> The report is Tuesday's picture published Friday. If Wednesday and Thursday saw a violent move, positioning has already changed.</li>
+</ul>
+      </section>
+      <section>
+<h2>Putting it together</h2>
+<p>A practical routine: each week, for the markets you follow, record managed-money net position as a percentile of its three-year range, note the direction of change, and flag any market where price and positioning are diverging. Those flags are your shortlist — the places where a positioning-driven move is most likely to add to or fight against the fundamental story. Commodity Hub tracks this data for every commodity it covers, alongside price, curve, and seasonality, so the four questions above can be answered in a couple of minutes.</p>
+      </section>
+      <section>
+<h2>FAQ</h2>
+<p><strong>Does a large managed-money net long mean a commodity is going up?</strong></p>
+<p>Not by itself. Speculators are net long most commodities most of the time, so the level is only informative relative to its own history. Net length in the top decile of its multi-year range is better read as a crowded, fragile position than as a bullish endorsement, because the pool of remaining new buyers is thin.</p>
+<p><strong>What is the difference between commercial and non-commercial positioning?</strong></p>
+<p>Commercials are hedgers with an underlying business exposure to the physical commodity — producers and consumers. Non-commercials, including managed money, are financial traders with no physical exposure. Commercials usually sit on the opposite side of the speculative position, and their hedging pressure often builds near price extremes.</p>
+<p><strong>When is the COT report released?</strong></p>
+<p>Every Friday at 3:30 p.m. Eastern, reflecting positions as of the close of business the previous Tuesday. The three-day lag means the data describes where positioning was, not necessarily where it is after a big move later in the week.</p>
+<p><strong>Why does the same net-long figure mean different things in different markets?</strong></p>
+<p>Each market has its own normal range and structure. A net-short managed-money position is routine in CBOT wheat and unusual in gold. Some markets, like crude oil, carry a large index-fund long that is not a directional bet. Positioning has to be judged against each market's own history and participants.</p>
+      </section>
+      <section>
+<h2>See positioning live</h2>
+<p>Commodity Hub's COT tool shows managed-money and commercial positioning, percentile ranges, and history for every tracked commodity. <a href="https://app.commodity-hub.eu">Open the app</a> to see it live, or start with <a href="/glossary/cot-report">how to read the COT report</a>.</p>
+      </section>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <a class="brand" href="/">
+        <img src="/assets/logo.png" alt="" />
+        <span class="brand-word">Commodity Hub</span>
+      </a>
+      <div class="footer-links">
+        <a href="/commodities">Commodities</a>
+        <a href="/glossary">Glossary</a>
+        <a href="/learn">Learn</a>
+        <a href="/terms">Terms of Service</a>
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/about">About</a>
+        <a href="https://app.commodity-hub.eu/delete-account">Delete account</a>
+      </div>
+    </div>
+    <div class="footer-fine">
+      Commodity Hub is an information service providing commodity market prices, news, and analytics. It does not execute trades, hold client funds, or provide investment advice. The "Trade" section of the app links to an independent, regulated third party (eToro); Commodity Hub may earn a referral commission from those links. © <span id="year"></span> Commodity Hub. All rights reserved.
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+  var t = document.getElementById('themeToggle');
+  var root = document.documentElement;
+  t.addEventListener('click', function () {
+    var current = root.getAttribute('data-theme');
+    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var effectiveDark = current ? current === 'dark' : prefersDark;
+    root.setAttribute('data-theme', effectiveDark ? 'light' : 'dark');
+  });
+</script>
+</body>
+</html>
