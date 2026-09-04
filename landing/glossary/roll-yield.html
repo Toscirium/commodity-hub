@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>What Is Roll Yield? Futures Roll Cost and Return Explained — Commodity Hub</title>
+<meta name="description" content="Roll yield is the return you earn or lose when a futures position is rolled from the expiring contract to the next one — positive in backwardation, negative in contango." />
+<meta name="theme-color" content="#0d0d0f" />
+<link rel="canonical" href="https://commodity-hub.eu/glossary/roll-yield" />
+<meta property="og:type" content="article" />
+<meta property="og:site_name" content="Commodity Hub" />
+<meta property="og:url" content="https://commodity-hub.eu/glossary/roll-yield" />
+<meta property="og:title" content="What Is Roll Yield? Futures Roll Cost and Return Explained — Commodity Hub" />
+<meta property="og:description" content="Roll yield is the return you earn or lose when a futures position is rolled from the expiring contract to the next one — positive in backwardation, negative in contango." />
+<meta property="og:image" content="https://commodity-hub.eu/assets/app-icon.png" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="What Is Roll Yield? Futures Roll Cost and Return Explained — Commodity Hub" />
+<meta name="twitter:description" content="Roll yield is the return you earn or lose when a futures position is rolled from the expiring contract to the next one — positive in backwardation, negative in contango." />
+<meta name="twitter:image" content="https://commodity-hub.eu/assets/app-icon.png" />
+<link rel="icon" href="/assets/app-icon.png" />
+<link rel="apple-touch-icon" href="/assets/app-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/styles.css" />
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "What Is Roll Yield?",
+  "description": "How roll yield adds to or subtracts from a futures position's return, why it is negative in contango and positive in backwardation, and how to estimate it.",
+  "datePublished": "2026-09-04",
+  "dateModified": "2026-09-04",
+  "author": { "@type": "Organization", "name": "Commodity Hub" },
+  "publisher": {
+    "@type": "Organization",
+    "name": "Commodity Hub",
+    "logo": { "@type": "ImageObject", "url": "https://commodity-hub.eu/assets/logo.png" }
+  },
+  "mainEntityOfPage": "https://commodity-hub.eu/glossary/roll-yield"
+}
+</script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8597609154479605"
+     crossorigin="anonymous"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container nav-inner">
+    <a class="brand" href="/">
+      <img src="/assets/logo.png" alt="" />
+      <span class="brand-word">Commodity Hub</span>
+    </a>
+    <div class="nav-links">
+      <a href="/#coverage">Coverage</a>
+      <a href="/#toolkit">Toolkit</a>
+      <a href="/api">API</a>
+      <a href="/#pricing">Pricing</a>
+    </div>
+    <div class="nav-right">
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle theme">☾/☀</button>
+      <a class="nav-cta" href="https://app.commodity-hub.eu">Open the app</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero hero-doc">
+  <div class="container">
+    <div class="doc">
+      <h1>What Is Roll Yield?</h1>
+      <div class="doc-updated">Futures returns · Curve mechanics</div>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="container">
+    <div class="doc">
+      <section>
+        <h2>The return that has nothing to do with the spot price</h2>
+        <p>A futures contract expires. If you want to keep the exposure, you sell the contract that is about to expire and buy a later-dated one — you <strong>roll</strong> the position. <strong>Roll yield</strong> is the gain or loss baked into that swap by the shape of the forward curve, and it is separate from any change in the spot price of the commodity.</p>
+        <p>Over a single roll it is small. Compounded over months or years of holding — which is what commodity ETFs, index products, and long-term futures positions do — it becomes one of the largest drivers of the gap between a fund's return and the headline spot return people see quoted.</p>
+      </section>
+      <section>
+        <h2>Why the sign depends on the curve</h2>
+        <p>When a market is in <a href="/glossary/contango-vs-backwardation">contango</a>, each later contract costs more than the one expiring. Rolling means <em>selling low and buying high</em>: you give up value on every roll, so roll yield is <strong>negative</strong>. This is often called negative roll or roll cost.</p>
+        <p>When a market is in <strong>backwardation</strong>, each later contract is cheaper than the one expiring. Rolling means <em>selling high and buying low</em>: you capture value on every roll, so roll yield is <strong>positive</strong>. A long position earns this carry even if the spot price never moves, which is why carry and trend strategies favour backwardated markets.</p>
+        <p>The total return on a fully collateralised long futures position is roughly the spot price return, plus roll yield, plus the interest earned on the cash collateral.</p>
+      </section>
+      <section>
+        <h2>Estimating the size of it</h2>
+        <p>Take the front-month price and the next contract you would roll into. Express the difference as a percentage of the front-month price, then annualise it by the number of rolls per year (twelve for a monthly contract).</p>
+        <p>For example, a second month trading 0.5% above the front month is a monthly contango of 0.5%, or very roughly 6% annualised drag before financing. If you expect the spot price to rise less than 6% over the year, a long futures position is fighting a headwind before the directional view even plays out. The <a href="/tools/roll-yield-calculator">roll yield calculator</a> does this arithmetic from two prices you enter.</p>
+      </section>
+      <section>
+        <h2>Where it matters most</h2>
+        <ul>
+          <li><strong>Commodity ETFs and index funds.</strong> These roll continuously along a published schedule. A long stretch of contango — crude oil in an oversupplied market, or CBOT wheat, which is often structurally in contango — can leave a fund well below spot over a year even though it holds the "right" exposure.</li>
+          <li><strong>Natural gas.</strong> The curve is a seasonal sawtooth rather than a simple slope, so roll yield swings with the calendar: rolling out of a cheap shoulder month into an expensive winter month is costly, and the reverse is not.</li>
+          <li><strong>Carry strategies.</strong> Some systematic approaches deliberately go long backwardated markets and short contangoed ones to harvest roll yield as a return stream in its own right.</li>
+        </ul>
+      </section>
+      <section>
+        <h2>Common misreadings</h2>
+        <p>Roll yield is not a fee and not a prediction. A contangoed market can still rise, and a backwardated one can still fall — the curve shape tells you the cost of carrying the position, not the direction of the next move. It is also not the same as the convenience yield or storage cost directly, though those are what produce the curve shape. And it only applies if you actually roll: a position held to delivery, or closed before expiry, never realises it.</p>
+      </section>
+      <section>
+        <h2>See it on the curve</h2>
+        <p>Commodity Hub's forward curve and term-structure tools show the full strip for every tracked market, so you can read the roll cost or benefit directly, and the <a href="/tools/roll-yield-calculator">roll yield calculator</a> turns any two contract prices into an annualised figure. <a href="https://app.commodity-hub.eu">Open the app</a> to check current curves.</p>
+      </section>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <a class="brand" href="/">
+        <img src="/assets/logo.png" alt="" />
+        <span class="brand-word">Commodity Hub</span>
+      </a>
+      <div class="footer-links">
+        <a href="/commodities">Commodities</a>
+        <a href="/glossary">Glossary</a>
+        <a href="/learn">Learn</a>
+        <a href="/terms">Terms of Service</a>
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/about">About</a>
+        <a href="https://app.commodity-hub.eu/delete-account">Delete account</a>
+      </div>
+    </div>
+    <div class="footer-fine">
+      Commodity Hub is an information service providing commodity market prices, news, and analytics. It does not execute trades, hold client funds, or provide investment advice. The "Trade" section of the app links to an independent, regulated third party (eToro); Commodity Hub may earn a referral commission from those links. © <span id="year"></span> Commodity Hub. All rights reserved.
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+  var t = document.getElementById('themeToggle');
+  var root = document.documentElement;
+  t.addEventListener('click', function () {
+    var current = root.getAttribute('data-theme');
+    var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    var effectiveDark = current ? current === 'dark' : prefersDark;
+    root.setAttribute('data-theme', effectiveDark ? 'light' : 'dark');
+  });
+</script>
+</body>
+</html>
