@@ -47,6 +47,62 @@
   }
 }
 </script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What data does Commodity Hub provide?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Live and historical futures prices for 31 commodities across energy, metals, grains, livestock, dairy and industrials, plus the analytics that sit on top of price: forward curves and term structure, CFTC Commitment of Traders positioning, seasonal patterns, an economic calendar of market-moving reports, commodity news and sentiment, and portfolio and risk tools. It is a data and analytics service, not a brokerage."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Where do the prices come from?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "From the exchanges that set the benchmark price for each contract — CME, CBOT, COMEX and NYMEX. Every commodity page names the exchange and ticker it tracks, for example WTI crude on NYMEX (CL) or gold on COMEX (GC)."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is Commodity Hub free?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, there is a free tier with the full commodity catalogue, one price alert, a portfolio and watchlist, and the position-size calculator, with no card required. Premium ($6.99/mo) and Pro ($19.99/mo) add more alerts, portfolios, CSV export, and — on Pro — forward curves and COT reports. The public Data API also has a free tier."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is a commodity forward curve and why does it matter?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "A futures contract is for delivery on a specific date, so each commodity has a series of prices for successive delivery months — the forward curve. When later months are more expensive the market is in contango; when they are cheaper it is in backwardation. The shape is a real-time read on storage costs and near-term scarcity, and it determines the roll yield earned or lost by anyone holding a position through expiry."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is the COT report?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The CFTC's Commitment of Traders report, published every Friday, breaks the open interest in each U.S. futures market down by trader type — commercial hedgers, managed money, and others. It shows how crowded speculative positioning is and which way, which is used as a contrarian gauge near extremes."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does Commodity Hub give trading advice or execute trades?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. It is an information service that provides prices, news and analytics. It does not execute trades, hold client funds, or provide personalised investment advice. The app's Trade section links to an independent, regulated third party (eToro), and Commodity Hub may earn a referral commission from those links."
+      }
+    }
+  ]
+}
+</script>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8597609154479605"
      crossorigin="anonymous"></script>
 </head>
@@ -260,6 +316,94 @@
         </ul>
         <a class="btn btn-line" href="https://app.commodity-hub.eu">Get Pro</a>
       </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <div class="kicker">Primer</div>
+        <h2>How to actually read a commodity market</h2>
+      </div>
+      <p class="sub">Price is the headline. The story is in the curve, the positioning, and the calendar.</p>
+    </div>
+    <div class="doc">
+      <section>
+        <p>Commodities trade as <strong>futures</strong> on regulated exchanges — CME, CBOT, COMEX and NYMEX. A futures price is an agreement to exchange the physical commodity on a set date, which means there is never a single "oil price" or "wheat price" at any moment. There is a whole strip of prices, one for each delivery month, and the way those prices line up carries as much information as the front-month number everyone quotes.</p>
+        <p>Three lenses turn that strip into a view. The <a href="/glossary/contango-vs-backwardation">forward curve</a> — whether deferred months trade above the front (contango) or below it (backwardation) — is a live read on storage economics and how tight near-term supply is, and it sets the <a href="/glossary/roll-yield">roll yield</a> that a long position earns or bleeds over time. <a href="/glossary/cot-report">CFTC positioning</a>, published weekly in the Commitment of Traders report, shows how crowded speculative money is and which way, which matters most at extremes. And <a href="/glossary/commodity-seasonality">seasonality</a> — the weather- and calendar-driven demand swings in natural gas, grains and livestock — is a recurring pattern you can plan around, as long as you do not overfit it.</p>
+        <p>Each commodity then has its own set of drivers and its own report calendar. Crude oil moves on the weekly EIA inventory report and OPEC+ policy; natural gas on two-week weather forecasts and the Thursday storage number; <a href="/commodities/gold">gold</a> on real interest rates and the dollar; <a href="/commodities/corn">corn</a> and <a href="/commodities/wheat">wheat</a> on the USDA's monthly WASDE and the growing-season weather window. Reading a market well means knowing which release moves which contract, and by how much. Our per-commodity guides lay that out for each one, and the <a href="/calendar">market data calendar</a> shows when the releases land.</p>
+        <p>Commodity Hub keeps all of it on one screen — price, curve, positioning, seasonality, news and portfolio — and does it as a running record rather than a screenshot, for 31 commodities across six asset classes.</p>
+      </section>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <div class="kicker">Start here</div>
+        <h2>Learn the market, then watch it</h2>
+      </div>
+      <p class="sub">Free explainers and tools, no account needed.</p>
+    </div>
+    <div class="doc">
+      <section>
+        <h2>Commodity guides</h2>
+        <p>A full explainer for each market — drivers, forward-curve behaviour, seasonality, positioning, and the reports that move it: <a href="/commodities/wti-crude-oil">WTI crude</a>, <a href="/commodities/brent-crude-oil">Brent crude</a>, <a href="/commodities/natural-gas">natural gas</a>, <a href="/commodities/gold">gold</a>, <a href="/commodities/silver">silver</a>, <a href="/commodities/copper">copper</a>, <a href="/commodities/corn">corn</a> and <a href="/commodities/wheat">wheat</a>. See the <a href="/commodities">full list</a>.</p>
+      </section>
+      <section>
+        <h2>Concepts</h2>
+        <p><a href="/glossary/contango-vs-backwardation">Contango vs. backwardation</a>, the <a href="/glossary/cot-report">COT report</a>, the <a href="/glossary/crack-spread">crack spread</a>, <a href="/glossary/commodity-seasonality">commodity seasonality</a>, <a href="/glossary/roll-yield">roll yield</a>, and <a href="/glossary/open-interest">open interest</a> — short, precise definitions in the <a href="/glossary">glossary</a>.</p>
+      </section>
+      <section>
+        <h2>Deeper guides</h2>
+        <p><a href="/learn/crude-oil-contango-backwardation-now">Is crude oil in contango or backwardation right now?</a>, the <a href="/learn/natural-gas-seasonality-chart">natural gas seasonality chart</a>, and <a href="/learn/reading-cot-positioning-by-commodity">how to read CFTC positioning, commodity by commodity</a>. More in <a href="/learn">Learn</a>.</p>
+      </section>
+      <section>
+        <h2>Tools</h2>
+        <p>The <a href="/tools/roll-yield-calculator">roll yield calculator</a>, the <a href="/calendar">market data calendar</a>, the <a href="/api">Data API</a>, and a free <a href="/embed">embeddable price widget</a> for your own site.</p>
+      </section>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <div class="kicker">FAQ</div>
+        <h2>Common questions</h2>
+      </div>
+      <p class="sub">What the service is, where the data comes from, and what it costs.</p>
+    </div>
+    <div class="doc">
+      <section>
+        <h2>What data does Commodity Hub provide?</h2>
+        <p>Live and historical futures prices for 31 commodities across energy, metals, grains, livestock, dairy and industrials, plus the analytics that sit on top of price: forward curves and term structure, CFTC Commitment of Traders positioning, seasonal patterns, an economic calendar of market-moving reports, commodity news and sentiment, and portfolio and risk tools. It is a data and analytics service, not a brokerage.</p>
+      </section>
+      <section>
+        <h2>Where do the prices come from?</h2>
+        <p>From the exchanges that set the benchmark price for each contract — CME, CBOT, COMEX and NYMEX. Every commodity page names the exchange and ticker it tracks, for example WTI crude on NYMEX (CL) or gold on COMEX (GC).</p>
+      </section>
+      <section>
+        <h2>Is Commodity Hub free?</h2>
+        <p>Yes, there is a free tier with the full commodity catalogue, one price alert, a portfolio and watchlist, and the position-size calculator, with no card required. Premium ($6.99/mo) and Pro ($19.99/mo) add more alerts, portfolios, CSV export, and — on Pro — forward curves and COT reports. The public <a href="/api">Data API</a> also has a free tier.</p>
+      </section>
+      <section>
+        <h2>What is a commodity forward curve and why does it matter?</h2>
+        <p>A futures contract is for delivery on a specific date, so each commodity has a series of prices for successive delivery months — the forward curve. When later months are more expensive the market is in <a href="/glossary/contango-vs-backwardation">contango</a>; when they are cheaper it is in backwardation. The shape is a real-time read on storage costs and near-term scarcity, and it determines the <a href="/glossary/roll-yield">roll yield</a> earned or lost by anyone holding a position through expiry.</p>
+      </section>
+      <section>
+        <h2>What is the COT report?</h2>
+        <p>The CFTC's <a href="/glossary/cot-report">Commitment of Traders</a> report, published every Friday, breaks the open interest in each U.S. futures market down by trader type — commercial hedgers, managed money, and others. It shows how crowded speculative positioning is and which way, which is used as a contrarian gauge near extremes.</p>
+      </section>
+      <section>
+        <h2>Does Commodity Hub give trading advice or execute trades?</h2>
+        <p>No. It is an information service that provides prices, news and analytics. It does not execute trades, hold client funds, or provide personalised investment advice. The app's Trade section links to an independent, regulated third party (eToro), and Commodity Hub may earn a referral commission from those links.</p>
+      </section>
     </div>
   </div>
 </section>
