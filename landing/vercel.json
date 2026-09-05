@@ -10,6 +10,11 @@
       "source": "/now/:slug",
       "destination": "/commodities/:slug",
       "permanent": true
+    },
+    {
+      "source": "/app",
+      "destination": "https://play.google.com/store/apps/details?id=app.lovable.c8fabd7a96c74aff8d7b001690ec23c7",
+      "permanent": false
     }
   ],
   "headers": [
