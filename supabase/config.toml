@@ -122,5 +122,17 @@ verify_jwt = false
 [functions.fetch-cot-report]
 verify_jwt = false
 
+# Cron-triggered via net.http_post + x-cron-secret, same as fetch-cot-report
+# above — never had this entry at all, so it defaulted to true and every
+# cron tick was rejected with 401 UNAUTHORIZED_NO_AUTH_HEADER by the
+# platform's own JWT gate before fetch-vessel-positions/index.ts's own
+# cron-secret check ever ran. Found live 2026-09-11 by reading net._http_response
+# for the actual response code — cron.job_run_details alone showed
+# "succeeded"/"1 row" for every tick, which is only pg_net confirming the
+# request was queued, not that the target endpoint returned 200. Table stayed
+# empty the entire time as a result.
+[functions.fetch-vessel-positions]
+verify_jwt = false
+
 [functions.fetch-fundamentals]
 verify_jwt = false
