@@ -141,12 +141,9 @@ const CommodityDetail: React.FC = () => {
   }
 
   return (
-    // Full-bleed on phones — the screen this layout is designed for — and on
-    // desktop/web too: the background and the header/tab bars run edge to
-    // edge like the rest of the app, but each bar's *content* is capped at
-    // 6xl and centered so the chart doesn't stretch to 2500px and the price
-    // header's stats don't end up marooned at the far right. 6xl matches the
-    // widest PageShell the analytics pages use.
+    // Full-bleed everywhere, phone or desktop web — no centered column, no
+    // dead margins. The chart and quote stats just use flex/justify-between
+    // so they don't collapse into each other on an ultrawide window.
     <div className="min-h-screen w-full bg-background pb-24">
       <SEOHead
         title={`${commodity.name} price, chart and news`}
@@ -157,7 +154,7 @@ const CommodityDetail: React.FC = () => {
           one thing you always want in view. app-top-bar handles the Android
           status-bar inset (see index.css). */}
       <header className="app-top-bar sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-2 px-2 sm:px-4">
+        <div className="flex h-14 w-full items-center gap-2 px-2 sm:px-4">
           <Button
             variant="ghost"
             size="icon"
@@ -195,7 +192,7 @@ const CommodityDetail: React.FC = () => {
 
       {/* Quote block: headline price on the left, reference stats on the right,
           the way every trading app lays this out. */}
-      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-start justify-between gap-4 px-4 py-4">
+      <div className="flex w-full flex-wrap items-start justify-between gap-4 px-4 py-4">
         <div className="min-w-0">
           <div className="flex items-baseline gap-2">
             <span className="number-display text-[40px] font-medium leading-none tabular-nums tracking-tight text-foreground">
@@ -253,7 +250,7 @@ const CommodityDetail: React.FC = () => {
         style={{ top: 'calc(var(--app-top-buffer, 0px) + 3.5rem)' }}
         aria-label="Commodity sections"
       >
-        <div className="mx-auto flex w-full max-w-6xl gap-1 overflow-x-auto px-2">
+        <div className="flex w-full gap-1 overflow-x-auto px-2">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -272,7 +269,7 @@ const CommodityDetail: React.FC = () => {
         </div>
       </nav>
 
-      <div className="mx-auto w-full min-w-0 max-w-6xl">
+      <div className="w-full min-w-0">
         {activeTab === 'chart' && (
           <React.Suspense
             fallback={
