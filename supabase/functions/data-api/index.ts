@@ -1,7 +1,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders } from '../_shared/utils.ts';
 import { rateLimitHeaders, tooManyRequestsResponse, type RateLimitResult } from '../_shared/rateLimit.ts';
-import { CommodityService } from '../_shared/commodity-service.ts';
+import {
+  resourcePortfolio, resourceWatchlists, resourcePrices, resourceCot,
+  resourceFundamentals, resourceAlerts, resourceSentiment, resourceNews,
+  resourceAnalyticsSnapshot, type ResourceCtx, type ResourceResult,
+} from '../_shared/dataApiResources.ts';
 
 const hash = async (value: string) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value)))).map((v) => v.toString(16).padStart(2, '0')).join('');
 const json = (body: unknown, status = 200, extraHeaders: Record<string, string> = {}) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, ...extraHeaders, 'Content-Type': 'application/json' } });
@@ -18,11 +22,6 @@ const json = (body: unknown, status = 200, extraHeaders: Record<string, string> 
 // in-memory counter barely limits anything under a real burst.
 const RATE_LIMIT = 60;
 const RATE_WINDOW_MS = 60_000;
-// Raised 2026-08-27 from 260 (5yr) — a ceiling on what a request can ask
-// for, not a claim about how much history actually exists. cot_reports is
-// currently populated back to 2019 (~340 weeks); this just stops the cap
-// itself from being the limiting factor if/when older data gets backfilled.
-const MAX_COT_LIMIT = 520; // 10 years of weekly reports
 // Requests/day for a key whose owner isn't on an active Pro subscription —
 // lets a prospect evaluate the API for real before paying anything, instead
 // of requiring a full Pro subscription just to see a response. Pro keys are
@@ -31,31 +30,10 @@ const MAX_COT_LIMIT = 520; // 10 years of weekly reports
 // CommodityFundamentals: 1,000/day) without being generous enough to
 // substitute for actually subscribing.
 const TRIAL_DAILY_LIMIT = 50;
-const TIMEFRAMES = new Set(['1d', '1m', '3m', '6m', '1y', '2y']); // matches api-docs' ChartDataPoint enum
-const MAX_NEWS_LIMIT = 100;
-// Curve/positioning analytics use short slugs (wti, brent, ...), NOT the
-// full display names `prices`/`cot` take ("WTI Crude Oil") — this mirrors
-// the massive-vol-cone/massive-term-structure functions' own PRODUCTS keys
-// exactly, since these resources are pure readers of the snapshots those
-// functions write. Deliberately a different namespace; documented as such
-// on /api rather than silently normalized, to avoid masking a caller's typo.
-const MASSIVE_PRODUCTS = new Set([
-  'wti', 'brent', 'gold', 'silver', 'copper', 'platinum', 'palladium',
-  'corn', 'wheat', 'soybeans', 'cattle', 'hogs', 'lumber',
-]);
-const MONTHS_AHEAD_DEFAULT = 12;
-const MONTHS_AHEAD_MIN = 3;
-const MONTHS_AHEAD_MAX = 18;
-// vol_cone / roll_scanner / term_structure never trigger a live Massive
-// Futures fetch from this function — they only ever read
-// analytics_snapshots (the same cache massive-vol-cone/-term-structure/
-// -roll-scanner already persist to for the in-app Pro UI). A public API key
-// must never be able to drive cost on a paid third-party provider merely by
-// being polled; if nobody has opened that feature in-app recently, the
-// snapshot may be older than the 6h TTL those functions use, or may not
-// exist yet at all — both cases are surfaced honestly (`stale`/`as_of`, or
-// `snapshot_not_available`) rather than papered over with a live fetch.
-const ANALYTICS_SNAPSHOT_STALE_MS = 6 * 60 * 60 * 1000;
+// Resource-specific limits/enums (TIMEFRAMES, MAX_COT_LIMIT, MASSIVE_PRODUCTS,
+// ...) live in dataApiResources.ts now — this function only owns auth, rate
+// limiting, and the trial quota; the mcp/index.ts server shares the same
+// resource module and the same limits.
 
 // Supabase Edge Functions (Deno Deploy) keep an isolate alive for
 // EdgeRuntime.waitUntil()'d work after the response has already been sent.
@@ -129,130 +107,44 @@ Deno.serve(async (req) => {
       if (usageErr) console.error(JSON.stringify({ evt: 'usage_record_failed', fn: 'data-api', keyId: key.id, error: usageErr.message }));
     }),
   );
-  if (resource === 'portfolio') {
-    const { data, error } = await admin.from('portfolio_positions').select('commodity_name,quantity,entry_price,entry_date,notes,created_at').eq('user_id', key.user_id).order('created_at', { ascending: false });
-    return error ? json({ error: 'data_unavailable' }, 500, rlHeaders) : json({ data, generated_at: new Date().toISOString() }, 200, rlHeaders);
-  }
-  if (resource === 'watchlists') {
-    const { data, error } = await admin.from('watchlists').select('id,name,created_at,watchlist_items(commodity_name,commodity_symbol,position)').eq('user_id', key.user_id).order('created_at', { ascending: false });
-    return error ? json({ error: 'data_unavailable' }, 500, rlHeaders) : json({ data, generated_at: new Date().toISOString() }, 200, rlHeaders);
-  }
+  const ctx: ResourceCtx = { admin, userId: key.user_id, isPro, isPremiumOrPro };
+  const respond = (r: ResourceResult) => json(r.body, r.status, rlHeaders);
+
+  if (resource === 'portfolio') return respond(await resourcePortfolio(ctx));
+  if (resource === 'watchlists') return respond(await resourceWatchlists(ctx));
   if (resource === 'prices') {
-    const commodity = url.searchParams.get('commodity');
-    const timeframe = url.searchParams.get('timeframe');
-    const svc = new CommodityService('data-api');
-    if (!commodity) {
-      const data = await svc.fetchAllCommodities(true);
-      return json({ data, generated_at: new Date().toISOString() }, 200, rlHeaders);
-    }
-    if (timeframe) {
-      if (!TIMEFRAMES.has(timeframe)) return json({ error: 'invalid_timeframe', valid: Array.from(TIMEFRAMES) }, 400, rlHeaders);
-      const data = await svc.fetchCommodityChart(commodity, timeframe);
-      return json({ data, commodity, timeframe, generated_at: new Date().toISOString() }, 200, rlHeaders);
-    }
-    const data = await svc.fetchCurrentPrice(commodity);
-    return data ? json({ data, generated_at: new Date().toISOString() }, 200, rlHeaders) : json({ error: 'commodity_not_found' }, 404, rlHeaders);
+    return respond(await resourcePrices(ctx, {
+      commodity: url.searchParams.get('commodity') ?? undefined,
+      timeframe: url.searchParams.get('timeframe') ?? undefined,
+    }));
   }
   if (resource === 'cot') {
-    const commodity = url.searchParams.get('commodity');
-    if (!commodity) return json({ error: 'commodity_required' }, 400, rlHeaders);
-    const requested = Number(url.searchParams.get('limit') ?? 52);
-    const rowLimit = Number.isFinite(requested) && requested > 0 ? Math.min(requested, MAX_COT_LIMIT) : 52;
-    const { data, error } = await admin.from('cot_reports').select('commodity,report_date,managed_money_long,managed_money_short,commercials_long,commercials_short,net_position,open_interest').eq('commodity', commodity).order('report_date', { ascending: false }).limit(rowLimit);
-    return error ? json({ error: 'data_unavailable' }, 500, rlHeaders) : json({ data, generated_at: new Date().toISOString() }, 200, rlHeaders);
+    return respond(await resourceCot(ctx, {
+      commodity: url.searchParams.get('commodity') ?? undefined,
+      limit: Number(url.searchParams.get('limit') ?? 52),
+    }));
   }
   if (resource === 'fundamentals') {
-    const seriesId = url.searchParams.get('series_id');
-    if (seriesId) {
-      const { data, error } = await admin.from('fundamentals_snapshots').select('series_id,dataset,label,unit,observations,latest_value,latest_period,wow_change,yoy_change,five_year_avg,updated_at').eq('series_id', seriesId).maybeSingle();
-      if (error) return json({ error: 'data_unavailable' }, 500, rlHeaders);
-      return data ? json({ data, generated_at: new Date().toISOString() }, 200, rlHeaders) : json({ error: 'series_not_found' }, 404, rlHeaders);
-    }
-    const dataset = url.searchParams.get('dataset');
-    // List view omits `observations` (can be hundreds of points per series) —
-    // fetch a specific series_id for the full time series.
-    let query = admin.from('fundamentals_snapshots').select('series_id,dataset,label,unit,latest_value,latest_period,wow_change,yoy_change,five_year_avg,updated_at').order('label');
-    if (dataset) query = query.eq('dataset', dataset);
-    const { data, error } = await query;
-    return error ? json({ error: 'data_unavailable' }, 500, rlHeaders) : json({ data, generated_at: new Date().toISOString() }, 200, rlHeaders);
+    return respond(await resourceFundamentals(ctx, {
+      seriesId: url.searchParams.get('series_id') ?? undefined,
+      dataset: url.searchParams.get('dataset') ?? undefined,
+    }));
   }
-  if (resource === 'alerts') {
-    // Same shape as portfolio/watchlists: the caller's own rows, scoped by
-    // key.user_id since this connection uses the service role and bypasses
-    // price_alerts' RLS entirely. Read-only for now — the rest of the API
-    // is read-only too, and a write path (create/delete an alert by key)
-    // needs its own validation and idempotency story that isn't built yet.
-    const { data, error } = await admin.from('price_alerts').select('id,commodity_name,commodity_symbol,condition,target_price,is_active,last_triggered_at,cooldown_minutes,note,created_at').eq('user_id', key.user_id).order('created_at', { ascending: false });
-    return error ? json({ error: 'data_unavailable' }, 500, rlHeaders) : json({ data, generated_at: new Date().toISOString() }, 200, rlHeaders);
-  }
+  if (resource === 'alerts') return respond(await resourceAlerts(ctx));
   if (resource === 'sentiment') {
-    // Community bullish/bearish votes — public in the app (RLS: "viewable
-    // by everyone"), so no tier gate here either.
-    const commodity = url.searchParams.get('commodity');
-    let query = admin.from('sentiment_aggregates').select('commodity_name,bullish_votes,bearish_votes,total_votes,average_confidence,last_updated').order('commodity_name');
-    if (commodity) query = query.eq('commodity_name', commodity);
-    const { data, error } = await query;
-    return error ? json({ error: 'data_unavailable' }, 500, rlHeaders) : json({ data, generated_at: new Date().toISOString() }, 200, rlHeaders);
+    return respond(await resourceSentiment(ctx, { commodity: url.searchParams.get('commodity') ?? undefined }));
   }
   if (resource === 'news') {
-    // commodity_news_feed is Premium/Pro-gated in the app (its own RLS
-    // policy) — re-enforced by hand here since the service role bypasses
-    // that policy. A free/trial key gets a clear 403, not an empty array.
-    if (!isPremiumOrPro) {
-      return json({
-        error: 'premium_required',
-        message: 'The news resource requires an active Premium or Pro subscription.',
-        upgrade_url: 'https://app.commodity-hub.eu/data-api',
-      }, 403, rlHeaders);
-    }
-    const category = url.searchParams.get('category');
-    const requested = Number(url.searchParams.get('limit') ?? 20);
-    const rowLimit = Number.isFinite(requested) && requested > 0 ? Math.min(requested, MAX_NEWS_LIMIT) : 20;
-    let query = admin.from('commodity_news_feed').select('title,description,url,source_name,category,published_at').order('published_at', { ascending: false }).limit(rowLimit);
-    if (category) query = query.eq('category', category);
-    const { data, error } = await query;
-    return error ? json({ error: 'data_unavailable' }, 500, rlHeaders) : json({ data, generated_at: new Date().toISOString() }, 200, rlHeaders);
+    return respond(await resourceNews(ctx, {
+      category: url.searchParams.get('category') ?? undefined,
+      limit: Number(url.searchParams.get('limit') ?? 20),
+    }));
   }
   if (resource === 'vol_cone' || resource === 'roll_scanner' || resource === 'term_structure') {
-    // Pro-only, matching massive-vol-cone/-roll-scanner/-term-structure's
-    // own get_user_tier() !== 'pro' gate in-app.
-    if (!isPro) {
-      return json({
-        error: 'pro_required',
-        message: `The ${resource} resource requires an active Pro subscription.`,
-        upgrade_url: 'https://app.commodity-hub.eu/data-api',
-      }, 403, rlHeaders);
-    }
-
-    if (resource === 'roll_scanner') {
-      // Full-universe scan, no per-commodity param — same as the in-app version.
-      const { data: snap, error } = await admin.from('analytics_snapshots').select('payload, as_of').eq('kind', 'roll_scanner').eq('key', 'all').maybeSingle();
-      if (error) return json({ error: 'data_unavailable' }, 500, rlHeaders);
-      if (!snap?.payload) return json({ error: 'snapshot_not_available', message: 'No roll scanner data has been computed yet.' }, 404, rlHeaders);
-      const isStale = Date.now() - new Date(snap.as_of).getTime() >= ANALYTICS_SNAPSHOT_STALE_MS;
-      return json({ data: { ...(snap.payload as Record<string, unknown>), stale: isStale }, generated_at: new Date().toISOString() }, 200, rlHeaders);
-    }
-
-    // vol_cone and term_structure both take a required `commodity` slug.
-    const commodity = url.searchParams.get('commodity');
-    if (!commodity) return json({ error: 'commodity_required', valid: Array.from(MASSIVE_PRODUCTS) }, 400, rlHeaders);
-    if (!MASSIVE_PRODUCTS.has(commodity)) return json({ error: 'invalid_commodity', valid: Array.from(MASSIVE_PRODUCTS) }, 400, rlHeaders);
-
-    let snapshotKey = commodity;
-    if (resource === 'term_structure') {
-      const requestedMonths = Number(url.searchParams.get('months_ahead') ?? MONTHS_AHEAD_DEFAULT);
-      const monthsAhead = Number.isInteger(requestedMonths) && requestedMonths >= MONTHS_AHEAD_MIN && requestedMonths <= MONTHS_AHEAD_MAX
-        ? requestedMonths
-        : null;
-      if (monthsAhead === null) return json({ error: 'invalid_months_ahead', min: MONTHS_AHEAD_MIN, max: MONTHS_AHEAD_MAX }, 400, rlHeaders);
-      snapshotKey = `${commodity}:${monthsAhead}`; // must match massive-term-structure's own key format exactly
-    }
-
-    const { data: snap, error } = await admin.from('analytics_snapshots').select('payload, as_of').eq('kind', resource).eq('key', snapshotKey).maybeSingle();
-    if (error) return json({ error: 'data_unavailable' }, 500, rlHeaders);
-    if (!snap?.payload) return json({ error: 'snapshot_not_available', message: `No ${resource} data has been computed yet for ${commodity}. Open it in the app once to seed it.` }, 404, rlHeaders);
-    const isStale = Date.now() - new Date(snap.as_of).getTime() >= ANALYTICS_SNAPSHOT_STALE_MS;
-    return json({ data: { ...(snap.payload as Record<string, unknown>), stale: isStale }, generated_at: new Date().toISOString() }, 200, rlHeaders);
+    return respond(await resourceAnalyticsSnapshot(ctx, resource, {
+      commodity: url.searchParams.get('commodity') ?? undefined,
+      monthsAhead: url.searchParams.get('months_ahead') ? Number(url.searchParams.get('months_ahead')) : undefined,
+    }));
   }
   return json({ error: 'unknown_resource' }, 404, rlHeaders);
 });
