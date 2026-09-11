@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T09:20:05.939Z",
+  "generatedAt": "2026-09-11T05:36:48.251Z",
   "libraries": [
     {
       "name": "@ai-sdk/openai-compatible",
@@ -415,6 +415,13 @@
       "url": "https://input-otp.rodz.dev/"
     },
     {
+      "name": "leaflet",
+      "version": "1.9.4",
+      "license": "BSD-2-Clause",
+      "licenseSource": "package.json",
+      "url": "https://leafletjs.com/"
+    },
+    {
       "name": "lightweight-charts",
       "version": "5.2.0",
       "license": "Apache-2.0",
@@ -490,6 +497,13 @@
       "license": "MIT",
       "licenseSource": "package.json",
       "url": "https://react-hook-form.com"
+    },
+    {
+      "name": "react-leaflet",
+      "version": "4.2.1",
+      "license": "Hippocratic-2.1",
+      "licenseSource": "package.json",
+      "url": "https://react-leaflet.js.org"
     },
     {
       "name": "react-resizable-panels",

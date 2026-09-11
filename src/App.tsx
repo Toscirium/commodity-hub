@@ -34,6 +34,7 @@ const NotFound = lazy(() => import('@/pages/NotFound'));
 const ProModeEntry = lazy(() => import('@/pages/ProModeEntry'));
 const BasisTracker = lazy(() => import('@/pages/BasisTracker'));
 const HedgeBook = lazy(() => import('@/pages/HedgeBook'));
+const VesselTracker = lazy(() => import('@/pages/VesselTracker'));
 const Portfolio = lazy(() => import('@/pages/Portfolio'));
 const MarketStatus = lazy(() => import('@/pages/MarketStatus'));
 const APIComparison = lazy(() => import('@/pages/APIComparison'));
@@ -174,6 +175,7 @@ const App = () => {
                 <Route path="/term-structure" element={<TermStructure />} />
                 <Route path="/basis-tracker" element={<BasisTracker />} />
                 <Route path="/hedge-book" element={<HedgeBook />} />
+                <Route path="/vessel-tracker" element={<VesselTracker />} />
                 <Route path="/copilot" element={<Copilot />} />
                 <Route path="/copilot/:threadId" element={<Copilot />} />
                 <Route path="/seasonality" element={<Seasonality />} />

@@ -80,6 +80,10 @@ Easy to forget; each one breaks silently.
       - `refresh-fundamentals-every-2h` (see `docs/FUNDAMENTALS_REFRESH_SETUP.md`)
       - `fetch-cot-report-daily` (see `docs/COT_REFRESH_SETUP.md`)
       - `refresh-commodity-news-feed-every-30min` (see `docs/NEWS_FEED_REFRESH_SETUP.md`)
+      - `fetch-vessel-positions-every-1min` (see `docs/VESSEL_TRACKING_SETUP.md`) —
+        **not yet scheduled as of 2026-09-11**, only documented; the function
+        and migration exist but nobody has run the `cron.schedule(...)` call
+        or set `AISSTREAM_API_KEY` yet.
       (`audit-premium-freshness` is admin-triggered on demand from
       `/admin/catalog-audit`, not on a cron schedule — listed here before but
       that was never actually true; verified 2026-08-27, see
