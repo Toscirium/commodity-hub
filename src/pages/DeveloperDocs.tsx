@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, KeyRound, Zap, ShieldCheck, Code2, ExternalLink } from 'lucide-react';
+import { ArrowLeft, KeyRound, Zap, ShieldCheck, Code2, ExternalLink, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,7 @@ import SEOHead from '@/components/SEOHead';
 
 const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? '';
 const BASE_URL = `${SUPABASE_URL}/functions/v1/data-api`;
+const MCP_URL = `${SUPABASE_URL}/functions/v1/mcp`;
 
 const CodeBlock: React.FC<{ children: string; label?: string }> = ({ children, label }) => (
   <div className="space-y-1">
@@ -316,6 +317,24 @@ curl "${BASE_URL}?resource=fundamentals&series_id=PET.WCESTUS1.W" \\
   },
 ];
 
+// Hand-mirrored from supabase/functions/mcp/index.ts's TOOLS array — one
+// tool per REST resource above, same gating. No shared source of truth
+// between this list and the edge function (see that file's own comment on
+// the drift risk), so if a resource is added/changed there, update here too.
+const MCP_TOOLS: { name: string; description: string; tier?: 'premium' | 'pro' }[] = [
+  { name: 'get_prices', description: 'Current or historical prices, one commodity or all.' },
+  { name: 'get_cot_positioning', description: 'CFTC Commitments of Traders weekly positioning.' },
+  { name: 'get_fundamentals', description: 'EIA/USDA/FRED fundamentals series.' },
+  { name: 'get_sentiment', description: 'Community bullish/bearish sentiment votes.' },
+  { name: 'get_news', description: 'Recent commodity news articles.', tier: 'premium' },
+  { name: 'get_vol_cone', description: 'Implied-volatility cone for a commodity.', tier: 'pro' },
+  { name: 'get_term_structure', description: 'Futures term structure / forward curve for a commodity.', tier: 'pro' },
+  { name: 'get_roll_scanner', description: 'Full-universe roll scanner (contango/backwardation).', tier: 'pro' },
+  { name: 'list_portfolio', description: 'The key owner\'s own portfolio positions.' },
+  { name: 'list_watchlists', description: 'The key owner\'s own watchlists and their items.' },
+  { name: 'list_price_alerts', description: 'The key owner\'s own price alerts.' },
+];
+
 const ERRORS: { status: string; error: string; meaning: string }[] = [
   { status: '401', error: 'api_key_required', meaning: 'No `Authorization: Bearer ch_live_...` header sent.' },
   { status: '401', error: 'invalid_api_key', meaning: 'Key not found, or revoked.' },
@@ -487,6 +506,78 @@ const DeveloperDocs: React.FC = () => {
               </Card>
             ))}
           </div>
+
+          {/* MCP */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex flex-wrap items-center gap-2 text-lg">
+                <Bot className="h-5 w-5" /> Connect via MCP
+                <Badge variant="secondary">New</Badge>
+              </CardTitle>
+              <CardDescription>
+                The same key also speaks{' '}
+                <a href="https://modelcontextprotocol.io" target="_blank" rel="noreferrer" className="underline">
+                  MCP
+                </a>{' '}
+                — give it to Claude, Cursor, Claude Code, or any MCP-compatible AI tool, and every
+                resource above becomes a callable tool instead of a REST call. Pair it with a
+                broker's own MCP server (e.g.{' '}
+                <a
+                  href="https://www.interactivebrokers.com/en/trading/ai-integrations.php"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline"
+                >
+                  Interactive Brokers'
+                </a>
+                ) and the AI can reason over your real positions against our curves in one
+                conversation — we never see your brokerage credentials, and the broker never sees
+                this key.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Same auth, same rate limits, same tier gating as above — this is a second protocol
+                over the same API, not a separate product. One key's budget covers both; using
+                both doesn't double it. Currently key-based only: paste the header below into a
+                client that takes a manually configured MCP server (Claude Code, Cursor, Claude
+                Desktop's config file). Browser-based "Add connector" flows that expect OAuth
+                aren't supported yet.
+              </p>
+              <CodeBlock label="Server URL">{MCP_URL}</CodeBlock>
+              <CodeBlock label={'Claude Code / Cursor config (e.g. .mcp.json)'}>{`{
+  "mcpServers": {
+    "commodity-hub": {
+      "type": "http",
+      "url": "${MCP_URL}",
+      "headers": { "Authorization": "Bearer ch_live_..." }
+    }
+  }
+}`}</CodeBlock>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tool</TableHead>
+                    <TableHead>Description</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {MCP_TOOLS.map((t) => (
+                    <TableRow key={t.name}>
+                      <TableCell className="whitespace-nowrap font-mono text-xs">
+                        <div className="flex items-center gap-2">
+                          {t.name}
+                          {t.tier === 'premium' && <Badge variant="secondary">Premium+</Badge>}
+                          {t.tier === 'pro' && <Badge variant="secondary">Pro</Badge>}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{t.description}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
 
           {/* Errors */}
           <Card>
