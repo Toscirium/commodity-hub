@@ -23,7 +23,19 @@ const DataExports: React.FC = () => {
   const [format, setFormat] = useState<'csv' | 'xlsx'>('xlsx'); const [frequency, setFrequency] = useState('weekly'); const [busy, setBusy] = useState(false); const [paywall, setPaywall] = useState(false);
   const invoke = async (body: Record<string, unknown>) => {
     const { data, error } = await supabase.functions.invoke('export-center', { body });
-    if (error || data?.error) throw new Error(data?.error ?? 'Request failed'); return data;
+    if (error) {
+      // supabase-js never parses a non-2xx response body into `data` — it's
+      // only on `error.context` (the raw Response), and `error.message`
+      // itself is just the SDK's generic "Edge Function returned a non-2xx
+      // status code". Without reading context, every real reason (most
+      // commonly trial_key_limit — 1 active key already exists) surfaced as
+      // that same unhelpful string, which is what made key creation look
+      // broken rather than explain the actual limit.
+      const parsed = await (error as { context?: Response }).context?.json().catch(() => null);
+      throw new Error(parsed?.error ?? error.message);
+    }
+    if (data?.error) throw new Error(data.error);
+    return data;
   };
   // list/create_key/revoke_key work for any signed-in user now (Pro or free
   // trial) — only save_schedule/delete_schedule stay Pro-only server-side.
