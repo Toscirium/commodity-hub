@@ -1,7 +1,13 @@
 # Commodity Hub — Growth Plan (H2 2026)
 
 Modelled on how MarketWatch, Benzinga, and Alpha Vantage actually grew.
-Last updated: 2026-08-29. Companion to `MARKETING_PLAN.md`. Supersedes `GROWTH_PLAN.md` (May 2026).
+Last updated: 2026-09-11. Companion to `MARKETING_PLAN.md`. Supersedes `GROWTH_PLAN.md` (May 2026).
+
+> **2026-09-11: retail traders only.** All B2B sales plans are scrapped — no Enterprise API tier, no
+> seat-priced Team/Business SKU, no white-label/licensing business, no pursuit of ICP D
+> (physical-side/procurement/fund customers). Every remaining engine here targets individual retail
+> traders (and the analysts/developers who are themselves individual subscribers, ICPs A/B/C in
+> `MARKETING_PLAN.md`). See `docs/LINKEDIN_FUNNEL.md` for the same cut applied to that channel.
 
 ---
 
@@ -32,9 +38,11 @@ brokerages: now 400+ brokerage partners, ~100M readers/month reached through par
 countries, ~500% growth after retail interest exploded in 2020, and a $300M acquisition by Beringer
 Capital in 2021. The end state is B2B2C — the reader is a customer of the partner, not of Benzinga.
 
-> **Transfers, and this is the big one:** we already have both halves of this asset — a **free
-> embeddable price widget** (no account, no API key) and a **Data API**. Benzinga's insight is that
-> distributing your data through other people's audiences beats buying your own.
+> **Transfers:** the distribution mechanic, not the customer type. We already have both halves of the
+> asset — a **free embeddable price widget** (no account, no API key) and a **Data API**. Benzinga's
+> insight is that distributing your data through other people's audiences beats buying your own —
+> here that means placing the widget with newsletters and trade press to reach *retail traders*, not
+> signing brokerage/licensing contracts. We are not pursuing a B2B licensing business.
 
 ### Alpha Vantage — a free API tier as the entire growth engine
 
@@ -115,9 +123,10 @@ This is the Benzinga asset sitting idle. Each placement is simultaneously: a bac
 - University commodity-markets and agribusiness course pages
 - Regional broker blogs and educational sites
 
-**Sequencing:** widget first (free, no friction, no negotiation). Where a placement performs, offer
-co-branded or white-label data. That is exactly the escalation path Benzinga rode from content to
-licensing to 400 brokerages.
+**Sequencing:** widget first (free, no friction, no negotiation). Where a placement performs, offer a
+co-branded chart or embed. Unlike Benzinga we are stopping there, at content distribution — no
+white-label licensing or brokerage-style B2B deals; the point is reach into retail traders, not a
+second revenue line sold to other businesses.
 
 **Metric:** live embeds, referral sessions per embed, signups per referring domain.
 
@@ -138,7 +147,9 @@ The free tier is right and already beats Alpha Vantage's. **The pricing is the p
 | Free | 50 req/day, 1 key | Keep. It is the acquisition engine. More generous than Alpha Vantage. |
 | **API Starter** | **~$29/mo** | Fills the gap between hobbyist and Pro. Does not exist today. |
 | **API Pro** | **~$79–99/mo** | Alpha Vantage charges $49.99 for 75 rpm; we give unlimited keys and 60 rpm for $19.99. We are leaving most of the price on the table. |
-| Enterprise | Custom | Physical-side and fund customers; contract, SLA, support. |
+
+No enterprise/custom-contract tier — the API ladder stops at a self-serve paid plan for individual
+developers and quants. No sales team, no SLA negotiation, no B2B contracts.
 
 Keep **flat-rate, no per-request billing** as the headline — it is a genuine differentiator against
 the metered commodity-API incumbents and it is already the marketing line on `/developers`.
@@ -190,12 +201,17 @@ signups at a stable rate.
 
 ### Phase 3 — Months 6–12: monetise depth
 
-1. Launch the separate API pricing ladder (needs the external RevenueCat/Stripe setup first).
-2. Escalate the best-performing embeds to co-branded/white-label conversations — the Benzinga move.
-3. Push ICP D (physical-side) via Team Workspace, which is built and currently bundled into Pro with
-   no seat-priced tier. A real Business SKU is the highest-LTV unlock here.
-4. iOS, when Apple Developer enrollment and a Mac/Xcode are in hand — currently scaffolded and
+1. Launch the separate API pricing ladder (needs the external RevenueCat/Stripe setup first), still
+   self-serve consumer pricing — no enterprise/custom tier.
+2. Escalate the best-performing embeds to co-branded chart placements — the Benzinga distribution
+   move, without the licensing-to-brokerages business model behind it.
+3. iOS, when Apple Developer enrollment and a Mac/Xcode are in hand — currently scaffolded and
    blocked externally, not a code problem.
+
+**Scrapped:** pursuing ICP D (physical-side/procurement) and a seat-priced "Business SKU" for Team
+Workspace. Team Workspace stays as-is, bundled into Pro for retail power users (e.g. a couple of
+traders sharing notes) — it is not a B2B sales target and no company/enterprise-facing tier is planned
+around it.
 
 ---
 

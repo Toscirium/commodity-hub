@@ -1,15 +1,20 @@
 # Commodity Hub — LinkedIn Creator Collaboration Funnel
 
-Last updated: 2026-08-29. Companion to `MARKETING_PLAN.md` and `GROWTH_PLAN_2026H2.md`.
+Last updated: 2026-09-11. Companion to `MARKETING_PLAN.md` and `GROWTH_PLAN_2026H2.md`.
 This is the tactical build-out of **Engine 02 (embed distribution)** for one channel.
+
+> **2026-09-11: retail traders only.** ICP D (procurement/physical-side/B2B) is scrapped as a target
+> segment across this doc — see `GROWTH_PLAN_2026H2.md`. This channel now exists to reach ICP A
+> (retail traders) directly and via ICP B (analysts/newsletter writers) as a distribution multiplier,
+> not to open enterprise/procurement relationships.
 
 ---
 
 ## Why LinkedIn, and why creators
 
-LinkedIn is where **ICP B** (analysts, newsletter writers) and **ICP D** (procurement, agri, energy
-desk professionals) actually are — and ICP D is the highest-LTV segment in the marketing plan. Neither
-responds to advertising. Both respond to a peer they already trust citing a number.
+LinkedIn is where **ICP B** (analysts, newsletter writers) actually are, alongside plenty of ICP A
+retail traders who follow them. Neither responds to advertising. Both respond to a peer they already
+trust citing a number.
 
 The channel logic follows the Benzinga lesson: **distribute the data through other people's audiences
 rather than buying your own.** On LinkedIn specifically that is not sponsored posts. It is co-creation
@@ -83,12 +88,11 @@ Build a list of ~120 names. **Tier by audience fit and engagement rate, not foll
 
 | Archetype | Why they matter | Which ICP they reach |
 |---|---|---|
-| Energy analysts (crude, refining, crack spreads, LNG) | Highest posting volume; EIA releases are their beat | A, B, D |
-| Ag economists & extension faculty | Deeply trusted, WASDE-driven, chronically under-tooled | B, D |
+| Energy analysts (crude, refining, crack spreads, LNG) | Highest posting volume; EIA releases are their beat | A, B |
+| Ag economists & extension faculty | Deeply trusted, WASDE-driven, chronically under-tooled | B |
 | Metals & mining analysts | Underserved by free charting; COT-curious | A, B |
-| Supply chain & procurement leaders | Enormous LinkedIn presence; buy-side of ICP D | D |
-| Freight & dry bulk analysts | Adjacent, high engagement, curve-literate | B, D |
-| Ex-trading-house professionals (Glencore/Trafigura/Cargill alumni) | Credibility halo; small but potent audiences | B, D |
+| Freight & dry bulk analysts | Adjacent, high engagement, curve-literate | B |
+| Ex-trading-house professionals (Glencore/Trafigura/Cargill alumni) | Credibility halo; small but potent audiences | B |
 | Trade press journalists | Not creators, but citation multipliers | all |
 
 **How to find them (do this, don't guess at names):**
@@ -197,8 +201,8 @@ Creator post → free page (no signup) → free tool → free account
 The activation event is unchanged from `CONVERSION_PIPELINE.md`: first alert, first pinned market, or
 first API call. LinkedIn's contribution is filling the top, not shortcutting the middle.
 
-**Expect a long lag.** ICP D evaluates for weeks and often buys at the team level. Judge this channel
-on 90-day cohorts, not week-one conversion.
+**Expect a lag.** Even an individual retail trader referred by a trusted creator typically evaluates
+for a while before subscribing. Judge this channel on 90-day cohorts, not week-one conversion.
 
 ### Stage 7 — Measurement
 
@@ -240,9 +244,9 @@ channel, not a launch channel.
   which makes it your problem too.
 - **Keep the "not advice" line intact.** The marketing plan treats *not a broker, not investment
   advice* as a trust asset. Brief every collaborator on it. A creator implying performance claims on
-  your data is the fastest way to lose ICP D.
+  your data is the fastest way to lose their trust, and yours.
 - **The CFD affiliate is in direct tension with this channel.** eToro CTAs monetise ICP A, but ICP B
-  and D read CFD promotion as a reason to discount your analysis — and eToro's own compliance rules
+  reads CFD promotion as a reason to discount your analysis — and eToro's own compliance rules
   restrict promotional copy anyway. **Recommendation:** suppress affiliate CTAs for LinkedIn-referred
   sessions. That is a code change; it does not exist today.
 - **Don't over-index on one anchor voice.** A single large creator driving most referrals is a

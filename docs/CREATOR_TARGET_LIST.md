@@ -53,7 +53,7 @@ which is what makes them Tier A.
 | **The Crude Chronicles** | [thecrudechronicles.substack.com](https://thecrudechronicles.substack.com/) | Oil & gas | 100+ years of oil finance told through charts. Byline not shown on the page — confirm before writing. |
 | **Jeff Davies** | EnerWrap | Energy | Self-describes as "Data-Driven Energy Insights." Direct fit. |
 | **Makai Marine** | Makai Research | Tanker + oil | Covers freight *and* crude — hits two archetypes at once. |
-| **Arjun Murti** | Super-Spiked | Energy strategy | Long-established energy voice; strategy/policy angle reaches ICP D. |
+| **Arjun Murti** | Super-Spiked | Energy strategy | Long-established energy voice; strategy/policy angle reaches serious retail traders. |
 | **Jesús Rodríguez** | [Oil Market Brief](https://oilmarket.substack.com/) | Oil, geopolitics | Weekly cadence — fits the release-calendar service. |
 | **Plainview Energy Analytics** | [plainview-energy.com](https://www.plainview-energy.com/) | Crude | "Data-centric, visualization-forward," weekly Friday wrap. Friday = COT day. |
 | **Arlan Suderman** | StoneX | Ag, macro | Chief Commodities Economist. One of the most-cited WASDE voices. |

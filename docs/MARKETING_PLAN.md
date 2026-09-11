@@ -68,17 +68,21 @@ is already shipped.
 
 ## 3. Ideal customer profiles
 
+**Retail traders only — no B2B sales motion.** Every ICP below is an individual buying a personal
+subscription; none is a company, desk, or procurement function being sold a contract, seat licence, or
+enterprise deal.
+
 Ranked by how well the shipped product already serves them.
 
 | # | ICP | Tier | The job they hire us for | Where they are |
 |---|---|---|---|---|
 | **A** | Active retail futures / CFD trader | Premium $6.99 | "Alert me on a level; show me curve shape, COT, and seasonality before I size a trade." | Reddit (r/FuturesTrading, r/commodities), YouTube trading channels, broker communities, Play Store search |
 | **B** | Independent analyst, newsletter writer, research boutique | Pro $19.99 | "Export the data, screen the universe, backtest the idea, put a chart in my note." | Substack, X/LinkedIn commodity commentators, trade press |
-| **C** | Developer / quant / small fund | Data API | "REST access to prices, COT, and fundamentals without per-request billing." | GitHub, dev marketplaces, "Alpha Vantage alternative" searches |
-| **D** | Physical-side professional — procurement, agri co-op, energy desk analyst | Pro + Team | "What is my input cost doing, and what does the curve say about hedging it?" | LinkedIn, trade associations, industry newsletters |
+| **C** | Developer / quant hobbyist | Data API | "REST access to prices, COT, and fundamentals without per-request billing." | GitHub, dev marketplaces, "Alpha Vantage alternative" searches |
 
-**A and C are where the volume is. D is where the LTV is.** B is the multiplier — every analyst who
-uses us is a distribution channel (see Engine 2 in the growth plan).
+**A is where the volume is.** B and C are multipliers — every analyst who uses us is a distribution
+channel (see Engine 2 in the growth plan), and every developer with a free key is a funnel into A's
+paid tiers, not a business account to chase separately.
 
 ---
 
@@ -98,11 +102,6 @@ uses us is a distribution channel (see Engine 2 in the growth plan).
 > *Commodity data without per-request billing.*
 > Prices, CFTC positioning, and EIA/USDA/FRED fundamentals over one REST API. Free key, no card.
 > Flat-rate paid tier — you will never get a surprise invoice for a backfill.
-
-**D — Physical-side professional**
-> *The forward curve for the thing you actually buy.*
-> Diesel, natural gas, HRC steel, wheat, feeder cattle — with the release calendar that moves them
-> and a shared workspace for your team.
 
 ---
 
@@ -143,10 +142,10 @@ Concrete, and mostly copy work against features that already exist:
       Metals Prices" — a price-tracker claim, which under-sells the analytics layer and puts us in a
       fight with OilPrice.com and Bloomberg we cannot win).
 - [ ] A `/why-commodity-hub` page carrying the "curve, not ticker" argument and the four layers.
-- [ ] Per-ICP entry pages (trader / analyst / developer / procurement) — same product, four doors.
+- [ ] Per-ICP entry pages (trader / analyst / developer) — same product, three doors.
 - [ ] Rewrite the Play Store listing to the analytics claim; the current keyword set targets price
       tracking only.
 - [ ] Screenshot set that leads with a **forward curve and a COT chart**, not a price list. The
       screenshots are the positioning for 90% of store visitors.
 - [ ] A public methodology page: sources, refresh cadence, and known limitations. This is trust
-      infrastructure for ICPs B, C, and D, and it is the page competitors will not write.
+      infrastructure for ICPs B and C, and it is the page competitors will not write.
