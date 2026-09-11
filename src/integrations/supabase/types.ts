@@ -1333,6 +1333,51 @@ export type Database = {
         }
         Relationships: []
       }
+      vessel_positions: {
+        Row: {
+          cog: number | null
+          destination: string | null
+          lat: number
+          lon: number
+          mmsi: number
+          nav_status: number | null
+          region: string
+          ship_name: string | null
+          ship_type: number | null
+          sog: number | null
+          true_heading: number | null
+          updated_at: string
+        }
+        Insert: {
+          cog?: number | null
+          destination?: string | null
+          lat: number
+          lon: number
+          mmsi: number
+          nav_status?: number | null
+          region: string
+          ship_name?: string | null
+          ship_type?: number | null
+          sog?: number | null
+          true_heading?: number | null
+          updated_at?: string
+        }
+        Update: {
+          cog?: number | null
+          destination?: string | null
+          lat?: number
+          lon?: number
+          mmsi?: number
+          nav_status?: number | null
+          region?: string
+          ship_name?: string | null
+          ship_type?: number | null
+          sog?: number | null
+          true_heading?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
