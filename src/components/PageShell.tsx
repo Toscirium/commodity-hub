@@ -10,8 +10,8 @@ import { cn } from '@/lib/utils';
  * Before this, 30 of 56 pages built their own container: ten different
  * max-widths, eight different <h1> treatments across three font families, and
  * eight different vertical paddings. Individually fine, collectively it read
- * as unfinished — which matters most to exactly the professional audience the
- * B2B pitch targets.
+ * as unfinished — which matters most to exactly the serious retail traders the
+ * app targets.
  *
  * The visual language is the terminal one already used by SpreadCalculator:
  * mono uppercase eyebrow, tight tracking, dense rows, semantic colour. That's
