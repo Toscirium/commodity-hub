@@ -39,3 +39,7 @@ supabase/.temp
 # Python
 __pycache__/
 *.pyc
+
+# flex-backtest scratch data
+scripts/flex-backtest/.cache/
+scripts/flex-backtest/out/

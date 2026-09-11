@@ -1,0 +1,29 @@
+{
+  "name": "Example Cold Store (Tallinn)",
+  "zone": "ee",
+  "source": "elering",
+  "annualMwh": 2400,
+
+  "_comment_cfg": "Flexibility parameters. Start conservative — you can always revise up after the pilot, never down.",
+  "cfg": {
+    "flexibleShare": 0.65,
+    "storageHours": 3,
+    "boostFactor": 1.4,
+    "coastDepth": 0.8,
+    "roundTripEfficiency": 0.85,
+    "maxCyclesPerDay": 2,
+    "minSpread": 5,
+    "peakCapKw": "baseline"
+  },
+
+  "_comment_tariff": "EUR/MWh excluding VAT, plus demandCharge in EUR/kW/month. Get these off the customer's actual invoice — do not guess, the network and levy components are usually larger than people expect and they change the answer.",
+  "tariff": {
+    "supplierMargin": 8,
+    "levies": 12,
+    "networkDay": 45,
+    "networkNight": 26,
+    "nightWindow": [22, 7],
+    "weekendIsNight": true,
+    "demandCharge": 4.5
+  }
+}
