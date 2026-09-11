@@ -98,6 +98,15 @@ verify_jwt = true
 [functions.data-api]
 verify_jwt = false
 
+# Same reason as data-api: auth is a custom `ch_live_...` bearer key checked
+# by hand in mcp/index.ts, not a Supabase user JWT. Without this, the
+# platform's own JWT verification middleware rejects every request before
+# our code ever runs (found live 2026-09-11 — deployed once without this,
+# every call came back 401 UNAUTHORIZED_NO_AUTH_HEADER regardless of the
+# ch_live_ key sent).
+[functions.mcp]
+verify_jwt = false
+
 [functions.ai-copilot]
 verify_jwt = true
 
