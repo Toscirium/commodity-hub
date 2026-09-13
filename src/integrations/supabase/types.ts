@@ -1262,6 +1262,54 @@ export type Database = {
         }
         Relationships: []
       }
+      user_strategies: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          last_result: Json | null
+          last_run_at: string | null
+          leg_a: string
+          leg_b: string
+          name: string
+          updated_at: string
+          user_id: string
+          weight_a: number
+          weight_b: number
+          years: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          last_result?: Json | null
+          last_run_at?: string | null
+          leg_a: string
+          leg_b: string
+          name: string
+          updated_at?: string
+          user_id: string
+          weight_a?: number
+          weight_b?: number
+          years?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          last_result?: Json | null
+          last_run_at?: string | null
+          leg_a?: string
+          leg_b?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+          weight_a?: number
+          weight_b?: number
+          years?: number
+        }
+        Relationships: []
+      }
       watchlist_items: {
         Row: {
           added_at: string
