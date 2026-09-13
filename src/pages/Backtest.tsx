@@ -6,10 +6,12 @@ import { Card, CardContent, CardHeader, CardDescription } from '@/components/ui/
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { LineChart, Line, ResponsiveContainer, YAxis, XAxis, Tooltip } from 'recharts';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBacktest, PRO_ANALYTICS_PRODUCTS } from '@/hooks/useProAnalytics';
 import PremiumPaywall from '@/components/PremiumPaywall';
+import SeasonalityResults from '@/components/backtest/SeasonalityResults';
+import CustomStrategyPanel from '@/components/backtest/CustomStrategyPanel';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -56,7 +58,17 @@ const Backtest: React.FC = () => {
             </CardContent>
           </Card>
         ) : (
-          <>
+          <Tabs defaultValue="seasonality">
+            <TabsList className="mb-4">
+              <TabsTrigger value="seasonality">Seasonality</TabsTrigger>
+              <TabsTrigger value="custom">Custom Strategy</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="custom">
+              <CustomStrategyPanel />
+            </TabsContent>
+
+            <TabsContent value="seasonality">
             <Card className="mb-4">
               <CardHeader className="pb-2"><CardDescription>Rule: long the front month during selected calendar months, flat otherwise</CardDescription></CardHeader>
               <CardContent className="space-y-4">
@@ -106,44 +118,9 @@ const Backtest: React.FC = () => {
               <Card className="border-destructive/30 bg-destructive/5"><CardContent className="pt-6 text-sm text-destructive">Backtest failed. Try a different commodity or window.</CardContent></Card>
             )}
 
-            {data && (
-              <>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                  <Card><CardHeader className="pb-2"><CardDescription>Total return</CardDescription></CardHeader><CardContent>
-                    <div className={`text-2xl font-bold ${data.totalReturnPct > 0 ? 'text-emerald-400' : 'text-red-400'}`}>{data.totalReturnPct > 0 ? '+' : ''}{data.totalReturnPct.toFixed(1)}%</div>
-                    <p className="text-xs text-muted-foreground mt-1">Over {data.yearsCovered}y</p>
-                  </CardContent></Card>
-                  <Card><CardHeader className="pb-2"><CardDescription>CAGR</CardDescription></CardHeader><CardContent>
-                    <div className="text-2xl font-bold">{data.cagrPct.toFixed(2)}%</div>
-                    <p className="text-xs text-muted-foreground mt-1">B&H: {data.buyHoldReturnPct.toFixed(1)}%</p>
-                  </CardContent></Card>
-                  <Card><CardHeader className="pb-2"><CardDescription>Max drawdown</CardDescription></CardHeader><CardContent>
-                    <div className={`text-2xl font-bold ${data.maxDrawdownPct < -20 ? 'text-red-400' : 'text-yellow-400'}`}>{data.maxDrawdownPct.toFixed(1)}%</div>
-                    <p className="text-xs text-muted-foreground mt-1">Peak-to-trough</p>
-                  </CardContent></Card>
-                  <Card><CardHeader className="pb-2"><CardDescription>Hit rate</CardDescription></CardHeader><CardContent>
-                    <div className="text-2xl font-bold">{Math.round(data.hitRate * 100)}%</div>
-                    <p className="text-xs text-muted-foreground mt-1">{data.trades} trades · Sharpe {data.sharpe ?? '—'}</p>
-                  </CardContent></Card>
-                </div>
-                <Card>
-                  <CardHeader><CardDescription>Equity curve (starting at 1.0)</CardDescription></CardHeader>
-                  <CardContent>
-                    <div className="h-72">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={data.equityCurve}>
-                          <XAxis dataKey="date" tick={{ fontSize: 10 }} minTickGap={60} />
-                          <YAxis tick={{ fontSize: 10 }} domain={['dataMin', 'dataMax']} />
-                          <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', fontSize: 12 }} />
-                          <Line type="monotone" dataKey="equity" stroke="hsl(var(--primary))" strokeWidth={1.5} dot={false} isAnimationActive={false} />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </Card>
-              </>
-            )}
-          </>
+            {data && <SeasonalityResults data={data} />}
+            </TabsContent>
+          </Tabs>
         )}
       <PremiumPaywall open={paywallOpen} onOpenChange={setPaywallOpen} />
     </PageShell>

@@ -8,6 +8,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { corsHeaders, EdgeLogger } from '../_shared/utils.ts';
 import { fetchMassiveFrontMonthBars } from '../_shared/massive-client.ts';
+import { ensurePro } from '../_shared/proTier.ts';
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
@@ -561,12 +562,6 @@ async function buildBacktest(commodity: string, monthsLong: number[], years: num
     equityCurve,
     generatedAt: new Date().toISOString(),
   };
-}
-
-async function ensurePro(admin: ReturnType<typeof createClient>, userId: string): Promise<boolean> {
-  const { data, error } = await admin.rpc('get_user_tier', { _user_id: userId });
-  if (error) return false;
-  return data === 'pro';
 }
 
 serve(async (req) => {
