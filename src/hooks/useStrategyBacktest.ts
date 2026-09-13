@@ -65,7 +65,7 @@ export interface RunStrategyParams {
 /** Ad-hoc or saved-strategy run — triggered imperatively via mutate(), not on mount. */
 export const useRunStrategyBacktest = () =>
   useMutation({
-    mutationFn: (params: RunStrategyParams) => invokeStrategyBacktest(params),
+    mutationFn: (params: RunStrategyParams) => invokeStrategyBacktest({ ...params }),
   });
 
 export const useSavedStrategies = () => {
