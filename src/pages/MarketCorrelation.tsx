@@ -48,7 +48,7 @@ const MarketCorrelation = () => {
   const categories = ['all', ...Array.from(new Set((commodities || []).map((c: any) => c.category)))];
 
   return (
-    <div className="container mx-auto p-3 lg:p-4 space-y-4 lg:space-y-6 max-w-7xl">
+    <div className="container mx-auto p-3 lg:p-4 space-y-4 lg:space-y-6 max-w-[1600px]">
       {/* Header */}
       <div className="space-y-4">
         <div>

@@ -54,7 +54,16 @@ const PRODUCTS: Record<string, { label: string; code: string }> = {
 const MAX_CODE_LENGTH = 20_000;
 const RATE_LIMIT = 10;
 const RATE_WINDOW_MS = 10 * 60_000; // 10 requests / 10 minutes per user
-const EXEC_DEADLINE_MS = 2_000;
+// Real-world test against the deployed function (2026-09-13): a while(true){}
+// strategy at a 2000ms deadline got killed by Supabase's own platform-level
+// CPU governor (WORKER_RESOURCE_LIMIT) before this handler's wall-clock check
+// fired — the invocation was torn down before this function's own try/catch
+// could return its graceful error. Net safety held (no hang, isolate teardown
+// reclaims everything), but the platform's blunt kill beat this deadline, so
+// callers saw a raw platform error code instead of a clean message. Tightened
+// well below whatever that budget turns out to be so this handler's graceful
+// path wins the race instead.
+const EXEC_DEADLINE_MS = 800;
 const EXEC_MEMORY_LIMIT_BYTES = 16 * 1024 * 1024;
 const MAX_BARS = 6000; // ~20y of daily bars with headroom
 
@@ -109,7 +118,10 @@ async function runInSandbox(
   runtime.setMemoryLimit(EXEC_MEMORY_LIMIT_BYTES);
   const start = Date.now();
   let steps = 0;
-  const MAX_STEPS = 50_000_000;
+  // Independent backstop alongside the wall-clock check: if Date.now()
+  // resolution/scheduling is coarsened under this runtime for any reason,
+  // this still trips well inside the deadline for a tight loop.
+  const MAX_STEPS = 2_000_000;
   runtime.setInterruptHandler(() => {
     steps++;
     return Date.now() - start > EXEC_DEADLINE_MS || steps > MAX_STEPS;

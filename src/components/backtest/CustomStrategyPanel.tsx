@@ -29,7 +29,7 @@ const STARTER_CODE = `function backtest(bars) {
 const CONTRACT_NOTES = [
   'Must define a top-level function backtest(bars) returning an array of -1|0|1, same length as bars.',
   'Runs in an isolated sandbox with no network/file/Deno access — pure computation on the bars you get only.',
-  '~2s CPU budget and ~16MB memory; a runaway loop or excessive memory is killed automatically.',
+  '<1s CPU budget and ~16MB memory; a runaway loop or excessive memory is killed automatically.',
   'signals[i] is applied to the return from bars[i-1] to bars[i] (so it may see bars[i]’s own close — not strictly point-in-time, keep that in mind when judging results).',
 ];
 

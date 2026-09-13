@@ -115,7 +115,7 @@ const DataApiUsage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-6xl space-y-6 px-4 py-6">
+      <div className="mx-auto max-w-[1600px] space-y-6 px-4 py-6">
         <div className="flex items-center justify-between">
           <Button variant="ghost" size="sm" onClick={() => navigate('/exports')}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Exports

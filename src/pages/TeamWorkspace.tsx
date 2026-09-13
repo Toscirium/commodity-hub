@@ -151,7 +151,7 @@ const TeamWorkspace: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-3xl space-y-6 px-4 py-6">
+      <div className="w-full space-y-6 px-4 py-6 md:px-8 lg:px-12">
         <Button variant="ghost" size="sm" onClick={() => navigate('/account-settings')}><ArrowLeft className="mr-2 h-4 w-4" />Account</Button>
         <div>
           <h1 className="text-2xl font-semibold">Team Workspace</h1>

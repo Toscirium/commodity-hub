@@ -186,7 +186,7 @@ const PositionCalculator: React.FC = () => {
       />
 
       <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-4 py-8 max-w-3xl pb-[calc(3rem+env(safe-area-inset-bottom))]">
+        <div className="container mx-auto px-4 py-8 max-w-[1000px] pb-[calc(3rem+env(safe-area-inset-bottom))]">
           <Button variant="ghost" onClick={() => navigate('/dashboard')} className="mb-6">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Dashboard

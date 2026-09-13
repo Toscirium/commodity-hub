@@ -93,7 +93,7 @@ const FeedbackInbox: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-3xl space-y-5 px-4 py-6">
+      <div className="mx-auto max-w-[1000px] space-y-5 px-4 py-6">
         <div className="flex items-center justify-between">
           <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
             <ArrowLeft className="mr-2 h-4 w-4" /> Dashboard

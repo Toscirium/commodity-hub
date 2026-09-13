@@ -14,7 +14,7 @@ const NewsSettingsPage: React.FC = () => {
         subtitle="Configure API keys and settings for enhanced news coverage across multiple sources"
       />
       
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
+      <div className="container mx-auto px-4 py-6 max-w-[1100px]">
         {/* Settings Component */}
         <NewsSettings />
       </div>
