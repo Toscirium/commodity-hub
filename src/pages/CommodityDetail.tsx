@@ -145,13 +145,23 @@ const CommodityDetail: React.FC = () => {
     // dead margins. The chart and quote stats just use flex/justify-between
     // so they don't collapse into each other on an ultrawide window.
     //
+    // No min-h-screen: this page's actual content (header, quote, tabs,
+    // chart, and TradeCTA below it) is often well short of a full viewport
+    // — TradeCTA renders nothing at all for Premium/Pro/pro-view accounts
+    // (see its own doc comment) — and min-h-screen forced the wrapper to a
+    // full 100vh regardless, showing as dead space below the last real
+    // element on anything but a short window. Dropping it costs nothing
+    // visually: <body> already carries the same bg-background (index.css),
+    // so the background stays seamless whether this div is 40vh or 100vh
+    // tall.
+    //
     // pb-24 clears MobileBottomNavigation, a fixed-position bar — but that
     // nav only renders below the same 768px (`md`) breakpoint as
     // useIsMobile (see components/mobile/MobileBottomNavigation.tsx). Above
-    // it there's no bar to clear, so the unconditional pb-24 was just dead
-    // space at the bottom of the page; md:pb-6 drops back to normal
-    // breathing room once the nav is gone.
-    <div className="min-h-screen w-full bg-background pb-24 md:pb-6">
+    // it there's no bar to clear, so the unconditional pb-24 was dead space
+    // in its own right too; md:pb-6 drops back to normal breathing room
+    // once the nav is gone.
+    <div className="w-full bg-background pb-24 md:pb-6">
       <SEOHead
         title={`${commodity.name} price, chart and news`}
         description={`Live ${commodity.name} (${commodity.symbol}) price on ${commodity.venue}, interactive chart, contract ladder and market news.`}
