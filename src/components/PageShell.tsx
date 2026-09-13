@@ -37,18 +37,18 @@ export interface PageShellProps {
   backTo?: string;
   backLabel?: string;
   /**
-   * Content width. Default 5xl matches the analytics pages that were already
-   * consistent with each other; 6xl for wide tables (Hedge Book).
+   * Historically capped content width (3xl/5xl/6xl, then widened once to
+   * 1000/1400/1600px) so the column stayed a comfortable reading width. On a
+   * maximized desktop/webview window that still left a large dead margin on
+   * both sides, and that margin — not the column width — was the actual
+   * complaint, so this is now unused: PageShell is full-bleed (edge-to-edge
+   * plus padding) regardless of what's passed. Kept in the type only so the
+   * ~10 existing call sites don't need touching; remove once they're cleaned
+   * up.
    */
   width?: '3xl' | '5xl' | '6xl';
   children: React.ReactNode;
 }
-
-const WIDTHS: Record<NonNullable<PageShellProps['width']>, string> = {
-  '3xl': 'max-w-3xl',
-  '5xl': 'max-w-5xl',
-  '6xl': 'max-w-6xl',
-};
 
 const PageShell: React.FC<PageShellProps> = ({
   eyebrow,
@@ -58,14 +58,13 @@ const PageShell: React.FC<PageShellProps> = ({
   actions,
   backTo = '/dashboard',
   backLabel = 'Dashboard',
-  width = '5xl',
   children,
 }) => {
   const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-background">
-      <div className={cn('container mx-auto px-4 py-6', WIDTHS[width])}>
+      <div className={cn('w-full px-4 py-6 md:px-8 lg:px-12')}>
         {backTo && (
           <Button
             variant="ghost"

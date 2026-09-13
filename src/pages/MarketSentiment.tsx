@@ -185,7 +185,7 @@ const MarketSentiment = () => {
           </header>
 
           <main className="flex-1 p-6">
-            <div className="max-w-6xl mx-auto space-y-6">
+            <div className="max-w-[1600px] mx-auto space-y-6">
               <div>
                 <h2 className="text-2xl font-bold tracking-tight">
                   Community Market Sentiment
