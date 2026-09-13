@@ -512,6 +512,56 @@ describe('PriceChart — zoom, pan and reset controls', () => {
     expect(to - from).toBeCloseTo(120)
   })
 
+  describe('Shift+wheel zoom on an inline (interactive=false) chart', () => {
+    // Plain wheel is left to the library when interactive — only the
+    // non-interactive (inline-embed) path needs a real DOM listener at all,
+    // since that's the one case a passive React onWheel can't preventDefault
+    // from. See the effect's own comment in PriceChart.tsx.
+    const plotEl = () => screen.getByTestId('price-chart-plot')
+
+    it('zooms in on Shift+wheel with a negative deltaY', () => {
+      render(<PriceChart {...props} interactive={false} />)
+      fireEvent.wheel(plotEl(), { deltaY: -100, shiftKey: true })
+
+      const { from, to } = lastRange()
+      expect(to - from).toBeLessThan(100)
+      expect((from + to) / 2).toBeCloseTo(50)
+    })
+
+    it('zooms out on Shift+wheel with a positive deltaY', () => {
+      render(<PriceChart {...props} interactive={false} />)
+      fireEvent.wheel(plotEl(), { deltaY: 100, shiftKey: true })
+
+      const { from, to } = lastRange()
+      expect(to - from).toBeGreaterThan(100)
+      expect((from + to) / 2).toBeCloseTo(50)
+    })
+
+    it('leaves a plain wheel (no modifier) alone, so the page can still scroll', () => {
+      render(<PriceChart {...props} interactive={false} />)
+      fireEvent.wheel(plotEl(), { deltaY: -100 })
+
+      expect(setVisibleLogicalRange).not.toHaveBeenCalled()
+    })
+
+    it('ignores Ctrl/Cmd+wheel — deliberately not used as the modifier since Chrome fires its own page-zoom alongside it', () => {
+      render(<PriceChart {...props} interactive={false} />)
+      fireEvent.wheel(plotEl(), { deltaY: -100, ctrlKey: true })
+      fireEvent.wheel(plotEl(), { deltaY: -100, metaKey: true })
+
+      expect(setVisibleLogicalRange).not.toHaveBeenCalled()
+    })
+
+    it('does not attach the custom listener at all when interactive (full-screen already gets plain-wheel zoom from the library)', () => {
+      render(<PriceChart {...props} interactive />)
+      fireEvent.wheel(plotEl(), { deltaY: -100, shiftKey: true })
+
+      // No native library to actually zoom in this mock, so the only way
+      // this could have moved the range is through our own listener.
+      expect(setVisibleLogicalRange).not.toHaveBeenCalled()
+    })
+  })
+
   it('does not move on the keypress itself, and eases up from a standstill', () => {
     visibleLogicalRange = { from: 20, to: 60 }
     const { container } = render(<PriceChart {...props} />)

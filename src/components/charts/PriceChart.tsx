@@ -67,9 +67,12 @@ interface PriceChartProps {
    * false for a chart embedded inline in a scrollable page (e.g. the
    * dashboard card preview) — disables single-finger touch panning so a
    * vertical swipe that starts on the chart still scrolls the page instead
-   * of getting captured as a chart pan. Pinch-zoom and desktop click-drag
-   * stay on either way. Defaults to true (full-screen view, where page
-   * scroll is locked anyway, always wants this on).
+   * of getting captured as a chart pan, and disables plain-mouse-wheel zoom
+   * for the same reason (a bare wheel over the chart still scrolls the
+   * page; Shift+wheel zooms instead — see the wheel-zoom effect below).
+   * Pinch-zoom and desktop click-drag stay on either way. Defaults to true
+   * (full-screen view, where page scroll is locked anyway, always wants
+   * plain wheel and touch panning on).
    */
   interactive?: boolean;
 }
@@ -84,6 +87,11 @@ const MA_COLORS = ['#f97316', '#eab308', '#6366f1'];
 // back on the range you started from rather than drifting a little each time.
 const ZOOM_IN_FACTOR = 0.7;
 const ZOOM_OUT_FACTOR = 1 / ZOOM_IN_FACTOR;
+// Exponent applied per pixel of Shift+wheel deltaY (see the wheel-zoom effect
+// below). Small enough that one mouse-wheel notch (~100px of deltaY in most
+// browsers) reads as a gentle, controllable nudge rather than jumping
+// straight to a button's full factor.
+const WHEEL_ZOOM_SENSITIVITY = 0.0015;
 // Below a handful of bars the chart stops saying anything — mostly empty pane
 // with a candle in it — and there is no gesture back out except reset.
 const MIN_VISIBLE_BARS = 5;
@@ -695,6 +703,43 @@ const PriceChart: React.FC<PriceChartProps> = ({
     [barCount, stopPanMotion]
   );
 
+  // Shift+wheel zoom for inline charts (interactive=false). Plain wheel is
+  // deliberately left to the browser there so it falls through to the page's
+  // own scroll — see the `interactive` doc comment on the component props.
+  //
+  // Tried Ctrl/Cmd+wheel first (the Google Maps/Mapbox convention, and how
+  // trackpad pinch already arrives as a wheel event). Dropped it: Chrome's
+  // own Ctrl+wheel page-zoom isn't reliably preventable, so it fired
+  // alongside — or instead of — ours, changing the browser's zoom level
+  // underneath the chart. Shift+wheel's native action is horizontal page
+  // scroll, which is inert here (there's nothing to scroll), so even if
+  // preventDefault doesn't fully suppress it in some browser, nothing
+  // visibly bad happens — unlike Ctrl, whose fallback is a jarring
+  // page-zoom change. Trade-off: real trackpad pinch (as opposed to
+  // Shift+two-finger-scroll) is always reported via ctrlKey and can't be
+  // redirected to Shift, so it isn't picked up here.
+  //
+  // Full-screen (interactive=true) already gets plain-wheel zoom from the
+  // library itself (handleScale.mouseWheel above), so this is only attached
+  // when that's off — otherwise a Shift+wheel there would be handled twice.
+  // Needs a real (non-passive) DOM listener rather than React's onWheel:
+  // React attaches wheel handlers as passive by default, and preventDefault
+  // inside a passive listener is a silent no-op — the page would still
+  // scroll underneath the zoom.
+  React.useEffect(() => {
+    if (interactive) return;
+    const el = containerRef.current;
+    if (!el) return;
+
+    const onWheel = (event: WheelEvent) => {
+      if (!event.shiftKey) return;
+      event.preventDefault();
+      handleZoom(Math.exp(event.deltaY * WHEEL_ZOOM_SENSITIVITY));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [interactive, handleZoom]);
+
   // The continuous pan loop. Runs for as long as a direction is held (or
   // until its coast-to-stop settles after release), independent of how often
   // — or whether at all, past the first press — keydown fires. Velocity
@@ -918,7 +963,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 <ZoomIn className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">Zoom in (+)</TooltipContent>
+            <TooltipContent side="bottom">Zoom in (+ or Shift+scroll)</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -932,7 +977,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
                 <ZoomOut className="h-3.5 w-3.5" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">Zoom out (−)</TooltipContent>
+            <TooltipContent side="bottom">Zoom out (− or Shift+scroll)</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -951,7 +996,7 @@ const PriceChart: React.FC<PriceChartProps> = ({
         </TooltipProvider>
       </div>
 
-      <div ref={containerRef} className="w-full h-full" />
+      <div ref={containerRef} data-testid="price-chart-plot" className="w-full h-full" />
 
       {tooltip && (
         <div
