@@ -873,6 +873,7 @@ __FAQS__
       });
   })();
 </script>
+<script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
 """
@@ -980,6 +981,7 @@ __ROWS__
     root.setAttribute('data-theme', effectiveDark ? 'light' : 'dark');
   });
 </script>
+<script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
 """
