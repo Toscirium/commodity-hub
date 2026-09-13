@@ -145,15 +145,17 @@ const CommodityDetail: React.FC = () => {
     // dead margins. The chart and quote stats just use flex/justify-between
     // so they don't collapse into each other on an ultrawide window.
     //
-    // No min-h-screen: this page's actual content (header, quote, tabs,
-    // chart, and TradeCTA below it) is often well short of a full viewport
-    // — TradeCTA renders nothing at all for Premium/Pro/pro-view accounts
-    // (see its own doc comment) — and min-h-screen forced the wrapper to a
-    // full 100vh regardless, showing as dead space below the last real
-    // element on anything but a short window. Dropping it costs nothing
-    // visually: <body> already carries the same bg-background (index.css),
-    // so the background stays seamless whether this div is 40vh or 100vh
-    // tall.
+    // min-h-screen + flex flex-col: previously min-h-screen alone just
+    // forced this div to a full 100vh with nothing using the extra space —
+    // invisible anyway, since <body> already carries the same bg-background
+    // (index.css), so a too-short div and a too-tall one look identical.
+    // The actual dead-space complaint was the chart itself: capped at a
+    // fixed vh/max-h that fell well short of a tall desktop window, worse
+    // still when TradeCTA renders nothing at all for Premium/Pro/pro-view
+    // accounts (see its own doc comment). flex-col here, paired with
+    // flex-1 on the tab-content area below, lets the chart tab's content
+    // actually grow to fill the space min-h-screen guarantees, instead of
+    // the guarantee going nowhere.
     //
     // pb-24 clears MobileBottomNavigation, a fixed-position bar — but that
     // nav only renders below the same 768px (`md`) breakpoint as
@@ -161,7 +163,7 @@ const CommodityDetail: React.FC = () => {
     // it there's no bar to clear, so the unconditional pb-24 was dead space
     // in its own right too; md:pb-6 drops back to normal breathing room
     // once the nav is gone.
-    <div className="w-full bg-background pb-24 md:pb-6">
+    <div className="min-h-screen flex flex-col w-full bg-background pb-24 md:pb-6">
       <SEOHead
         title={`${commodity.name} price, chart and news`}
         description={`Live ${commodity.name} (${commodity.symbol}) price on ${commodity.venue}, interactive chart, contract ladder and market news.`}
@@ -170,7 +172,7 @@ const CommodityDetail: React.FC = () => {
       {/* Identity bar — pinned, because on a long news list the price is the
           one thing you always want in view. app-top-bar handles the Android
           status-bar inset (see index.css). */}
-      <header className="app-top-bar sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur">
+      <header className="app-top-bar sticky top-0 z-40 w-full shrink-0 border-b border-border bg-background/95 backdrop-blur">
         <div className="flex h-14 w-full items-center gap-2 px-2 sm:px-4">
           <Button
             variant="ghost"
@@ -209,7 +211,7 @@ const CommodityDetail: React.FC = () => {
 
       {/* Quote block: headline price on the left, reference stats on the right,
           the way every trading app lays this out. */}
-      <div className="flex w-full flex-wrap items-start justify-between gap-4 px-4 py-4">
+      <div className="shrink-0 flex w-full flex-wrap items-start justify-between gap-4 px-4 py-4">
         <div className="min-w-0">
           <div className="flex items-baseline gap-2">
             <span className="number-display text-[40px] font-medium leading-none tabular-nums tracking-tight text-foreground">
@@ -263,7 +265,7 @@ const CommodityDetail: React.FC = () => {
       {/* Tab bar — underline style, scrollable so it never wraps on a narrow
           screen. Sticky under the header for the same reason the header is. */}
       <nav
-        className="sticky z-30 w-full border-b border-border bg-background"
+        className="sticky z-30 w-full shrink-0 border-b border-border bg-background"
         style={{ top: 'calc(var(--app-top-buffer, 0px) + 3.5rem)' }}
         aria-label="Commodity sections"
       >
@@ -286,11 +288,17 @@ const CommodityDetail: React.FC = () => {
         </div>
       </nav>
 
-      <div className="w-full min-w-0">
+      {/* flex-1 min-h-0: grows to consume whatever the page's min-h-screen
+          guarantees but the header/quote/tabs above don't use — see the
+          wrapper div's own comment. Only matters visually for the chart
+          tab (its content can actually grow via CommodityChart's matching
+          flex-1); news/contracts/analysis just render at their natural
+          height either way, same as before. */}
+      <div className="flex-1 flex flex-col min-h-0 w-full min-w-0">
         {activeTab === 'chart' && (
           <React.Suspense
             fallback={
-              <div className="flex h-[48vh] min-h-[280px] items-center justify-center">
+              <div className="flex flex-1 min-h-[280px] items-center justify-center">
                 <Loader className="h-6 w-6 animate-spin text-primary" />
               </div>
             }
@@ -301,7 +309,7 @@ const CommodityDetail: React.FC = () => {
               basePrice={price ?? 0}
               selectedContract={commodity.symbol}
             />
-            <div className="px-4">
+            <div className="shrink-0 px-4">
               <TradeCTA symbol={commodity.symbol} commodityName={commodity.name} />
             </div>
           </React.Suspense>

@@ -346,11 +346,18 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData, varia
   // read as the same view at two sizes.
   if (variant === 'page') {
     return (
-      <div className="w-full min-w-0 max-w-full">
+      // flex-1 flex flex-col min-h-0: this needs to actually grow inside
+      // CommodityDetail's flex-column tab area (flex-1) and, in turn, hand
+      // that space down to the chart pane below rather than just sitting at
+      // whatever height its own content happens to need (flex flex-col).
+      // min-h-0 overrides a flex item's default min-height:auto, which
+      // would otherwise refuse to shrink below its content's intrinsic
+      // height and silently break the fill-available-space chain.
+      <div className="flex-1 flex flex-col min-h-0 w-full min-w-0 max-w-full">
         {/* Secondary controls. Deliberately above the chart and right-aligned:
             the plot's own top-left corner is where PriceChart draws the MA
             legend, so anything placed there would collide with it. */}
-        <div className="flex items-center justify-end gap-1.5 px-3 py-1.5">
+        <div className="shrink-0 flex items-center justify-end gap-1.5 px-3 py-1.5">
           <ChartToolbar
             compact
             trendlineMode={trendlineMode}
@@ -383,9 +390,16 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData, varia
           </Button>
         </div>
 
-        {/* About half the viewport — big enough to read structure on, capped so
-            it can't push the timeframe strip off-screen on a tall desktop. */}
-        <div className="h-[48vh] min-h-[280px] max-h-[560px] w-full overflow-hidden">
+        {/* Fills whatever's actually left of the flex column above (page
+            header/quote/tabs) and below (timeframe strip, TradeCTA) — not a
+            vh/max-h guess. That heuristic capped out at 560px regardless of
+            how tall the window was, leaving dead space below the timeframe
+            strip on any desktop window taller than roughly 1150-1200px
+            (worse still when TradeCTA renders nothing at all, e.g. for
+            Premium/Pro accounts — see TradeCTA's own doc comment). min-h
+            keeps a usable floor on a short viewport instead of collapsing
+            toward zero. */}
+        <div className="flex-1 min-h-[280px] w-full overflow-hidden">
           <ErrorBoundary key={`${selectedTimeframe}-${chartType}`} fallback={<ChartErrorFallback />}>
             <ChartContainer
               data={data}
@@ -414,7 +428,7 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData, varia
             evenly, so each is the same generous tap target rather than a small
             pill. On a wider screen that would make each button absurdly wide,
             so they shrink to their own width and sit left. */}
-        <div className="flex border-y border-border bg-background sm:justify-start">
+        <div className="shrink-0 flex border-y border-border bg-background sm:justify-start">
           {TIMEFRAMES.map((tf) => (
             <button
               key={tf.value}
