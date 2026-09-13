@@ -144,7 +144,14 @@ const CommodityDetail: React.FC = () => {
     // Full-bleed everywhere, phone or desktop web — no centered column, no
     // dead margins. The chart and quote stats just use flex/justify-between
     // so they don't collapse into each other on an ultrawide window.
-    <div className="min-h-screen w-full bg-background pb-24">
+    //
+    // pb-24 clears MobileBottomNavigation, a fixed-position bar — but that
+    // nav only renders below the same 768px (`md`) breakpoint as
+    // useIsMobile (see components/mobile/MobileBottomNavigation.tsx). Above
+    // it there's no bar to clear, so the unconditional pb-24 was just dead
+    // space at the bottom of the page; md:pb-6 drops back to normal
+    // breathing room once the nav is gone.
+    <div className="min-h-screen w-full bg-background pb-24 md:pb-6">
       <SEOHead
         title={`${commodity.name} price, chart and news`}
         description={`Live ${commodity.name} (${commodity.symbol}) price on ${commodity.venue}, interactive chart, contract ladder and market news.`}

@@ -47,8 +47,13 @@ const Today: React.FC = () => {
   };
   const freshAt = dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null;
 
+  // pb-24 clears MobileBottomNavigation, a fixed-position bar that only
+  // renders below the 768px (`md`) breakpoint (see useIsMobile in
+  // components/mobile/MobileBottomNavigation.tsx) — above it there's no bar
+  // to clear, so md:pb-6 drops back to normal breathing room instead of
+  // leaving dead space at the bottom of the page.
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-24 md:pb-6">
       <header className="sticky top-0 z-30 border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
         <div className="mx-auto max-w-2xl">
           <p className="text-xs font-medium uppercase tracking-[0.12em] text-primary">Commodity Hub</p>
