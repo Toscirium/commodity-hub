@@ -94,6 +94,18 @@ const Trade: React.FC = () => {
               </AlertDescription>
             </Alert>
 
+            <Card className="mb-6 border-primary/30 bg-primary/5">
+              <CardContent className="pt-6 flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <p className="font-medium">Want to practice first?</p>
+                  <p className="text-sm text-muted-foreground">
+                    Connect an eToro demo account — simulated balance, real market mechanics, no real money.
+                  </p>
+                </div>
+                <Button variant="outline" onClick={() => navigate('/etoro-trading')}>Try eToro Demo Trading</Button>
+              </CardContent>
+            </Card>
+
             <div className="relative mb-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input

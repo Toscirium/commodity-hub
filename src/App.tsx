@@ -71,6 +71,8 @@ const DailyBrief = lazy(() => import('@/pages/DailyBrief'));
 const RegimeScanner = lazy(() => import('@/pages/RegimeScanner'));
 const PortfolioAnalytics = lazy(() => import('@/pages/PortfolioAnalytics'));
 const Backtest = lazy(() => import('@/pages/Backtest'));
+const EtoroTrading = lazy(() => import('@/pages/EtoroTrading'));
+const EtoroCallback = lazy(() => import('@/pages/EtoroCallback'));
 const Fundamentals = lazy(() => import('@/pages/Fundamentals'));
 const OptionsChain = lazy(() => import('@/pages/OptionsChain'));
 const ProAnalyticsWorkspace = lazy(() => import('@/pages/ProAnalyticsWorkspace'));
@@ -185,6 +187,8 @@ const App = () => {
                 <Route path="/portfolio-analytics" element={<PortfolioAnalytics />} />
                 <Route path="/stress-test" element={<StressTest />} />
                 <Route path="/backtest" element={<Backtest />} />
+                <Route path="/etoro-trading" element={<EtoroTrading />} />
+                <Route path="/etoro/callback" element={<EtoroCallback />} />
                 <Route path="/fundamentals" element={<Fundamentals />} />
                 <Route path="/options" element={<OptionsChain />} />
                 <Route path="/options-chain" element={<OptionsChain />} />
