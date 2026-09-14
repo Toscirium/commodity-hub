@@ -97,7 +97,15 @@ function snapshotAsOf(row: any): string {
 
 function snapshotPrice(row: any): number {
   const session = row?.session ?? {};
-  for (const value of [session.settlement_price, session.close, session.previous_settlement, row?.last_trade?.price, row?.last_minute?.close, row?.price]) {
+  // Live/current values must be tried before `previous_settlement` — that
+  // field is yesterday's close, not today's. Checking it ahead of
+  // last_trade/last_minute meant an unsettled contract (mid-session, or a
+  // freshly-rolled front month with no settlement_price/close yet) served
+  // a stale prior-day price as "current" while `session.change`/
+  // `change_percent` below are computed by the provider against the real
+  // live price — producing a price/percent pair that don't agree, showing
+  // up as an impossible daily move (e.g. WTI at -30%).
+  for (const value of [session.settlement_price, session.close, row?.last_trade?.price, row?.last_minute?.close, session.previous_settlement, row?.price]) {
     const n = Number(value);
     if (Number.isFinite(n) && n > 0) return n;
   }
@@ -230,10 +238,29 @@ export async function fetchMassiveFrontMonth(
     const session = row.session ?? {};
     const price = snapshotPrice(row);
     if (Number.isFinite(price) && price > 0) {
-      const change = Number(session.change ?? session.price_change ?? 0);
-      const changePercent = Number(
+      let change = Number(session.change ?? session.price_change ?? 0);
+      let changePercent = Number(
         session.change_percent ?? session.changePercent ?? session.price_change_percent ?? 0,
       );
+      // Sanity-check against the price we actually resolved above. The
+      // provider's change/change_percent are computed against whatever it
+      // considers the "current" price internally, which can be a different
+      // value than `price` here (e.g. mid-roll, when one field is fresh and
+      // another still lags the outgoing contract) — surfacing a daily move
+      // that doesn't square with the price shown. A single-session move
+      // beyond this bound on these liquid contracts means the pairing is
+      // unreliable, not that the market actually did that; drop both to 0
+      // so the day-over-day snapshot fallback (commodity-service.ts) fills
+      // them in instead of showing an impossible number.
+      const IMPLAUSIBLE_DAILY_MOVE_PCT = 20;
+      const impliedPrevPrice = price - change;
+      const impliedPercent = impliedPrevPrice > 0 ? (change / impliedPrevPrice) * 100 : NaN;
+      const internallyConsistent = Number.isFinite(impliedPercent) && Math.abs(impliedPercent - changePercent) < 1;
+      if (!Number.isFinite(change) || !Number.isFinite(changePercent) ||
+          Math.abs(changePercent) > IMPLAUSIBLE_DAILY_MOVE_PCT || !internallyConsistent) {
+        change = 0;
+        changePercent = 0;
+      }
       const volume = typeof session.volume === 'number' ? session.volume : undefined;
       const ticker = snapshotTicker(row);
       const asOf = String(
@@ -243,8 +270,8 @@ export async function fetchMassiveFrontMonth(
         ticker,
         productCode,
         price: +price.toFixed(4),
-        change: Number.isFinite(change) ? +change.toFixed(4) : 0,
-        changePercent: Number.isFinite(changePercent) ? +changePercent.toFixed(4) : 0,
+        change: +change.toFixed(4),
+        changePercent: +changePercent.toFixed(4),
         volume,
         asOf,
       };
