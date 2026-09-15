@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Toggle } from '@/components/ui/toggle';
 import { TrendingUp, Calendar, ChartCandlestick, Maximize2 } from 'lucide-react';
 import { TIMEFRAMES } from './chartUtils';
+import TimeframeSelector from './TimeframeSelector';
 import CurrencySelector from '@/components/CurrencySelector';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -114,24 +115,15 @@ const ChartHeader: React.FC<ChartHeaderProps> = ({
         )}
 
         <Calendar className="w-4 h-4 text-muted-foreground" />
-        <div className="flex flex-wrap gap-1 sm:gap-2 p-1 bg-muted/50 rounded-lg min-w-0 max-w-full overflow-hidden">
-          {TIMEFRAMES.map((tf) => (
-            <Button
-              key={tf.value}
-              variant={selectedTimeframe === tf.value ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => onTimeframeChange(tf.value)}
-              disabled={loading}
-              className={`text-xs sm:text-sm font-semibold transition-all duration-200 ${
-                selectedTimeframe === tf.value
-                  ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                  : 'hover:bg-muted/80 text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {tf.label}
-            </Button>
-          ))}
-        </div>
+        <TimeframeSelector
+          options={TIMEFRAMES}
+          value={selectedTimeframe}
+          onChange={onTimeframeChange}
+          disabled={loading}
+          className="p-1 bg-muted/50 rounded-lg min-w-0 max-w-full overflow-hidden"
+          buttonClassName="h-8 px-2.5 sm:px-3 text-xs sm:text-sm rounded-md"
+          indicatorClassName="inset-y-1 rounded-md"
+        />
       </div>
     </div>
   );

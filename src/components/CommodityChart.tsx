@@ -7,6 +7,7 @@ import { useTrendlines } from '@/hooks/useTrendlines';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { smoothPriceData, TIMEFRAMES } from './charts/chartUtils';
 import ChartHeader from './charts/ChartHeader';
+import TimeframeSelector from './charts/TimeframeSelector';
 import ChartToolbar from './charts/ChartToolbar';
 import ChartContainer from './charts/ChartContainer';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -315,25 +316,18 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData, varia
             where the overlap was actually happening. Padded above
             safe-area-inset-bottom for devices with a gesture nav bar. */}
         <div
-          className="flex items-center gap-1.5 px-2 pt-1.5 border-t bg-background/95 shrink-0 overflow-x-auto"
+          className="px-2 pt-1.5 border-t bg-background/95 shrink-0"
           style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 0.375rem)' }}
         >
-          {TIMEFRAMES.map((tf) => (
-            <Button
-              key={tf.value}
-              variant={selectedTimeframe === tf.value ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setSelectedTimeframe(tf.value)}
-              disabled={loading}
-              className={`h-8 px-3 text-xs font-semibold shrink-0 ${
-                selectedTimeframe === tf.value
-                  ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {tf.label}
-            </Button>
-          ))}
+          <TimeframeSelector
+            options={TIMEFRAMES}
+            value={selectedTimeframe}
+            onChange={setSelectedTimeframe}
+            disabled={loading}
+            className="gap-1.5 overflow-x-auto"
+            buttonClassName="h-8 px-3 text-xs shrink-0 rounded-md"
+            indicatorClassName="inset-y-0 rounded-md"
+          />
         </div>
       </div>,
       document.body
@@ -414,24 +408,14 @@ const CommodityChart = ({ name, basePrice, selectedContract, contractData, varia
             evenly, so each is the same generous tap target rather than a small
             pill. On a wider screen that would make each button absurdly wide,
             so they shrink to their own width and sit left. */}
-        <div className="flex border-y border-border bg-background sm:justify-start">
-          {TIMEFRAMES.map((tf) => (
-            <button
-              key={tf.value}
-              type="button"
-              onClick={() => setSelectedTimeframe(tf.value)}
-              disabled={loading}
-              aria-pressed={selectedTimeframe === tf.value}
-              className={`h-10 flex-1 text-xs font-semibold tracking-wide transition-colors disabled:opacity-50 sm:flex-none sm:px-7 ${
-                selectedTimeframe === tf.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
-              }`}
-            >
-              {tf.label}
-            </button>
-          ))}
-        </div>
+        <TimeframeSelector
+          options={TIMEFRAMES}
+          value={selectedTimeframe}
+          onChange={setSelectedTimeframe}
+          disabled={loading}
+          className="w-full border-y border-border bg-background sm:justify-start"
+          buttonClassName="h-10 flex-1 text-xs tracking-wide sm:flex-none sm:px-7"
+        />
       </div>
     );
   }
