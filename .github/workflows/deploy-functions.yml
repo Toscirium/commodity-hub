@@ -1,0 +1,177 @@
+name: Deploy Supabase Edge Functions
+
+# Edge functions are the one part of this repo that merging does not ship.
+# The web bundle deploys itself via Vercel on every push to main; the
+# functions needed someone to run `supabase functions deploy` by hand, so
+# fixes sat merged-but-dead — including, for several days, a wrong WTI
+# price on the front page.
+#
+# REQUIRED BEFORE THIS CAN RUN: a repository secret named
+# SUPABASE_ACCESS_TOKEN (Settings → Secrets and variables → Actions).
+# Generate one at https://supabase.com/dashboard/account/tokens.
+# Until that exists every run fails fast with a message saying so.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/functions/**'
+      - 'supabase/config.toml'
+  workflow_dispatch:
+    inputs:
+      functions:
+        description: 'Space-separated function names, or "all". Leave empty to deploy only what changed.'
+        required: false
+        default: ''
+
+# Never let two deploys race. Queue rather than cancel: a half-applied
+# deploy that got cancelled mid-flight is worse than waiting.
+concurrency:
+  group: deploy-supabase-functions
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Need the previous commit to diff against for changed-function detection.
+          fetch-depth: 2
+
+      - name: Check the access token exists
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "::error::SUPABASE_ACCESS_TOKEN is not set. Add it under Settings → Secrets and variables → Actions, then re-run. Generate one at https://supabase.com/dashboard/account/tokens"
+            exit 1
+          fi
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Resolve project ref
+        id: ref
+        run: |
+          # Read from config.toml rather than duplicating it in a secret —
+          # the project ref is not sensitive and it is already committed.
+          REF=$(grep -oP '(?<=^project_id = ")[^"]+' supabase/config.toml)
+          if [ -z "$REF" ]; then
+            echo "::error::Could not read project_id from supabase/config.toml"
+            exit 1
+          fi
+          echo "ref=$REF" >> "$GITHUB_OUTPUT"
+          echo "Project ref: $REF"
+
+      - name: Decide which functions to deploy
+        id: pick
+        env:
+          REQUESTED: ${{ github.event.inputs.functions }}
+        run: |
+          set -euo pipefail
+          all_functions() {
+            find supabase/functions -mindepth 1 -maxdepth 1 -type d \
+              -not -name '_shared' -printf '%f\n' | sort
+          }
+
+          if [ "$REQUESTED" = "all" ]; then
+            echo "Manual dispatch: deploying every function."
+            LIST=$(all_functions)
+          elif [ -n "$REQUESTED" ]; then
+            echo "Manual dispatch: deploying the requested list."
+            LIST=$(printf '%s\n' $REQUESTED | sort -u)
+          else
+            CHANGED=$(git diff --name-only HEAD^ HEAD -- supabase/functions supabase/config.toml || true)
+            echo "Changed paths:"; echo "$CHANGED"
+
+            # Every function in this repo imports from _shared/, and the CLI
+            # bundles shared code into each function at deploy time — so a
+            # _shared change that is not fanned out leaves 45 functions
+            # running last week's copy of it. config.toml carries per-function
+            # verify_jwt, so it fans out too.
+            if echo "$CHANGED" | grep -qE '^supabase/(functions/_shared/|config\.toml$)'; then
+              echo "Shared code or config changed — fanning out to every function."
+              LIST=$(all_functions)
+            else
+              LIST=$(echo "$CHANGED" \
+                | grep -oP '(?<=^supabase/functions/)[^/]+' \
+                | grep -v '^_shared$' | sort -u || true)
+            fi
+          fi
+
+          if [ -z "$LIST" ]; then
+            echo "Nothing to deploy."
+          fi
+          echo "Will deploy:"; echo "$LIST"
+          {
+            echo 'list<<EOF'
+            echo "$LIST"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      # `supabase functions deploy` takes verify_jwt from config.toml, and
+      # where a function has no entry it applies the CLI default of
+      # verify_jwt = true. 23 of the 46 functions in this repo currently have
+      # no entry, so an unguarded deploy would silently switch authentication
+      # on for them — including fetch-commodity-symbols, the endpoint the
+      # whole markets list hangs off, which is written for optional auth and
+      # serves guests.
+      #
+      # That is a change nobody would see in a diff and everybody would see in
+      # production, so it fails the run instead. Declaring the function in
+      # config.toml is the fix; the value is a deliberate decision per
+      # function, not something to default into.
+      - name: Pre-flight — every function being deployed must declare verify_jwt
+        env:
+          LIST: ${{ steps.pick.outputs.list }}
+        run: |
+          set -uo pipefail
+          MISSING=""
+          while read -r fn; do
+            [ -z "$fn" ] && continue
+            grep -q "^\[functions\.$fn\]" supabase/config.toml || MISSING="$MISSING $fn"
+          done <<< "$LIST"
+
+          if [ -n "$MISSING" ]; then
+            echo "::error::These functions have no [functions.<name>] block in supabase/config.toml, so deploying them would apply the CLI default verify_jwt=true and may change their authentication:$MISSING"
+            echo "::error::Add an explicit verify_jwt for each before deploying it."
+            exit 1
+          fi
+          echo "All functions in this deploy declare verify_jwt."
+
+      - name: Deploy
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          REF: ${{ steps.ref.outputs.ref }}
+          LIST: ${{ steps.pick.outputs.list }}
+        run: |
+          set -uo pipefail
+          if [ -z "${LIST// /}" ]; then
+            echo "No functions to deploy — nothing to do."
+            exit 0
+          fi
+
+          # Deployed one at a time, continuing past a failure, so one bad
+          # function cannot silently strand the rest half-shipped. The job
+          # still fails at the end if anything failed.
+          FAILED=""
+          while read -r fn; do
+            [ -z "$fn" ] && continue
+            echo "::group::Deploying $fn"
+            if supabase functions deploy "$fn" --project-ref "$REF"; then
+              echo "$fn ok"
+            else
+              echo "::error::Failed to deploy $fn"
+              FAILED="$FAILED $fn"
+            fi
+            echo "::endgroup::"
+          done <<< "$LIST"
+
+          if [ -n "$FAILED" ]; then
+            echo "::error::Failed:$FAILED"
+            exit 1
+          fi
+          echo "All functions deployed."

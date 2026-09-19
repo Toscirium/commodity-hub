@@ -136,3 +136,31 @@ verify_jwt = false
 
 [functions.fetch-fundamentals]
 verify_jwt = false
+
+# Declared so an automated deploy can't silently change their auth — the CLI
+# applies verify_jwt = true to any function with no entry here. See the
+# pre-flight step in .github/workflows/deploy-functions.yml.
+#
+# Optional auth by design: it calls getOptionalAuthenticatedUser and serves
+# the free catalog to signed-out visitors, and all three of its siblings
+# (fetch-commodity-prices, fetch-commodity-data, fetch-all-commodities) are
+# false. This records today's behaviour rather than changing it.
+[functions.fetch-commodity-symbols]
+verify_jwt = false
+
+# Enforces its own Bearer check and 401s without one, then gates on tier, so
+# gateway verification is belt-and-braces. true is also the CLI default, so
+# this entry documents the intent without altering anything.
+[functions.fetch-forward-curve]
+verify_jwt = true
+
+# STILL UNDECLARED (21): audit-premium-freshness, currency-rates,
+# data-api-usage, economic-calendar, etoro-auth, etoro-trading,
+# fetch-options-chain, massive-roll-scanner, massive-term-structure,
+# massive-vol-cone, messages, oil-price-api, pro-analytics, pro-daily-digest,
+# realtime-commodity-stream, revenuecat-manage-subscription,
+# run-strategy-backtest, team-workspace, warm-energy-history,
+# warm-roll-scanner, warm-term-structure.
+# Each needs a deliberate verify_jwt before it can be deployed by CI — the
+# cron/warm-* ones in particular are called without a user JWT. The pre-flight
+# will block on them rather than guessing.
