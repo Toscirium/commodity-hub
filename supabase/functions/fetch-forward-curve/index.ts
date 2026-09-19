@@ -57,18 +57,13 @@ serve(async (req) => {
       });
     }
 
-    // Pro-tier gate
     const admin = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
-    const { data: tierData } = await admin.rpc('get_user_tier', { _user_id: userData.user.id });
-    if (tierData !== 'pro') {
-      return new Response(JSON.stringify({ error: 'pro_required' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
 
+    // Parse before gating: the allowance now depends on *which* curve was
+    // asked for, not just on who is asking.
     const body = await req.json().catch(() => ({}));
     const parsed = BodySchema.safeParse(body);
     if (!parsed.success) {
@@ -76,13 +71,44 @@ serve(async (req) => {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    const { commodity, monthsAhead } = parsed.data;
+
+    const { data: tierData } = await admin.rpc('get_user_tier', { _user_id: userData.user.id });
+    const isPro = tierData === 'pro';
+
+    // Forward curves used to 403 for everyone below Pro, which meant the whole
+    // free experience was spot prices — the one thing TradingView, Barchart and
+    // Investing.com all give away. A prospect never discovered that the curve,
+    // the contango/backwardation read and roll yield existed at all, so the
+    // free tier's job was effectively to demonstrate our own redundancy.
+    //
+    // Non-Pro now gets one real curve: WTI, six months out. Everything else
+    // still 403s, so the paywall stays exactly where it was — it is now
+    // reached by someone who has *seen* what is behind it.
+    //
+    // This costs essentially nothing upstream: the in-worker cache is keyed
+    // `commodity:monthsAhead`, so every free user in the world shares the
+    // single `wti:6` entry, refreshed four times a day like any other.
+    const PREVIEW_COMMODITY = 'wti';
+    const PREVIEW_MONTHS = 6;
+
+    const commodity = parsed.data.commodity;
+    if (!isPro && commodity !== PREVIEW_COMMODITY) {
+      return new Response(
+        JSON.stringify({ error: 'pro_required', previewAvailable: PREVIEW_COMMODITY }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+    const monthsAhead = isPro ? parsed.data.monthsAhead : PREVIEW_MONTHS;
     const product = PRODUCTS[commodity];
 
     const cacheKey = `${commodity}:${monthsAhead}`;
     const hit = cache.get(cacheKey);
     if (hit && Date.now() - hit.at < CACHE_TTL_MS) {
-      return new Response(JSON.stringify(hit.payload), {
+      // `preview` is attached per-response, never stored: the cache key is
+      // commodity+months, which a Pro user can request too (monthsAhead 6 is
+      // a legal Pro choice), so baking a tier-dependent flag into the cached
+      // object would serve one tier's label to the other.
+      return new Response(JSON.stringify({ ...hit.payload, preview: !isPro }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=21600', 'X-Cache': 'HIT' },
       });
     }
@@ -120,7 +146,7 @@ serve(async (req) => {
     cache.set(cacheKey, { at: Date.now(), payload });
 
     logger.info(`Curve for ${commodity} (${product.code}) asOf=${asOf}: ${curve.length} pts, m1=${m1}, m2=${m2}, ${structure}`);
-    return new Response(JSON.stringify(payload), {
+    return new Response(JSON.stringify({ ...payload, preview: !isPro }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=21600', 'X-Cache': 'MISS' },
     });
   } catch (err) {

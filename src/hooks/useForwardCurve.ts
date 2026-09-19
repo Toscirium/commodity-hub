@@ -20,7 +20,16 @@ export interface ForwardCurveResponse {
   m2: number | null;
   structure: 'contango' | 'backwardation' | 'flat' | 'unknown';
   rollYield: number | null;
+  /**
+   * True when the server served the free WTI preview rather than full Pro
+   * access — the curve is real, but capped at six months and WTI only.
+   */
+  preview?: boolean;
 }
+
+/** Free tier sees this one curve, six months out. Mirrors fetch-forward-curve. */
+export const PREVIEW_CURVE_COMMODITY = 'wti';
+export const PREVIEW_CURVE_MONTHS = 6;
 
 export const useForwardCurve = (commodity: string | null, enabled = true) => {
   return useQuery({
