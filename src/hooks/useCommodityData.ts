@@ -22,6 +22,9 @@ export interface CommodityPrice {
   timestamp: string;
 }
 
+/** Mirrors DataFreshness in supabase/functions/_shared/commodity-service.ts. */
+export type CommodityFreshness = 'live' | 'eod' | 'stale' | 'reference';
+
 export interface Commodity {
   name: string;
   symbol: string;
@@ -31,6 +34,15 @@ export interface Commodity {
   venue: string;
   contractSize?: string;
   category: string;
+  /**
+   * Absent means live. Anything else must be surfaced — a price served from
+   * the stored-snapshot backfill is not a current quote, and presenting it as
+   * one is the worst failure mode this product has.
+   */
+  freshness?: CommodityFreshness;
+  asOf?: string;
+  /** `change`/`changePercent` are placeholders, not a measured flat market. */
+  changeUnknown?: boolean;
   // Enhanced fields for Market Screener - can be null if not available
   volume: number | null;
   volumeDisplay: string | null;

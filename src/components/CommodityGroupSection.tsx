@@ -193,6 +193,8 @@ const CommodityGroupSection = React.memo(({
                   changePercent={commodity.changePercent}
                   venue={commodity.venue}
                   contractSize={commodity.contractSize}
+                  dataFreshness={commodity.freshness ?? 'live'}
+                  changeUnknown={commodity.changeUnknown ?? false}
                 />
               </div>
             ))}

@@ -89,6 +89,39 @@ describe('CommodityCard Component', () => {
     expect(screen.getByText(/1\.20%/).textContent).toBe('−1.20%')
   })
 
+  it('should mark a stale price and refuse to state a change it never measured', () => {
+    // The snapshot-backfill path serves stored prices with change hardcoded to
+    // 0. Rendering that as "0.00%" asserts a flat market — a substantive and
+    // wrong claim. Unknown must read as unknown.
+    renderWithProviders(
+      <CommodityCard
+        {...mockCommodityProps}
+        change={0}
+        changePercent={0}
+        dataFreshness="stale"
+        changeUnknown
+      />,
+    )
+
+    expect(screen.getByText('STALE')).toBeInTheDocument()
+    expect(screen.getByText('—')).toBeInTheDocument()
+    expect(screen.queryByText(/0\.00%/)).not.toBeInTheDocument()
+  })
+
+  it('should not badge a live row', () => {
+    renderWithProviders(<CommodityCard {...mockCommodityProps} />)
+    expect(screen.queryByText('STALE')).not.toBeInTheDocument()
+    expect(screen.queryByText('EOD')).not.toBeInTheDocument()
+  })
+
+  it('should badge an end-of-day row without calling it stale', () => {
+    renderWithProviders(<CommodityCard {...mockCommodityProps} dataFreshness="eod" />)
+    expect(screen.getByText('EOD')).toBeInTheDocument()
+    expect(screen.queryByText('STALE')).not.toBeInTheDocument()
+    // EOD change figures are real, so they still render.
+    expect(screen.getByText(/0\.77%/)).toBeInTheDocument()
+  })
+
   it('should be accessible', async () => {
     const { container } = renderWithProviders(<CommodityCard {...mockCommodityProps} />)
     

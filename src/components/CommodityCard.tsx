@@ -23,9 +23,16 @@ interface CommodityCardProps {
    * Data freshness tier surfaced as a small badge next to the venue.
    * - 'live' (default): minute/hour-fresh exchange feed
    * - 'eod':            daily settlement only (Platts/Argus-style)
+   * - 'stale':          a stored snapshot older than any plausible settlement
    * - 'reference':      weekly reference price, no intraday signal
    */
-  dataFreshness?: 'live' | 'eod' | 'reference';
+  dataFreshness?: 'live' | 'eod' | 'stale' | 'reference';
+  /**
+   * When true the change figures are placeholders rather than measured. The
+   * row renders "—" instead of a number: claiming a flat 0.00% market is a
+   * substantive and wrong assertion, whereas "unknown" is merely honest.
+   */
+  changeUnknown?: boolean;
 }
 
 /**
@@ -52,6 +59,7 @@ const CommodityCard = React.memo<CommodityCardProps>(({
   venue = 'NYMEX',
   contractSize,
   dataFreshness = 'live',
+  changeUnknown = false,
 }) => {
   const navigate = useNavigate();
   const { vibrateTouch } = useHaptics();
@@ -116,15 +124,19 @@ const CommodityCard = React.memo<CommodityCardProps>(({
               className={`shrink-0 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide ${
                 dataFreshness === 'eod'
                   ? 'border border-border text-muted-foreground'
-                  : 'border border-[hsl(var(--warning))]/40 text-[hsl(var(--warning))]'
+                  : dataFreshness === 'stale'
+                    ? 'border border-[hsl(var(--destructive))]/50 text-[hsl(var(--destructive))]'
+                    : 'border border-[hsl(var(--warning))]/40 text-[hsl(var(--warning))]'
               }`}
               title={
                 dataFreshness === 'eod'
                   ? 'End-of-day settlement price — refreshed once per trading day.'
-                  : 'Reference price — published weekly, no intraday signal.'
+                  : dataFreshness === 'stale'
+                    ? 'Stale — the most recent stored price is older than the expected refresh window. Do not treat this as a current quote.'
+                    : 'Reference price — published weekly, no intraday signal.'
               }
             >
-              {dataFreshness === 'eod' ? 'EOD' : 'REF'}
+              {dataFreshness === 'eod' ? 'EOD' : dataFreshness === 'stale' ? 'STALE' : 'REF'}
             </span>
           )}
           {contractSize && (
@@ -150,18 +162,27 @@ const CommodityCard = React.memo<CommodityCardProps>(({
             <span className="text-base text-muted-foreground">—</span>
           )}
         </span>
-        <span
-          className={`number-display min-w-[68px] px-1.5 py-0.5 text-center text-[11px] font-semibold tabular-nums ${
-            direction === 'flat'
-              ? 'bg-muted text-muted-foreground'
-              : direction === 'up'
-                ? 'bg-[hsl(var(--success))] text-white'
-                : 'bg-[hsl(var(--destructive))] text-white'
-          }`}
-        >
-          {direction === 'up' ? '+' : direction === 'down' ? '−' : ''}
-          {Math.abs(changePercent).toFixed(2)}%
-        </span>
+        {changeUnknown ? (
+          <span
+            className="number-display min-w-[68px] border border-dashed border-border px-1.5 py-0.5 text-center text-[11px] font-semibold tabular-nums text-muted-foreground"
+            title="Change unavailable for this price — it came from a stored snapshot, not a live quote."
+          >
+            —
+          </span>
+        ) : (
+          <span
+            className={`number-display min-w-[68px] px-1.5 py-0.5 text-center text-[11px] font-semibold tabular-nums ${
+              direction === 'flat'
+                ? 'bg-muted text-muted-foreground'
+                : direction === 'up'
+                  ? 'bg-[hsl(var(--success))] text-white'
+                  : 'bg-[hsl(var(--destructive))] text-white'
+            }`}
+          >
+            {direction === 'up' ? '+' : direction === 'down' ? '−' : ''}
+            {Math.abs(changePercent).toFixed(2)}%
+          </span>
+        )}
       </div>
 
       <div className="hidden shrink-0 text-right text-[10px] leading-tight text-muted-foreground/70 sm:block">
