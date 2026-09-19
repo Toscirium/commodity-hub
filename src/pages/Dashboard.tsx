@@ -136,6 +136,17 @@ const DashboardContent = ({
     return commodities.filter(commodity => commodity.category === activeGroup);
   }, [commodities, activeGroup]);
 
+  // `delayStatus.delayText` is derived from the viewer's *entitlement* ("you
+  // are allowed real-time data"), not from what is actually on screen — so
+  // the header read "Real-time", beside a green dot, while rows served from
+  // the stored-snapshot backfill sat underneath it days out of date. Claiming
+  // freshness the data doesn't have is the one thing a market product cannot
+  // do, so a stale row now downgrades the header and the status dot.
+  const staleCount = React.useMemo(
+    () => filteredCommodities.filter((c) => c.freshness === 'stale').length,
+    [filteredCommodities],
+  );
+
   // Get group info
   const getGroupInfo = React.useMemo(() => {
     const groups = {
@@ -199,7 +210,12 @@ const DashboardContent = ({
                   {getGroupInfo.title}
                 </h1>
                 <p className="text-[11px] text-muted-foreground number-display leading-tight">
-                  {filteredCommodities.length} {filteredCommodities.length === 1 ? 'instrument' : 'instruments'} · {delayStatus.delayText}
+                  {filteredCommodities.length} {filteredCommodities.length === 1 ? 'instrument' : 'instruments'} ·{' '}
+                  {staleCount > 0 ? (
+                    <span className="text-[hsl(var(--destructive))]">{staleCount} stale</span>
+                  ) : (
+                    delayStatus.delayText
+                  )}
                 </p>
               </div>
             </div>
@@ -212,9 +228,19 @@ const DashboardContent = ({
                     ? 'bg-[hsl(var(--warning))]'
                     : error
                       ? 'bg-[hsl(var(--destructive))]'
-                      : 'bg-[hsl(var(--success))]'
+                      : staleCount > 0
+                        ? 'bg-[hsl(var(--warning))]'
+                        : 'bg-[hsl(var(--success))]'
                 }`}
-                title={loading ? 'Loading' : error ? 'Error' : 'Live'}
+                title={
+                  loading
+                    ? 'Loading'
+                    : error
+                      ? 'Error'
+                      : staleCount > 0
+                        ? `${staleCount} instrument${staleCount === 1 ? '' : 's'} showing a stored price older than the expected refresh window`
+                        : 'Live'
+                }
               />
               <AlertNotificationBell />
               <UserProfile />

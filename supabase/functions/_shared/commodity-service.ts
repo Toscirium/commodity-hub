@@ -12,6 +12,20 @@ import {
   fetchMassiveFrontMonthBars,
 } from './massive-client.ts';
 
+/**
+ * How much to trust a row's price, and as of when.
+ *
+ * - 'live':      a provider quote fetched this cycle.
+ * - 'eod':       a stored settlement from the last trading day or so. Correct
+ *                for what it is, but not an intraday signal.
+ * - 'stale':     a stored snapshot older than any plausible settlement. The
+ *                price may be days old and `change`/`changePercent` are NOT
+ *                known — they are zero because nothing computed them, which
+ *                is not the same as a flat market.
+ * - 'reference': published reference pricing, no intraday signal.
+ */
+export type DataFreshness = 'live' | 'eod' | 'stale' | 'reference';
+
 export interface CommodityData {
   symbol: string;
   price: number;
@@ -22,6 +36,20 @@ export interface CommodityData {
   category: string;
   contractSize: string;
   venue: string;
+  /**
+   * Defaults to 'live' when absent. Anything other than 'live' means the UI
+   * must not present the row as a current quote — see the badge in
+   * components/CommodityCard.tsx.
+   */
+  freshness?: DataFreshness;
+  /** ISO date/timestamp the price is good as of, when known. */
+  asOf?: string;
+  /**
+   * True when `change`/`changePercent` are placeholders rather than measured
+   * values. Rendering a placeholder as "0.00%" tells the user the market is
+   * flat, which is a different and much more damaging claim than "unknown".
+   */
+  changeUnknown?: boolean;
   /**
    * True when the row came from `buildMissingCommodityFallback` (a synthetic
    * ~base-price guess used purely for UI continuity when no provider returned
@@ -268,16 +296,39 @@ export class CommodityService {
       }
     }
 
+    // A snapshot from the last trading day is legitimate end-of-day data. One
+    // from further back is genuinely stale, and the difference has to reach
+    // the UI: this path previously emitted rows indistinguishable from live
+    // provider quotes, so a price that was days old rendered under a
+    // "Real-time" header with a green dot and a flat "0.00%". For a market
+    // product that is the most damaging class of bug there is — the number
+    // looks authoritative and is wrong.
+    // Four days rather than one so a Friday settlement read on a Monday (or
+    // Tuesday after a holiday) is still correctly called EOD, not stale.
+    const EOD_MAX_AGE_DAYS = 4;
+    const todayMs = Date.parse(new Date().toISOString().slice(0, 10));
+
     return targets.flatMap((name) => {
       const snap = latestByName.get(name);
       const meta = COMMODITY_SYMBOLS[name];
       if (!snap || !meta || !Number.isFinite(snap.price) || snap.price <= 0) return [];
+
+      const snapMs = Date.parse(snap.snapshot_date);
+      const ageDays = Number.isFinite(snapMs)
+        ? Math.floor((todayMs - snapMs) / 86_400_000)
+        : Number.POSITIVE_INFINITY;
+
       return [{
         name,
         symbol: meta.symbol,
         price: snap.price,
+        // Not measured — see changeUnknown. Kept as 0 so the wire type stays
+        // a plain number for every existing consumer.
         change: 0,
         changePercent: 0,
+        changeUnknown: true,
+        freshness: ageDays <= EOD_MAX_AGE_DAYS ? 'eod' : 'stale',
+        asOf: snap.snapshot_date,
         category: meta.category,
         contractSize: meta.contractSize,
         venue: meta.venue,
@@ -336,6 +387,11 @@ export class CommodityService {
         const diff = c.price - prev;
         c.change = Math.round(diff * 10000) / 10000;
         c.changePercent = Math.round((diff / prev) * 10000) / 100;
+        // Measured against a real prior close, so it is no longer a
+        // placeholder — even for a row that arrived via the snapshot
+        // backfill. (A genuinely stale row compares its own snapshot against
+        // itself and yields 0, so it keeps the flag and renders as unknown.)
+        if (diff !== 0) c.changeUnknown = false;
       }
     }
 
