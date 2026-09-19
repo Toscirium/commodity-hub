@@ -19,7 +19,15 @@ export interface TierLimits {
   /** Watchlists count + items per watchlist. */
   watchlists: number;
   watchlistItems: number;
-  /** Forward curves & COT reports require Pro. */
+  /**
+   * Forward curves & COT reports require Pro.
+   *
+   * `forwardCurves` means *full* access — all covered commodities, out to 24
+   * months. Free and Premium still read false here while getting the WTI
+   * six-month preview that fetch-forward-curve serves; the preview is a
+   * shop window, not an entitlement. Note this matrix is mirrored client UX
+   * only: the real gate lives in the edge function.
+   */
   forwardCurves: boolean;
   cotReports: boolean;
   /** Spread calculator: preset count visible; custom = Pro-only. */
