@@ -55,6 +55,40 @@ describe('CommodityCard Component', () => {
     expect(screen.getByText(/0\.77%/)).toBeInTheDocument()
   })
 
+  it('should render a flat market as neutral, not as a gain', () => {
+    // `changePercent >= 0` used to paint a dead-flat market in success green
+    // with a "+" in front of it. Anything that rounds to 0.00 is flat.
+    renderWithProviders(
+      <CommodityCard {...mockCommodityProps} change={0} changePercent={0} />,
+    )
+
+    const badge = screen.getByText(/0\.00%/)
+    expect(badge.textContent).toBe('0.00%')
+    expect(badge.className).toContain('bg-muted')
+    expect(badge.className).not.toContain('--success')
+  })
+
+  it('should not render a rounding-to-zero move as "−0.00%"', () => {
+    renderWithProviders(
+      <CommodityCard {...mockCommodityProps} change={-0.0001} changePercent={-0.001} />,
+    )
+
+    const badge = screen.getByText(/0\.00%/)
+    expect(badge.textContent).toBe('0.00%')
+    expect(badge.className).toContain('bg-muted')
+  })
+
+  it('should still mark a real gain and a real loss distinctly', () => {
+    const { unmount } = renderWithProviders(
+      <CommodityCard {...mockCommodityProps} changePercent={1.2} />,
+    )
+    expect(screen.getByText(/1\.20%/).textContent).toBe('+1.20%')
+    unmount()
+
+    renderWithProviders(<CommodityCard {...mockCommodityProps} changePercent={-1.2} />)
+    expect(screen.getByText(/1\.20%/).textContent).toBe('−1.20%')
+  })
+
   it('should be accessible', async () => {
     const { container } = renderWithProviders(<CommodityCard {...mockCommodityProps} />)
     

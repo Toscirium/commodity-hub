@@ -14,6 +14,11 @@
     backdrop-filter: blur(16px);
   }
 
+  /* These are raw <button>s, not the Button component, so they never picked
+     up .press-effect — the five most-tapped targets in the product answered a
+     tap with nothing, and the colour swap to the active tab happened with no
+     transition at all, so switching tabs snapped. Same motion contract as
+     everything else: fast press in, soft release. */
   .mobile-bottom-nav button {
     display: flex;
     min-height: 48px;
@@ -24,6 +29,13 @@
     color: hsl(var(--muted-foreground));
     font-size: 10px;
     font-weight: 500;
+    transition: color var(--duration-base) var(--ease-out-quart),
+                transform var(--duration-base) var(--ease-out-quart);
+  }
+
+  .mobile-bottom-nav button:active {
+    transform: scale(0.92);
+    transition-duration: 90ms;
   }
 
   .mobile-bottom-nav svg { width: 19px; height: 19px; }
@@ -76,29 +88,19 @@
     font-size: 16px !important;
   }
 
-  /* Enhanced button styles for mobile */
-  .mobile-button {
-    padding: 12px 16px;
-    border-radius: 12px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-  }
-
-  .mobile-button:active {
-    transform: scale(0.95);
-  }
-
-  /* Card hover effects for mobile */
-  .mobile-card:active {
-    transform: scale(0.98);
-    transition: transform 0.1s ease;
-  }
+  /* Press feedback for .mobile-button / .mobile-card used to live here as
+     bare `:active { transform: scale() }` rules, while the matching base
+     classes in index.css declared `transition-colors` — which does not cover
+     `transform`. The result was a press that snapped rather than eased, and a
+     0.95 scale aggressive enough to read as rubbery. Both now come from
+     .press-effect in index.css, which transitions transform in both
+     directions off the shared motion tokens. Re-adding a transform rule here
+     would reintroduce the snap. */
 
   /* Optimize text rendering */
   .optimized-text {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeSpeed;
   }
 }
 
