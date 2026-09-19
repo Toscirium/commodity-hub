@@ -11,7 +11,7 @@ import {
   CartesianGrid, ReferenceLine, ReferenceDot,
 } from 'recharts';
 import { useAuth } from '@/contexts/AuthContext';
-import { useForwardCurve, PREVIEW_CURVE_COMMODITY, PREVIEW_CURVE_MONTHS } from '@/hooks/useForwardCurve';
+import { useForwardCurve, PREVIEW_CURVE_COMMODITY, PREVIEW_CURVE_MONTHS, PRO_REQUIRED } from '@/hooks/useForwardCurve';
 import { CURVE_COMMODITIES } from '@/utils/forwardCurveSymbols';
 import PremiumPaywall from '@/components/PremiumPaywall';
 
@@ -25,6 +25,14 @@ const ForwardCurves: React.FC = () => {
   // any other commodity still 403s, so don't ask.
   const requestedCommodity = isPro ? commodity : PREVIEW_CURVE_COMMODITY;
   const { data, isLoading, error, refetch, isFetching } = useForwardCurve(requestedCommodity);
+
+  // The server is the authority on entitlement. If it still refuses this
+  // curve — most likely because the edge function hasn't been redeployed yet,
+  // since the web bundle and the Supabase functions ship separately — fall
+  // back to the original locked card rather than promising a preview that
+  // never arrives.
+  const serverRefused = error instanceof Error && error.message === PRO_REQUIRED;
+  const showPreviewChrome = !isPro && !serverRefused;
 
   const structureColor = data?.structure === 'contango' ? 'text-orange-500'
     : data?.structure === 'backwardation' ? 'text-emerald-500'
@@ -81,17 +89,34 @@ const ForwardCurves: React.FC = () => {
 
         {/* Applies to the preview curve just as much as the Pro one — a free
             user seeing real settlement data needs to know what it is. */}
-        <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 flex items-start gap-2 text-xs">
-          <Info className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
-          <div>
-            <span className="font-medium text-emerald-600 dark:text-emerald-400">End-of-day settlement curve</span>{' '}
-            from CME/NYMEX/COMEX/CBOT via Massive Futures. Refreshes after each
-            US futures settlement (~17:00 CT). Contracts without a settlement
-            price for the latest session are omitted.
+        {!serverRefused && (
+          <div className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 flex items-start gap-2 text-xs">
+            <Info className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+            <div>
+              <span className="font-medium text-emerald-600 dark:text-emerald-400">End-of-day settlement curve</span>{' '}
+              from CME/NYMEX/COMEX/CBOT via Massive Futures. Refreshes after each
+              US futures settlement (~17:00 CT). Contracts without a settlement
+              price for the latest session are omitted.
+            </div>
           </div>
-        </div>
+        )}
 
-        {!isPro && (
+        {serverRefused && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="pt-6 flex items-start gap-3">
+              <Lock className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium">Forward curves are a Pro feature</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  See the full futures strip, contango/backwardation status, and roll yield across all major commodities.
+                </p>
+              </div>
+              <Button className="shrink-0" onClick={() => setPaywallOpen(true)}>Upgrade to Pro</Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {showPreviewChrome && (
           // The curve itself still renders below — this sits above it and says
           // what is being withheld, which only works because the reader can
           // see the thing it is talking about.
@@ -113,7 +138,8 @@ const ForwardCurves: React.FC = () => {
           </Card>
         )}
 
-        <>
+        {!serverRefused && (
+          <>
             <div className="mb-4 flex items-center gap-2">
               <div className="w-full max-w-xs">
                 <Select value={requestedCommodity} onValueChange={setCommodity} disabled={!isPro}>
@@ -286,7 +312,8 @@ const ForwardCurves: React.FC = () => {
                 </Card>
               </>
             )}
-        </>
+          </>
+        )}
       <PremiumPaywall open={paywallOpen} onOpenChange={setPaywallOpen} />
     </PageShell>
   );
