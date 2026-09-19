@@ -20,6 +20,32 @@ const BodySchema = z.object({
   threadId: z.string().uuid(),
 });
 
+/**
+ * Per-request cost ceilings.
+ *
+ * `AI_DAILY_QUOTA` below counts *requests* and the 60,000-char body check in
+ * the handler bounds how much goes *in*, but nothing bounded what a single
+ * request could then spend: `stopWhen: stepCountIs(50)` permitted fifty
+ * agentic model round-trips, each resending a transcript that grows with
+ * every tool result, and no `maxOutputTokens` meant response length was
+ * open-ended. Input was capped; work and output were not.
+ *
+ * Fifty steps is a runaway-agent ceiling, not a chat one: a normal tool-using
+ * answer settles in two to four. These leave generous headroom over real usage
+ * while making the worst case finite.
+ *
+ * Input size is deliberately NOT tiered here — the flat 60,000-char guard runs
+ * before this, so a per-tier input limit above it would be unreachable.
+ */
+const AI_REQUEST_LIMITS: Record<'free' | 'premium' | 'pro', {
+  steps: number;
+  maxOutputTokens: number;
+}> = {
+  free:    { steps: 10, maxOutputTokens: 1_500 },
+  premium: { steps: 16, maxOutputTokens: 3_000 },
+  pro:     { steps: 24, maxOutputTokens: 6_000 },
+};
+
 const SYSTEM_PROMPT = `You are Commodity Copilot, an expert AI assistant for commodity traders, hedgers, and investors.
 
 You help users understand commodity markets across energy (oil, gas), metals (gold, silver, copper), agricultural (wheat, corn, soy), softs (coffee, sugar, cocoa), and livestock.
@@ -149,6 +175,8 @@ Deno.serve(async (req) => {
     const { data: tierData } = await admin.rpc('get_user_tier', { _user_id: userId });
     const tier = (tierData === 'pro' || tierData === 'premium' ? tierData : 'free') as 'free' | 'premium' | 'pro';
     const isPro = tier === 'pro';
+    const limits = AI_REQUEST_LIMITS[tier];
+
     const AI_DAILY_QUOTA: Record<'free' | 'premium' | 'pro', number> = { free: 30, premium: 75, pro: 200 };
     const { data: quotaAllowed, error: quotaError } = await admin.rpc('consume_ai_request_quota', {
       _user_id: userId,
@@ -352,7 +380,9 @@ Deno.serve(async (req) => {
       system: SYSTEM_PROMPT,
       messages: await convertToModelMessages(messages as UIMessage[]),
       tools,
-      stopWhen: stepCountIs(50),
+      // Was a flat stepCountIs(50) for every tier — see AI_REQUEST_LIMITS.
+      stopWhen: stepCountIs(limits.steps),
+      maxOutputTokens: limits.maxOutputTokens,
     });
 
     return result.toUIMessageStreamResponse({
