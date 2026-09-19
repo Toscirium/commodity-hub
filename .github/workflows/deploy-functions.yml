@@ -40,14 +40,35 @@ jobs:
           # Need the previous commit to diff against for changed-function detection.
           fetch-depth: 2
 
-      - name: Check the access token exists
+      # Reads the token from either store and under either common spelling,
+      # then says which one it found. A repository secret arriving empty has
+      # a small set of causes and they are indistinguishable from the error
+      # alone, so the job reports what it can actually see rather than making
+      # someone guess. Only presence is ever printed, never a value.
+      - name: Resolve the access token
+        id: token
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          S_PRIMARY: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          S_ALT: ${{ secrets.SUPABASE_TOKEN }}
+          V_PRIMARY: ${{ vars.SUPABASE_ACCESS_TOKEN }}
         run: |
-          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
-            echo "::error::SUPABASE_ACCESS_TOKEN is not set. Add it under Settings → Secrets and variables → Actions, then re-run. Generate one at https://supabase.com/dashboard/account/tokens"
+          set -uo pipefail
+          report() { [ -n "${2:-}" ] && echo "  $1: set" || echo "  $1: empty"; }
+          echo "Token sources visible to this job:"
+          report "secrets.SUPABASE_ACCESS_TOKEN" "${S_PRIMARY:-}"
+          report "secrets.SUPABASE_TOKEN       " "${S_ALT:-}"
+          report "vars.SUPABASE_ACCESS_TOKEN   " "${V_PRIMARY:-}"
+
+          TOKEN="${S_PRIMARY:-}"
+          [ -z "$TOKEN" ] && TOKEN="${S_ALT:-}"
+          [ -z "$TOKEN" ] && TOKEN="${V_PRIMARY:-}"
+
+          if [ -z "$TOKEN" ]; then
+            echo "::error::No Supabase access token reached this job. The secret exists in the UI but arrives empty in three common cases: (1) it was added as an *Environment* secret, which needs `environment:` declared on the job — repository secrets live under Settings → Secrets and variables → Actions → 'Repository secrets', a separate list from 'Environment secrets'; (2) it was added as a *Variable* rather than a Secret (this job now accepts either, so that is already covered); (3) it was added to a different repository or to the account rather than to Toscirium/commodity-hub. Check which list it is in, then re-run."
             exit 1
           fi
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
 
       - uses: supabase/setup-cli@v1
         with:
@@ -144,7 +165,7 @@ jobs:
 
       - name: Deploy
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_ACCESS_TOKEN: ${{ steps.token.outputs.token }}
           REF: ${{ steps.ref.outputs.ref }}
           LIST: ${{ steps.pick.outputs.list }}
         run: |
