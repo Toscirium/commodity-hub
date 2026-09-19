@@ -51,10 +51,6 @@ jobs:
           S_PRIMARY: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           S_ALT: ${{ secrets.SUPABASE_TOKEN }}
           V_PRIMARY: ${{ vars.SUPABASE_ACCESS_TOKEN }}
-          # Names only. jq prints the keys; the values never leave this
-          # variable, and the runner masks them regardless.
-          SECRET_NAMES_JSON: ${{ toJSON(secrets) }}
-          VAR_NAMES_JSON: ${{ toJSON(vars) }}
         run: |
           set -uo pipefail
           report() { [ -n "${2:-}" ] && echo "  $1: set" || echo "  $1: empty"; }
@@ -68,15 +64,14 @@ jobs:
           [ -z "$TOKEN" ] && TOKEN="${V_PRIMARY:-}"
 
           if [ -z "$TOKEN" ]; then
-            # Checking two spellings was not enough to tell "absent" from
-            # "present under a name I did not guess", so list what this job can
-            # actually reach. Keys only — no values are printed.
-            echo "Repository secrets visible to this job:"
-            printf '%s' "$SECRET_NAMES_JSON" | jq -r 'keys[] | "  - " + .' || echo "  (could not parse)"
-            echo "Repository variables visible to this job:"
-            printf '%s' "$VAR_NAMES_JSON" | jq -r 'keys[] | "  - " + .' || echo "  (could not parse)"
-
-            echo "::error::No Supabase access token reached this job. If SUPABASE_ACCESS_TOKEN is absent from the list above, it is not a repository secret on Toscirium/commodity-hub — the usual cause is that it was added to the Environment secrets list rather than the Repository secrets list (those are separate lists on the same settings page, and an environment secret needs an environment declared on the job before it is visible). Other possibilities: it went to a different repository, or to account-level settings. If it IS in the list above under a different spelling, tell me the name and I will match it."
+            # A previous revision listed every reachable secret name here by
+            # serialising the whole secrets context. It worked, but GitHub
+            # gates workflows that enumerate that context: every run on that
+            # revision came back action_required with zero jobs, blocked
+            # before anything executed. Diagnosing the token is not worth a
+            # workflow that cannot run, so the listing is gone. Do not add it
+            # back — check the settings page instead.
+            echo "::error::No Supabase access token reached this job. SUPABASE_ACCESS_TOKEN is not visible as a repository secret or variable on Toscirium/commodity-hub. The usual cause is that it was added to the Environment secrets list rather than the Repository secrets list — those are two separate lists on the same settings page (Settings -> Secrets and variables -> Actions), and an environment secret is invisible unless the job declares that environment. Other possibilities: it was added to a different repository, or to account-level settings."
             exit 1
           fi
           echo "::add-mask::$TOKEN"
