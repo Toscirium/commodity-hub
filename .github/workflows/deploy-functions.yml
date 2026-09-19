@@ -51,6 +51,10 @@ jobs:
           S_PRIMARY: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           S_ALT: ${{ secrets.SUPABASE_TOKEN }}
           V_PRIMARY: ${{ vars.SUPABASE_ACCESS_TOKEN }}
+          # Names only. jq prints the keys; the values never leave this
+          # variable, and the runner masks them regardless.
+          SECRET_NAMES_JSON: ${{ toJSON(secrets) }}
+          VAR_NAMES_JSON: ${{ toJSON(vars) }}
         run: |
           set -uo pipefail
           report() { [ -n "${2:-}" ] && echo "  $1: set" || echo "  $1: empty"; }
@@ -64,7 +68,15 @@ jobs:
           [ -z "$TOKEN" ] && TOKEN="${V_PRIMARY:-}"
 
           if [ -z "$TOKEN" ]; then
-            echo "::error::No Supabase access token reached this job. The secret exists in the UI but arrives empty in three common cases: (1) it was added as an *Environment* secret, which needs `environment:` declared on the job — repository secrets live under Settings → Secrets and variables → Actions → 'Repository secrets', a separate list from 'Environment secrets'; (2) it was added as a *Variable* rather than a Secret (this job now accepts either, so that is already covered); (3) it was added to a different repository or to the account rather than to Toscirium/commodity-hub. Check which list it is in, then re-run."
+            # Checking two spellings was not enough to tell "absent" from
+            # "present under a name I did not guess", so list what this job can
+            # actually reach. Keys only — no values are printed.
+            echo "Repository secrets visible to this job:"
+            printf '%s' "$SECRET_NAMES_JSON" | jq -r 'keys[] | "  - " + .' || echo "  (could not parse)"
+            echo "Repository variables visible to this job:"
+            printf '%s' "$VAR_NAMES_JSON" | jq -r 'keys[] | "  - " + .' || echo "  (could not parse)"
+
+            echo "::error::No Supabase access token reached this job. If SUPABASE_ACCESS_TOKEN is absent from the list above, it is not a repository secret on Toscirium/commodity-hub — the usual cause is that it was added to the Environment secrets list rather than the Repository secrets list (those are separate lists on the same settings page, and an environment secret needs an environment declared on the job before it is visible). Other possibilities: it went to a different repository, or to account-level settings. If it IS in the list above under a different spelling, tell me the name and I will match it."
             exit 1
           fi
           echo "::add-mask::$TOKEN"
