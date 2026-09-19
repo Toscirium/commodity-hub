@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 
 import { useHaptics } from '@/hooks/useHaptics';
+import { usePriceFlash } from '@/hooks/usePriceFlash';
 import { getMarketStatus } from '@/lib/marketHours';
 import { getPriceUnitLabel, getPricePrefix, formatHeadlinePrice } from '@/lib/commodityUtils';
 import { commodityDetailPath } from '@/lib/commoditySlug';
@@ -55,8 +56,16 @@ const CommodityCard = React.memo<CommodityCardProps>(({
   const navigate = useNavigate();
   const { vibrateTouch } = useHaptics();
   const marketStatus = getMarketStatus(name);
+  const flash = usePriceFlash(price);
 
-  const isPositive = changePercent >= 0;
+  // Three-way, not two. `changePercent >= 0` painted a dead-flat market in
+  // full success green with a "+" in front of it — a screen of "+0.00%" in
+  // green is actively misleading, and reading a rounded-to-zero move as a
+  // gain is exactly the sort of imprecision that costs a market product its
+  // credibility. The threshold is the set of values that *display* as 0.00,
+  // so nothing can render as "−0.00%" either.
+  const direction: 'up' | 'down' | 'flat' =
+    Math.abs(changePercent) < 0.005 ? 'flat' : changePercent > 0 ? 'up' : 'down';
 
   const open = React.useCallback(() => {
     vibrateTouch();
@@ -80,7 +89,7 @@ const CommodityCard = React.memo<CommodityCardProps>(({
       onClick={open}
       onKeyDown={handleKeyDown}
       aria-label={`${name} — open detail view`}
-      className="terminal-card group flex w-full min-w-0 max-w-full cursor-pointer touch-manipulation items-center gap-3 border border-border bg-card px-3.5 py-3 transition-colors hover:border-primary/55 hover:bg-muted/30 active:bg-muted/50 focus-ring"
+      className="terminal-card press-effect group flex w-full min-w-0 max-w-full cursor-pointer touch-manipulation items-center gap-3 border border-border bg-card px-3.5 py-3 hover:border-primary/55 hover:bg-muted/30 active:bg-muted/50 focus-ring"
     >
       {/* Identity */}
       <div className="min-w-0 flex-1">
@@ -128,7 +137,13 @@ const CommodityCard = React.memo<CommodityCardProps>(({
 
       {/* Quote */}
       <div className="flex shrink-0 flex-col items-end gap-1">
-        <span className="number-display text-[17px] font-medium tabular-nums tracking-tight text-foreground sm:text-[18px]">
+        {/* px-1 -mx-1 gives the tick flash a little body to tint without
+            taking any layout space from the row. */}
+        <span
+          className={`number-display -mx-1 rounded-sm px-1 text-[17px] font-medium tabular-nums tracking-tight text-foreground sm:text-[18px] ${
+            flash === 'up' ? 'price-flash-up' : flash === 'down' ? 'price-flash-down' : ''
+          }`}
+        >
           {price !== null ? (
             `${getPricePrefix(name)}${formatHeadlinePrice(price)}`
           ) : (
@@ -136,11 +151,15 @@ const CommodityCard = React.memo<CommodityCardProps>(({
           )}
         </span>
         <span
-          className={`number-display min-w-[68px] px-1.5 py-0.5 text-center text-[11px] font-semibold tabular-nums text-white ${
-            isPositive ? 'bg-[hsl(var(--success))]' : 'bg-[hsl(var(--destructive))]'
+          className={`number-display min-w-[68px] px-1.5 py-0.5 text-center text-[11px] font-semibold tabular-nums ${
+            direction === 'flat'
+              ? 'bg-muted text-muted-foreground'
+              : direction === 'up'
+                ? 'bg-[hsl(var(--success))] text-white'
+                : 'bg-[hsl(var(--destructive))] text-white'
           }`}
         >
-          {isPositive ? '+' : '−'}
+          {direction === 'up' ? '+' : direction === 'down' ? '−' : ''}
           {Math.abs(changePercent).toFixed(2)}%
         </span>
       </div>

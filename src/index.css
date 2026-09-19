@@ -87,6 +87,22 @@
   :root {
     --app-top-buffer: 0px;
     --app-top-bar-height: 3.5rem; /* matches h-14 in the header row */
+
+    /* Motion system.
+       Every transition in the app should pick a duration and a curve from
+       here rather than inventing its own. Before this there were eight
+       durations (75/100/150/200/300/500ms + 2s/3s loops) paired with the
+       browser default `ease`, which is why interactions read as slightly
+       different speeds depending on which component you happened to touch.
+
+       The curve is a quart-out: leaves immediately, settles softly. That
+       decisive-then-gentle shape is what reads as "expensive" — a linear or
+       default-`ease` move of the same duration feels mechanical. */
+    --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+
+    --duration-fast: 120ms;   /* press, hover, tint */
+    --duration-base: 200ms;   /* state changes, reveals */
+    --duration-slow: 320ms;   /* layout moves, sliding indicators */
   }
 
   html.capacitor-native {
@@ -234,20 +250,54 @@
   }
 
   .card-hover-effect {
-    @apply transition-colors duration-150 hover:bg-muted/30;
+    @apply hover:bg-muted/30;
+    transition: background-color var(--duration-fast) var(--ease-out-quart),
+                border-color var(--duration-fast) var(--ease-out-quart),
+                transform var(--duration-base) var(--ease-out-quart);
   }
 
-  .button-press-effect {
-    @apply transition-colors duration-150;
+  /* Press feedback, shared by every tappable surface in the app.
+     None of these had any. `.button-press-effect` promised one in its name
+     and was defined as `transition-colors` and nothing else; `.mobile-card`
+     and `.mobile-button` had a `:active { transform: scale() }` over in
+     styles/mobile.css but declared `transition-colors` here — and transform
+     is not a property `transition-colors` covers, so the press eased in and
+     then *snapped* back on release. That snap is a good part of why the app
+     read as jerky rather than fluid.
+
+     The asymmetry below is the whole trick: press *in* fast (90ms — the
+     finger is already there, anything slower reads as lag) and release *out*
+     slowly on the soft curve. Symmetric timing feels clicky and cheap.
+
+     All four selectors are listed explicitly rather than `@apply
+     press-effect`-ed into the component classes: @apply copies a class's own
+     declarations but not its variant rules, so it would silently take the
+     transition and leave the :active transform behind. */
+  .press-effect,
+  .button-press-effect,
+  .mobile-card,
+  .mobile-button {
+    transition: transform var(--duration-base) var(--ease-out-quart),
+                background-color var(--duration-fast) var(--ease-out-quart),
+                border-color var(--duration-fast) var(--ease-out-quart),
+                color var(--duration-fast) var(--ease-out-quart);
+  }
+
+  .press-effect:active,
+  .button-press-effect:active,
+  .mobile-card:active,
+  .mobile-button:active {
+    transform: scale(0.975);
+    transition-duration: 90ms;
   }
 
   .text-shine {
     @apply text-foreground;
   }
 
+  /* Motion for these two lives in the shared press-effect rule above. */
   .mobile-card {
-    @apply rounded-lg p-4 bg-card border border-border
-           transition-colors duration-150 touch-manipulation;
+    @apply rounded-lg p-4 bg-card border border-border touch-manipulation;
   }
 
   .mobile-button {
@@ -256,7 +306,7 @@
            bg-primary text-primary-foreground
            hover:bg-primary/90 active:bg-primary/80
            focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2
-           transition-colors duration-150 touch-manipulation;
+           touch-manipulation;
   }
   
   .mobile-touch-target {
@@ -343,6 +393,19 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+
+    /* Zeroing the duration above would otherwise leave the press scale
+       *instant* rather than absent — a hard snap to 97.5% and back, which is
+       precisely the kind of motion this preference exists to avoid. Drop the
+       transform entirely; the colour change still signals the press. */
+    .press-effect:active,
+    .button-press-effect:active,
+    .mobile-card:active,
+    .mobile-button:active,
+    .touch-optimized:active,
+    .mobile-bottom-nav button:active {
+      transform: none;
+    }
     
     /* Keep focus indicators visible */
     .focus-ring, .focus-visible {
@@ -403,9 +466,14 @@
     overscroll-behavior: contain;
   }
 
-  /* Improve text rendering */
+  /* `optimizeSpeed` was the opposite of what the comment here used to claim:
+     it switches kerning and optional ligatures OFF, so on phones — the only
+     place most people ever see this app — IBM Plex rendered with none of the
+     letter-fitting it was drawn for, and headline numerals sat visibly loose.
+     `auto` keeps kerning on while still avoiding the forced-expensive
+     `optimizeLegibility` path the base layer sets for large screens. */
   body {
-    text-rendering: optimizeSpeed;
+    text-rendering: auto;
   }
 
   /* Disable backdrop blur on mobile — extremely expensive during scroll */
@@ -418,10 +486,12 @@
     background-color: hsl(var(--background)) !important;
   }
 
-  /* Better card animations */
-  .card-hover-effect {
-    transition: transform 150ms ease-out;
-  }
+  /* `.card-hover-effect { transition: transform 150ms ease-out }` used to sit
+     here and, being a later rule, replaced the base definition's whole
+     transition list on phones — so the one place the class exists to work
+     (tap/hover tinting on a touch device) was the one place its background
+     and border changes jumped with no transition at all. The base rule
+     already covers transform; this override only removed things. */
 }
 
 /* Enhanced tablet-specific styles */
@@ -457,11 +527,12 @@
 /* Improved touch responsiveness */
 @media (hover: none) and (pointer: coarse) {
   .touch-optimized {
-    transition: transform 150ms ease-out;
+    transition: transform var(--duration-base) var(--ease-out-quart);
   }
-  
+
   .touch-optimized:active {
-    transform: scale(0.98);
+    transform: scale(0.975);
+    transition-duration: 90ms;
   }
 }
 
@@ -514,16 +585,49 @@
   }
 }
 
+/* Tick acknowledgement for live quotes — see hooks/usePriceFlash.ts.
+   Tint only: no transform, no size change, nothing that could nudge a dense
+   row of numbers around while you are reading it. Applied to an element that
+   already carries its own horizontal padding so the tint has some body
+   without shifting its neighbours. */
+@keyframes price-flash-up {
+  from { background-color: hsl(var(--success) / 0.32); }
+  to   { background-color: hsl(var(--success) / 0); }
+}
+
+@keyframes price-flash-down {
+  from { background-color: hsl(var(--destructive) / 0.32); }
+  to   { background-color: hsl(var(--destructive) / 0); }
+}
+
+.price-flash-up {
+  animation: price-flash-up 900ms var(--ease-out-quart);
+}
+
+.price-flash-down {
+  animation: price-flash-down 900ms var(--ease-out-quart);
+}
+
+/* NOTE: `.animate-fade-in` is also generated by tailwind.config.ts (keyframes
+   `fade-in`, which additionally translates 10px). This file is imported after
+   the utilities layer, so *this* opacity-only definition is the one that wins
+   — the config's `fade-in` keyframe only ever applies via `animate-[fade-in]`
+   style arbitrary usage. Left as-is rather than deleted because the quieter
+   opacity-only fade is the better default for the panels using it; renaming
+   one of the two is a cleanup for whoever touches this next.
+
+   `both` matches the entrance animations in tailwind.config.ts: a no-op at
+   zero delay, but it means these stay correct if anyone ever staggers them. */
 .animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeIn var(--duration-slow) var(--ease-out-quart) both;
 }
 
 .animate-scale-in {
-  animation: scaleIn 0.3s ease-out;
+  animation: scaleIn var(--duration-slow) var(--ease-out-quart) both;
 }
 
 .animate-fade-in-up {
-  animation: fadeInUp 0.3s ease-out;
+  animation: fadeInUp var(--duration-slow) var(--ease-out-quart) both;
 }
 
 /* Lovable's hosting layer injects this badge at serve time (not present in

@@ -136,11 +136,19 @@ export default {
           }
         }
       },
+      // `both` on the entrance animations is load-bearing, not decoration.
+      // They are used with a staggered `animationDelay` (see the markets list
+      // in CommodityGroupSection, which offsets each row by index * 50ms), and
+      // without a fill-mode an element shows its *final* style during the
+      // delay — so each row painted fully visible, blinked out when its delay
+      // elapsed, then slid in. A list of six rows flashed six times on every
+      // render. `both` holds the from-state through the delay so the stagger
+      // actually reads as a stagger.
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
-        'fade-in': 'fade-in 0.5s ease-out',
-        'slide-up': 'slide-up 0.3s ease-out',
+        'fade-in': 'fade-in 0.5s cubic-bezier(0.25, 1, 0.5, 1) both',
+        'slide-up': 'slide-up 0.3s cubic-bezier(0.25, 1, 0.5, 1) both',
         'float': 'float 3s ease-in-out infinite',
         'pulse-soft': 'pulse-soft 2s ease-in-out infinite',
         'bounce-soft': 'bounce-soft 1s ease-in-out infinite'
