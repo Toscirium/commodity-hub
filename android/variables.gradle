@@ -1,5 +1,17 @@
 ext {
-    minSdkVersion = 23
+    // 24 (Android 7.0), not Capacitor's default 23: Play Automatic Protection
+    // requires minSdk >= 24 and rejects the bundle outright below that
+    // ("The uploaded App Bundle has a minimum SDK version of 23").
+    //
+    // Every Capacitor plugin reads this value — each declares
+    // `minSdkVersion project.hasProperty('minSdkVersion') ? rootProject.ext.minSdkVersion : 23`
+    // — so this is the single place it needs changing, and nothing pins it
+    // back down to 23.
+    //
+    // Cost is Android 6.0 Marshmallow, a fraction of a percent of devices and
+    // no longer reachable for this app either way, since Play will not accept
+    // a build that supports it.
+    minSdkVersion = 24
     compileSdkVersion = 36
     targetSdkVersion = 36
     androidxActivityVersion = '1.9.2'
