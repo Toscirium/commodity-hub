@@ -35,6 +35,9 @@ supabase/.temp
 *.sln
 *.sw?
 .env*
+# The template is the one .env file that SHOULD be committed — key names only,
+# no values. Needed because `.env*` above would otherwise swallow it.
+!.env.example
 
 # Python
 __pycache__/
