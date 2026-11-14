@@ -77,9 +77,13 @@ jobs:
           echo "::add-mask::$TOKEN"
           echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
 
+      # Pinned: `latest` makes the action query the GitHub releases API, which
+      # rate-limits shared runner IPs ("Failed to resolve latest Supabase CLI
+      # release: rate limit exceeded"). 3.1.0 is the version verified by a
+      # manual deploy on 2026-11-14. Bump deliberately.
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 3.1.0
 
       - name: Resolve project ref
         id: ref
@@ -189,7 +193,8 @@ jobs:
           while read -r fn; do
             [ -z "$fn" ] && continue
             echo "::group::Deploying $fn"
-            if supabase functions deploy "$fn" --project-ref "$REF"; then
+            # --yes: CLI v3 refuses hosted mutations without consent when non-interactive.
+            if supabase functions deploy "$fn" --project-ref "$REF" --yes; then
               echo "$fn ok"
             else
               echo "::error::Failed to deploy $fn"
