@@ -20,7 +20,7 @@
 const DATABENTO_BASE = 'https://hist.databento.com/v0';
 const DATASET = 'GLBX.MDP3';
 
-// `product` is the futures root (same codes as MASSIVE_PRODUCT_CODES in
+// `product` is the futures root (same codes as FUTURES_PRODUCT_CODES in
 // commodity-mappings.ts, used for the underlying futures price below) but
 // CME lists options on a *separate* product root — Databento's parent
 // symbology ("Could not resolve smart symbols: CL.OPT") confirmed
@@ -254,7 +254,7 @@ export class NoLiveInstrumentsError extends Error {
 /**
  * Builds a full options-chain payload for one product/expiration by joining
  * Databento's definition + statistics schemas, plus the app's own
- * Massive Futures front-month price for the underlying.
+ * Front-month futures price for the underlying (futures-client.ts).
  *
  * `definition` is a full daily universe snapshot (every live strike ×
  * expiration for the root — thousands of instruments for a liquid product),
@@ -270,7 +270,7 @@ export class NoLiveInstrumentsError extends Error {
 export async function buildOptionsChainPayload(
   apiKey: string,
   product: string,
-  fetchMassiveFrontMonth: (code: string) => Promise<{ price: number } | null>,
+  fetchFrontMonth: (code: string) => Promise<{ price: number } | null>,
   expiration?: string,
   onWarn?: (message: string, err: unknown) => void,
 ): Promise<ChainPayload> {
@@ -339,14 +339,14 @@ export async function buildOptionsChainPayload(
   }
   const rows = [...byStrike.values()].sort((a, b) => a.strike - b.strike);
 
-  // Reuse the app's existing Massive Futures front-month price rather than
+  // Reuse the app's existing front-month futures price rather than
   // spending an extra Databento query on the outright future.
   let underlying: number | null = null;
   try {
-    const fm = await fetchMassiveFrontMonth(product);
+    const fm = await fetchFrontMonth(product);
     underlying = fm?.price ?? null;
   } catch (err) {
-    onWarn?.(`Massive front-month lookup failed for ${product}`, err);
+    onWarn?.(`Front-month lookup failed for ${product}`, err);
   }
 
   return {

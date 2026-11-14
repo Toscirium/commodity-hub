@@ -18,7 +18,7 @@ import { z } from 'https://esm.sh/zod@3.23.8';
 import { corsHeaders } from '../_shared/utils.ts';
 import { IpRateLimiter, tooManyRequestsResponse } from '../_shared/rateLimit.ts';
 import { safeLog } from '../_shared/safeConsole.ts';
-import { fetchMassiveFrontMonth } from '../_shared/massive-client.ts';
+import { fetchFrontMonth } from '../_shared/futures-client.ts';
 import { PRODUCT_ROOTS, buildOptionsChainPayload, NoLiveInstrumentsError } from '../_shared/options-chain-builder.ts';
 
 const BodySchema = z.object({
@@ -107,7 +107,7 @@ serve(async (req) => {
     }
 
     const payload = await buildOptionsChainPayload(
-      apiKey, product, fetchMassiveFrontMonth, parsed.data.expiration,
+      apiKey, product, fetchFrontMonth, parsed.data.expiration,
       (msg, err) => safeLog.warn(msg, err),
     );
     await admin

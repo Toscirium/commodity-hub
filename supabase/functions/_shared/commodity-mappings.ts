@@ -1,13 +1,14 @@
 import { CommoditySymbol } from './types.ts';
 
-// Catalog sourced exclusively from Massive Futures API as of 2026-07-14.
+// Catalog priced via Yahoo Finance futures (free; see futures-client.ts) since 2026-11-14,
+// previously Massive Futures (2026-07-14 → 2026-11-14).
 // OilPriceAPI retired: regional crude blends (Dubai, Oman, Murban, WCS, WTI
 // Midland, Mars, LLS, OPEC Basket), LNG hubs (UK NBP, TTF, JKM), refined
 // products beyond RBOB/Heating Oil (Jet, ULSD, Gasoil, Naphtha), and marine
-// fuels have been removed because Massive covers only CME/CBOT/COMEX/NYMEX.
+// fuels have been removed because the catalog was limited to CME/CBOT/COMEX/NYMEX.
 // Free tier = household names. Premium = specialty variants (HO, RB, PA, etc.).
 export const COMMODITY_SYMBOLS: Record<string, CommoditySymbol> = {
-  // ============ ENERGY (Massive Futures — NYMEX only) ============
+  // ============ ENERGY (NYMEX) ============
   'WTI Crude Oil': { symbol: 'CL=F', category: 'energy', contractSize: '1,000 bbl', venue: 'NYMEX' },
   'Brent Crude Oil': { symbol: 'BZ=F', category: 'energy', contractSize: '1,000 bbl', venue: 'NYMEX' },
   'Natural Gas': { symbol: 'NG=F', category: 'energy', contractSize: '10,000 MMBtu', venue: 'NYMEX' },
@@ -68,11 +69,12 @@ export const COMMODITY_PRICE_API_SYMBOLS: Record<string, string> = {};
 export const CENT_QUOTED_SYMBOLS = new Set<string>();
 
 /**
- * Massive Futures product codes. As of 2026-07-14 Massive is the SOLE data
+ * Futures product roots (Yahoo: `<root>=F` continuous, `<root><M><YY>.<EXCH>` contracts).
+ * This is the SOLE price
  * source for every commodity in the catalog (energy + non-energy). Anything
- * Massive doesn't quote (ICE/LME/OTC) has been removed from the catalog.
+ * not listed here (ICE/LME/OTC) is outside the catalog.
  */
-export const MASSIVE_PRODUCT_CODES: Record<string, string> = {
+export const FUTURES_PRODUCT_CODES: Record<string, string> = {
   // Energy (NYMEX)
   'WTI Crude Oil': 'CL',
   'Brent Crude Oil': 'BZ',
@@ -123,7 +125,7 @@ export const MASSIVE_PRODUCT_CODES: Record<string, string> = {
  */
 export const FMP_SYMBOLS: Record<string, string> = {};
 
-// FMP_FUTURES_ROOTS removed — forward curve now uses Massive (see massive-client.ts).
+// FMP_FUTURES_ROOTS removed — forward curve now uses futures-client.ts.
 
 /**
  * Premium-only commodities. Free tier sees household names; everything niche/regional/exotic

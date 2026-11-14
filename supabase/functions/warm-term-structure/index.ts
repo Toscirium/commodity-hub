@@ -20,7 +20,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders, EdgeLogger } from '../_shared/utils.ts';
-import { fetchMassiveCurve, fetchContractDailyClose } from '../_shared/massive-client.ts';
+import { fetchFuturesCurve, fetchContractDailyClose } from '../_shared/futures-client.ts';
 
 const PRODUCTS: Record<string, { label: string; code: string }> = {
   wti:      { label: 'WTI Crude',    code: 'CL' },
@@ -52,7 +52,7 @@ async function refreshOne(
 ): Promise<'ok' | 'thin' | 'error'> {
   let curveResult: { asOf: string; curve: { symbol: string; expiry: string; monthIdx: number; price: number }[] };
   try {
-    curveResult = await fetchMassiveCurve(product.code, MONTHS_AHEAD);
+    curveResult = await fetchFuturesCurve(product.code, MONTHS_AHEAD);
   } catch (e) {
     logger.warn(`warm: ${product.code} curve fetch threw: ${(e as Error).message}`);
     return 'error';

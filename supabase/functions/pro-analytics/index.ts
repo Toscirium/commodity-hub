@@ -7,7 +7,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { corsHeaders, EdgeLogger } from '../_shared/utils.ts';
-import { fetchMassiveFrontMonthBars } from '../_shared/massive-client.ts';
+import { fetchFrontMonthBars } from '../_shared/futures-client.ts';
 import { ensurePro } from '../_shared/proTier.ts';
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -89,7 +89,7 @@ async function buildSeasonality(commodity: string) {
   if (!product) throw new Error(`Unknown commodity: ${commodity}`);
   const to = new Date();
   const from = new Date(to.getTime() - 20 * 365 * 24 * 60 * 60 * 1000);
-  const bars = await fetchMassiveFrontMonthBars(
+  const bars = await fetchFrontMonthBars(
     product.code,
     from.toISOString().slice(0, 10),
     to.toISOString().slice(0, 10),
@@ -197,7 +197,7 @@ async function buildSpreads() {
       const code = PRODUCTS[c]?.code;
       if (!code) return;
       try {
-        const bars = await fetchMassiveFrontMonthBars(code, fromStr, toStr) as unknown as { date: string; close: number }[];
+        const bars = await fetchFrontMonthBars(code, fromStr, toStr) as unknown as { date: string; close: number }[];
         series[c] = (bars ?? []).filter((b) => b && b.close != null);
       } catch {
         series[c] = [];
@@ -339,7 +339,7 @@ async function buildRegime() {
   const rows = await Promise.all(
     Object.entries(PRODUCTS).map(async ([id, p]) => {
       try {
-        const bars = (await fetchMassiveFrontMonthBars(p.code, fromStr, toStr)) as unknown as { date: string; close: number }[];
+        const bars = (await fetchFrontMonthBars(p.code, fromStr, toStr)) as unknown as { date: string; close: number }[];
         return computeRegime(bars ?? [], p.label, id);
       } catch (err) {
         return { commodity: id, label: p.label, trend: 'sideways' as const, vol: 'normal' as const, error: String(err) };
@@ -392,7 +392,7 @@ async function buildPortfolioAnalytics(admin: ReturnType<typeof createClient>, u
       const match = nameToCode.get(name.toLowerCase());
       if (!match) return;
       try {
-        const bars = (await fetchMassiveFrontMonthBars(match.code, fromStr, toStr)) as unknown as { date: string; close: number }[];
+        const bars = (await fetchFrontMonthBars(match.code, fromStr, toStr)) as unknown as { date: string; close: number }[];
         seriesByName[name] = (bars ?? []).filter((b) => b?.close != null).sort((a, b) => a.date.localeCompare(b.date));
       } catch {
         seriesByName[name] = [];
@@ -452,7 +452,7 @@ async function buildPortfolioAnalytics(admin: ReturnType<typeof createClient>, u
   // Beta vs WTI (crude benchmark) if we have its series
   let beta: number | null = null;
   try {
-    const wtiBars = (await fetchMassiveFrontMonthBars('CL', fromStr, toStr)) as unknown as { date: string; close: number }[];
+    const wtiBars = (await fetchFrontMonthBars('CL', fromStr, toStr)) as unknown as { date: string; close: number }[];
     const wtiMap = new Map(wtiBars.map((r) => [r.date, r.close]));
     const pairedPort: number[] = [];
     const pairedWti: number[] = [];
@@ -497,7 +497,7 @@ async function buildBacktest(commodity: string, monthsLong: number[], years: num
   if (!product) throw new Error(`Unknown commodity: ${commodity}`);
   const to = new Date();
   const from = new Date(to.getTime() - years * 365 * 24 * 60 * 60 * 1000);
-  const bars = (await fetchMassiveFrontMonthBars(product.code, from.toISOString().slice(0, 10), to.toISOString().slice(0, 10))) as unknown as { date: string; close: number }[];
+  const bars = (await fetchFrontMonthBars(product.code, from.toISOString().slice(0, 10), to.toISOString().slice(0, 10))) as unknown as { date: string; close: number }[];
   const sorted = bars.filter((b) => b?.close != null).sort((a, b) => a.date.localeCompare(b.date));
 
   // Compute monthly close series (month-end close)

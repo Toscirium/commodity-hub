@@ -1,16 +1,16 @@
-// Forward curve — real EOD settlement strip from Massive Futures Basic (free tier).
+// Forward curve — delayed contract-month strip from Yahoo Finance (free).
 // Covers CME/CBOT/COMEX/NYMEX: CL, BZ, NG, GC, SI, HG, ZC, ZS, ZW.
-// Per request: 1 contracts call + N daily-agg calls (N = monthsAhead).
-// Cached 6h in-worker to stay way under Massive's 5 req/min cap.
+// Per request: a few batched /spark calls (20 contract months each).
+// Cached 6h in-worker to keep request volume to Yahoo low.
 // Pro-tier gated. JWT-verified.
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { corsHeaders, EdgeLogger } from '../_shared/utils.ts';
-import { fetchMassiveCurve } from '../_shared/massive-client.ts';
+import { fetchFuturesCurve } from '../_shared/futures-client.ts';
 
-// commodity id → { label, Massive product_code }
+// commodity id → { label, futures product root }
 const PRODUCTS: Record<string, { label: string; code: string }> = {
   wti:      { label: 'WTI Crude',   code: 'CL' },
   brent:    { label: 'Brent Crude', code: 'BZ' },
@@ -113,7 +113,7 @@ serve(async (req) => {
       });
     }
 
-    const { asOf, curve } = await fetchMassiveCurve(product.code, monthsAhead);
+    const { asOf, curve } = await fetchFuturesCurve(product.code, monthsAhead);
     if (curve.length < 3) {
       logger.warn(`Massive returned ${curve.length} contracts for ${commodity} (${product.code})`);
       return new Response(JSON.stringify({ error: 'curve_unavailable' }), {

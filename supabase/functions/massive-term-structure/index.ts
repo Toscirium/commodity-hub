@@ -22,7 +22,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { corsHeaders, EdgeLogger } from '../_shared/utils.ts';
-import { fetchMassiveCurve, fetchContractDailyClose } from '../_shared/massive-client.ts';
+import { fetchFuturesCurve, fetchContractDailyClose } from '../_shared/futures-client.ts';
 
 const PRODUCTS: Record<string, { label: string; code: string }> = {
   wti:      { label: 'WTI Crude',    code: 'CL' },
@@ -73,7 +73,7 @@ async function computeAndStore(
     const product = PRODUCTS[commodity];
     let curveResult: { asOf: string; curve: { symbol: string; expiry: string; monthIdx: number; price: number }[] };
     try {
-      curveResult = await fetchMassiveCurve(product.code, monthsAhead);
+      curveResult = await fetchFuturesCurve(product.code, monthsAhead);
     } catch (e) {
       logger.warn(`term-structure fetch threw for ${product.code}: ${(e as Error).message}`);
       return null;

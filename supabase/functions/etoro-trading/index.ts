@@ -10,7 +10,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders, EdgeLogger } from '../_shared/utils.ts';
 import { getLiveAccessToken, etoroFetch, resolveInstrumentId } from '../_shared/etoroClient.ts';
 
-// Kept in sync by hand with massive-client.ts's PRODUCTS map (same commodity
+// Kept in sync by hand with futures-client.ts's PRODUCTS map (same commodity
 // ids used across the app) rather than imported across function boundaries —
 // see that file's own comment on why each edge function stays self-contained.
 // The search query is deliberately just the plain commodity name; eToro's

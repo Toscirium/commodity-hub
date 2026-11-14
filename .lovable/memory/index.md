@@ -8,7 +8,7 @@ Updated: just now
 - **Monetization:** Three-tier freemium via RevenueCat (Play IAP). Free / Premium $6.99 (10 alerts, 3 portfolios, CSV) / Pro $19.99 (50 alerts, unlimited portfolios, +20 energy markets, priority refresh). See `mem://monetization/tiers`.
 - **Styling:** Dark theme with dark purple and teal branding.
 - **Navigation:** Hub-and-spoke pattern. Every sub-page requires a '← Dashboard' back button.
-- **Data Sourcing:** Energy from OilPriceAPI. CME/CBOT/COMEX/NYMEX non-energy from Massive Futures Basic (6h cache, 5 req/min throttle). ICE/LME items (softs, canola, LME metals) from FMP free tier. FX from Frankfurter.app.
+- **Data Sourcing:** All 31 catalog futures (energy, metals, grains, livestock, dairy, lumber) from Yahoo Finance's free chart/spark endpoints via `_shared/futures-client.ts` (6h cache, no key). Massive/OilPriceAPI/FMP retired. FX from Frankfurter.app.
 - **Security:** Strict RLS (`id = auth.uid()`). Edge functions enforce JWT auth + Zod validation.
 - **Supabase:** Project ID `kcxhsmlqqyarhlmcapmj`. OAuth used for Google/GitHub.
 
@@ -31,7 +31,7 @@ Updated: just now
 - [Navigation Pattern](mem://ui/navigation-pattern) — Hub-and-spoke with back buttons
 - [Multi-Currency](mem://features/multi-currency) — EUR/CNY/INR, Edge Function, local storage sync
 - [Energy Data](mem://integrations/energy-data-sourcing) — Exclusively OilPriceAPI, specific units
-- [Massive Config](mem://integrations/massive-config) — Massive Futures Basic for CME-side non-energy quotes/history/curves
+- [Yahoo Futures Config](mem://integrations/yahoo-futures-config) — free Yahoo Finance quotes/history/curves for the whole catalog (replaced Massive 2026-11-14)
 - [FMP Config](mem://integrations/fmp-data-config) — FMP free tier scoped to 11 ICE/LME items only
 - [Commodity Catalog](mem://project/commodity-catalog-scope) — Free 17 / Premium ~60 split
 - [Economic Calendar](mem://features/economic-calendar-integration) — FMP integration with dashboard deep linking

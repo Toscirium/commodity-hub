@@ -8,7 +8,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders, EdgeLogger } from '../_shared/utils.ts';
-import { fetchMassiveFrontMonthBars } from '../_shared/massive-client.ts';
+import { fetchFrontMonthBars } from '../_shared/futures-client.ts';
 
 const PRODUCTS: Record<string, { label: string; code: string }> = {
   wti:      { label: 'WTI Crude',    code: 'CL' },
@@ -61,7 +61,7 @@ async function refreshOne(
   const from = new Date(today.getTime() - 5 * 365 * 24 * 60 * 60 * 1000);
   let bars: { date: string; close: number }[] = [];
   try {
-    bars = await fetchMassiveFrontMonthBars(
+    bars = await fetchFrontMonthBars(
       product.code,
       from.toISOString().slice(0, 10),
       today.toISOString().slice(0, 10),

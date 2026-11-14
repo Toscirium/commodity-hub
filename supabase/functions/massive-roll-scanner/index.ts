@@ -5,7 +5,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders, EdgeLogger } from '../_shared/utils.ts';
-import { fetchMassiveCurve } from '../_shared/massive-client.ts';
+import { fetchFuturesCurve } from '../_shared/futures-client.ts';
 
 const PRODUCTS: { id: string; label: string; code: string; category: string }[] = [
   { id: 'wti',      label: 'WTI Crude',    code: 'CL',  category: 'energy' },
@@ -75,7 +75,7 @@ serve(async (req) => {
       results = await Promise.all(
         PRODUCTS.map(async (p) => {
         try {
-          const { asOf, curve } = await fetchMassiveCurve(p.code, 12);
+          const { asOf, curve } = await fetchFuturesCurve(p.code, 12);
           if (curve.length < 2) return { ...p, error: 'no_data' as const };
           const m1 = curve[0].price;
           const m2 = curve[1].price;

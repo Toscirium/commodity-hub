@@ -1,11 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { corsHeaders } from '../_shared/utils.ts'
 import { IpRateLimiter } from '../_shared/rateLimit.ts'
-import { FMP_SYMBOLS, MASSIVE_PRODUCT_CODES } from '../_shared/commodity-mappings.ts'
+import { FMP_SYMBOLS, FUTURES_PRODUCT_CODES } from '../_shared/commodity-mappings.ts'
 import { fetchFmpQuote } from '../_shared/fmp-client.ts'
-import { fetchMassiveFrontMonth } from '../_shared/massive-client.ts'
+import { fetchFrontMonth } from '../_shared/futures-client.ts'
 
-// Protect Massive / FMP quotas from anonymous abuse.
+// Protect upstream (Yahoo) from anonymous abuse / rate-limit bans.
 const limiter = new IpRateLimiter({ limit: 60, windowMs: 60_000 });
 
 // In-memory cache with TTL
@@ -89,12 +89,12 @@ serve(async (req) => {
     let priceData = null
     let dataSource = 'unavailable'
 
-    // ── Step 1: Massive Futures for every commodity in the catalog ──
+    // ── Step 1: Yahoo futures quote for every commodity in the catalog ──
     if (!priceData) {
-      const massiveCode = MASSIVE_PRODUCT_CODES[commodityName];
-      if (massiveCode) {
+      const futuresCode = FUTURES_PRODUCT_CODES[commodityName];
+      if (futuresCode) {
         try {
-          const fm = await fetchMassiveFrontMonth(massiveCode);
+          const fm = await fetchFrontMonth(futuresCode);
           if (fm) {
             priceData = {
               symbol: fm.ticker,
@@ -103,10 +103,10 @@ serve(async (req) => {
               changePercent: fm.changePercent,
               lastUpdate: fm.asOf,
             };
-            dataSource = 'massive';
+            dataSource = 'yahoo';
           }
         } catch (err) {
-          console.warn(`Massive snapshot failed for ${commodityName}:`, err);
+          console.warn(`Futures quote failed for ${commodityName}:`, err);
         }
       }
     }

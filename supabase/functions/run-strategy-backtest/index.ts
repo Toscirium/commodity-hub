@@ -21,7 +21,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getQuickJS } from 'npm:quickjs-emscripten@0.31.0';
 import { corsHeaders, EdgeLogger } from '../_shared/utils.ts';
-import { fetchMassiveFrontMonthBars } from '../_shared/massive-client.ts';
+import { fetchFrontMonthBars } from '../_shared/futures-client.ts';
 import { ensurePro } from '../_shared/proTier.ts';
 import { alignPair } from '../_shared/spreadSeries.ts';
 import { annualizedSharpe, maxDrawdownAbsolute } from '../_shared/backtestMath.ts';
@@ -272,8 +272,8 @@ Deno.serve(async (req) => {
     const to = new Date();
     const from = new Date(to.getTime() - years * 365 * 24 * 60 * 60 * 1000);
     const [barsA, barsB] = await Promise.all([
-      fetchMassiveFrontMonthBars(PRODUCTS[legA].code, from.toISOString().slice(0, 10), to.toISOString().slice(0, 10)) as unknown as Promise<{ date: string; close: number }[]>,
-      fetchMassiveFrontMonthBars(PRODUCTS[legB].code, from.toISOString().slice(0, 10), to.toISOString().slice(0, 10)) as unknown as Promise<{ date: string; close: number }[]>,
+      fetchFrontMonthBars(PRODUCTS[legA].code, from.toISOString().slice(0, 10), to.toISOString().slice(0, 10)) as unknown as Promise<{ date: string; close: number }[]>,
+      fetchFrontMonthBars(PRODUCTS[legB].code, from.toISOString().slice(0, 10), to.toISOString().slice(0, 10)) as unknown as Promise<{ date: string; close: number }[]>,
     ]);
     let bars = alignPair(
       (barsA ?? []).filter((b) => b?.close != null),

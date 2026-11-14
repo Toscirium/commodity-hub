@@ -1,9 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { corsHeaders } from '../_shared/utils.ts'
 import { IpRateLimiter } from '../_shared/rateLimit.ts'
-import { FMP_SYMBOLS, MASSIVE_PRODUCT_CODES } from '../_shared/commodity-mappings.ts'
+import { FMP_SYMBOLS, FUTURES_PRODUCT_CODES } from '../_shared/commodity-mappings.ts'
 import { fetchFmpHistorical } from '../_shared/fmp-client.ts'
-import { fetchMassiveFrontMonthBars } from '../_shared/massive-client.ts'
+import { fetchFrontMonthBars } from '../_shared/futures-client.ts'
 
 // Protect Yahoo/CommodityPriceAPI/OilPriceAPI quota from anonymous abuse.
 const limiter = new IpRateLimiter({ limit: 60, windowMs: 60_000 });
@@ -185,7 +185,7 @@ serve(async (req) => {
     let ohlcAvailable = false;
 
     // Step 1: Massive daily aggs — sole source for every commodity in the catalog.
-    const massiveCode = MASSIVE_PRODUCT_CODES[commodityName];
+    const massiveCode = FUTURES_PRODUCT_CODES[commodityName];
     if (!historicalData && massiveCode) {
       try {
         const maxDays = isPremium
@@ -197,7 +197,7 @@ serve(async (req) => {
         const startStr = startDate.toISOString().split('T')[0];
         const endStr = endDate.toISOString().split('T')[0];
 
-        const bars = await fetchMassiveFrontMonthBars(massiveCode, startStr, endStr);
+        const bars = await fetchFrontMonthBars(massiveCode, startStr, endStr);
         if (bars.length > 1) {
           historicalData = bars.map((b) => ({
             date: b.date,

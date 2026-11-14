@@ -3,14 +3,14 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import {
   COMMODITY_SYMBOLS,
   FMP_SYMBOLS,
-  MASSIVE_PRODUCT_CODES,
+  FUTURES_PRODUCT_CODES,
   PREMIUM_COMMODITIES,
 } from './commodity-mappings.ts';
 import { fetchFmpQuotes, fetchFmpHistorical } from './fmp-client.ts';
 import {
-  fetchMassiveFrontMonth,
-  fetchMassiveFrontMonthBars,
-} from './massive-client.ts';
+  fetchFrontMonth,
+  fetchFrontMonthBars,
+} from './futures-client.ts';
 
 /**
  * How much to trust a row's price, and as of when.
@@ -69,10 +69,10 @@ export interface ChartDataPoint {
   close?: number;
 }
 
-// Module-scoped cache (per edge instance) — sized for CPA Lite (2K calls/month).
+// Module-scoped cache (per edge instance). Keeps Yahoo request volume low.
 type CacheEntry<T> = { data: T; expiresAt: number };
 const cache = new Map<string, CacheEntry<unknown>>();
-const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours — paid-app model: refresh ~4x/day fits CPA Lite (2K/mo) + OilPriceAPI quotas at 100+ users
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 function getCache<T>(key: string): T | null {
   const entry = cache.get(key);
@@ -117,16 +117,15 @@ export class CommodityService {
         return cached;
       }
 
-      // Massive Starter has unlimited calls, so all three providers run in
-      // parallel. Cold-path latency is now bounded by the slowest single
-      // request (~1-2s) instead of the old 12s-throttled batches.
-      const [fmpResults, oilResults, massiveResults] = await Promise.all([
+      // All providers run in parallel (FMP/Oil are retired no-ops); cold-path
+      // latency is bounded by the slowest single request.
+      const [fmpResults, oilResults, futuresResults] = await Promise.all([
         this.fetchAllFromFmp(includePremium),
         this.fetchAllFromOilPriceApi(includePremium),
-        this.fetchAllFromMassive(includePremium),
+        this.fetchAllFromFutures(includePremium),
       ]);
 
-      const liveResults = [...oilResults, ...fmpResults, ...massiveResults];
+      const liveResults = [...oilResults, ...fmpResults, ...futuresResults];
       const snapshotResults = await this.fetchSnapshotBackfill(includePremium, liveResults);
       const merged = [...liveResults, ...snapshotResults];
       // A missing upstream quote is unavailable, not an opportunity to invent
@@ -145,9 +144,9 @@ export class CommodityService {
       if (merged.length > 0) {
         setCache(cacheKey, merged);
       } else {
-        this.logger.warn(`Skipping cache (${cacheKey}): oil=${oilResults.length}, massive=${massiveResults.length}, fmp=${fmpResults.length}`);
+        this.logger.warn(`Skipping cache (${cacheKey}): oil=${oilResults.length}, futures=${futuresResults.length}, fmp=${fmpResults.length}`);
       }
-      this.logger.info(`Fetched ${merged.length} commodities (oil=${oilResults.length}, massive=${massiveResults.length}, fmp=${fmpResults.length}, premium=${includePremium})`);
+      this.logger.info(`Fetched ${merged.length} commodities (oil=${oilResults.length}, futures=${futuresResults.length}, fmp=${fmpResults.length}, premium=${includePremium})`);
       return merged;
     } catch (error) {
       this.logger.error('Failed to fetch commodities', error);
@@ -197,24 +196,18 @@ export class CommodityService {
   }
 
   /**
-   * Fetches front-month snapshots from Massive Futures Starter in parallel.
-   * Starter tier removes the 5 req/min cap and exposes /snapshot (1 call per
-   * product). Missing items fall through to the DB snapshot fallback.
+   * Fetches continuous front-month quotes (Yahoo Finance, free, no key) in
+   * parallel. Missing items fall through to the DB snapshot fallback.
    */
-  private async fetchAllFromMassive(includePremium = false): Promise<CommodityData[]> {
-    const apiKey = Deno.env.get('MASSIVE_API_KEY') || '';
-    if (!apiKey) {
-      this.logger.warn('No MASSIVE_API_KEY configured');
-      return [];
-    }
-    const targets = Object.entries(MASSIVE_PRODUCT_CODES)
+  private async fetchAllFromFutures(includePremium = false): Promise<CommodityData[]> {
+    const targets = Object.entries(FUTURES_PRODUCT_CODES)
       .filter(([name]) => includePremium || !PREMIUM_COMMODITIES.has(name));
     if (targets.length === 0) return [];
 
     const results = await Promise.all(
       targets.map(async ([name, code]) => {
         try {
-          const fm = await fetchMassiveFrontMonth(code);
+          const fm = await fetchFrontMonth(code);
           if (!fm) return null;
           const meta = COMMODITY_SYMBOLS[name];
           return {
@@ -229,7 +222,7 @@ export class CommodityService {
             venue: meta?.venue || 'CME',
           } as CommodityData;
         } catch (err) {
-          this.logger.warn(`Massive snapshot failed for ${name}`, err);
+          this.logger.warn(`Front-month quote failed for ${name}`, err);
           return null;
         }
       }),
@@ -239,7 +232,7 @@ export class CommodityService {
 
   /**
    * Retired 2026-07-14: OilPriceAPI decommissioned; all commodities now flow
-   * through Massive Futures via `fetchAllFromMassive`. Kept as a no-op so
+   * through futures-client.ts via `fetchAllFromFutures`. Kept as a no-op so
    * older code paths and tests don't break.
    */
   private async fetchAllFromOilPriceApi(includePremium = false): Promise<CommodityData[]> {
@@ -423,11 +416,11 @@ export class CommodityService {
       if (cached) return cached;
 
       const fmpSym = FMP_SYMBOLS[commodityName];
-      const massiveCode = MASSIVE_PRODUCT_CODES[commodityName];
+      const futuresCode = FUTURES_PRODUCT_CODES[commodityName];
 
-      // Prefer Massive for CME-side names.
-      if (massiveCode) {
-        const data = await this.fetchMassiveTimeseries(massiveCode, timeframe, chartType);
+      // Primary: continuous front-month history.
+      if (futuresCode) {
+        const data = await this.fetchFuturesTimeseries(futuresCode, timeframe, chartType);
         if (data.length > 0) {
           setCache(cacheKey, data);
           return data;
@@ -487,7 +480,7 @@ export class CommodityService {
     });
   }
 
-  private async fetchMassiveTimeseries(
+  private async fetchFuturesTimeseries(
     productCode: string,
     timeframe: string,
     chartType: string,
@@ -501,7 +494,7 @@ export class CommodityService {
     const startStr = startDate.toISOString().split('T')[0];
     const endStr = endDate.toISOString().split('T')[0];
 
-    const bars = await fetchMassiveFrontMonthBars(productCode, startStr, endStr);
+    const bars = await fetchFrontMonthBars(productCode, startStr, endStr);
     return bars.map((b) => {
       const point: ChartDataPoint = { date: b.date, price: b.close };
       if (chartType === 'candlestick') {

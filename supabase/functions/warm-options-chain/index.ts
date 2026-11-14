@@ -18,7 +18,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeaders, EdgeLogger } from '../_shared/utils.ts';
-import { fetchMassiveFrontMonth } from '../_shared/massive-client.ts';
+import { fetchFrontMonth } from '../_shared/futures-client.ts';
 import { PRODUCT_ROOTS, buildOptionsChainPayload, NoLiveInstrumentsError } from '../_shared/options-chain-builder.ts';
 
 const CACHE_KEY_PREFIX = 'options-chain:';
@@ -59,7 +59,7 @@ serve(async (req) => {
   for (const product of Object.keys(PRODUCT_ROOTS)) {
     try {
       const payload = await buildOptionsChainPayload(
-        apiKey, product, fetchMassiveFrontMonth, undefined,
+        apiKey, product, fetchFrontMonth, undefined,
         (msg, err) => logger.warn(msg, err),
       );
       const { error } = await admin
